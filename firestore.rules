@@ -1,0 +1,214 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Match collection rules
+    match /matches/{matchId} {
+      // Allow read access to all authenticated users (for public matches)
+      allow read: if request.auth != null;
+      
+      // Allow create for authenticated users
+      allow create: if request.auth != null 
+        && request.auth.uid == resource.data.player1.id
+        && resource.data.status == 'waiting';
+      
+      // Allow update only for match participants and with strict validation
+      allow update: if request.auth != null
+        && isMatchParticipant(request.auth.uid, resource.data)
+        && !isGameCompleted(resource.data)
+        && validateMoveUpdate(request.auth.uid, resource.data, request.resource.data);
+      
+      // Allow delete only for match creator
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.player1.id
+        && resource.data.status == 'waiting';
+    }
+    
+    // Helper functions
+    function isMatchParticipant(userId, matchData) {
+      return userId == matchData.player1.id 
+        || (matchData.player2 != null && userId == matchData.player2.id);
+    }
+    
+    function isGameCompleted(matchData) {
+      return matchData.status == 'completed' 
+        || matchData.status == 'cancelled'
+        || matchData.gameOver == true;
+    }
+    
+    function validateMoveUpdate(userId, oldData, newData) {
+      // Ensure only one move per player per turn
+      let playerNumber = getPlayerNumber(userId, oldData);
+      if (playerNumber == null) return false;
+      
+      // Check if it's the player's turn
+      if (oldData.currentTurn != playerNumber) return false;
+      
+      // Check if game is active
+      if (oldData.status != 'active') return false;
+      
+      // Validate that only game state fields are being updated
+      let allowedFields = ['lines', 'squares', 'scores', 'currentTurn', 'gameOver', 'winner', 'status', 'updatedAt'];
+      let changedFields = getChangedFields(oldData, newData);
+      
+      // All changed fields must be in allowed fields
+      for (let field in changedFields) {
+        if (!(field in allowedFields)) return false;
+      }
+      
+      // Validate line addition (only one new line per move)
+      if ('lines' in changedFields) {
+        let oldLines = oldData.lines != null ? oldData.lines : [];
+        let newLines = newData.lines != null ? newData.lines : [];
+        
+        // Must add exactly one line
+        if (newLines.size() != oldLines.size() + 1) return false;
+        
+        // Find the new line
+        let newLine = null;
+        for (let line in newLines) {
+          if (!oldLines.hasAny([line])) {
+            newLine = line;
+            break;
+          }
+        }
+        
+        if (newLine == null) return false;
+        
+        // Validate the new line belongs to the current player
+        if (newLine.player != playerNumber) return false;
+        
+        // Validate line coordinates are valid
+        if (!isValidLine(newLine, oldData.gridSize)) return false;
+        
+        // Validate line doesn't already exist
+        if (lineExists(newLine, oldLines)) return false;
+      }
+      
+      // Validate square updates
+      if ('squares' in changedFields) {
+        let oldSquares = oldData.squares != null ? oldData.squares : [];
+        let newSquares = newData.squares != null ? newData.squares : [];
+        
+        // Can only claim squares that were previously unclaimed
+        for (let square in newSquares) {
+          let oldSquare = oldSquares.where('id', '==', square.id).limit(1);
+          if (oldSquare.size() > 0) {
+            let oldSquareData = oldSquare.data()[0];
+            if (oldSquareData.player != null && square.player != oldSquareData.player) {
+              return false; // Cannot change ownership of already claimed square
+            }
+          }
+        }
+      }
+      
+      // Validate score updates
+      if ('scores' in changedFields) {
+        let oldScores = oldData.scores != null ? oldData.scores : {};
+        let newScores = newData.scores != null ? newData.scores : {};
+        
+        // Score can only increase
+        for (let player in newScores) {
+          let oldScore = oldScores[player] != null ? oldScores[player] : 0;
+          if (newScores[player] < oldScore) return false;
+        }
+      }
+      
+      // Validate turn progression
+      if ('currentTurn' in changedFields) {
+        // Turn can only be 1 or 2
+        if (newData.currentTurn != 1 && newData.currentTurn != 2) return false;
+        
+        // Turn can only change from current player to other player
+        if (newData.currentTurn == oldData.currentTurn) return false;
+      }
+      
+      // Validate game completion
+      if ('gameOver' in changedFields || 'winner' in changedFields || 'status' in changedFields) {
+        // Can only set gameOver to true, not false
+        if ('gameOver' in changedFields && newData.gameOver == false && oldData.gameOver == true) return false;
+        
+        // Can only set status to 'completed' from 'active'
+        if ('status' in changedFields && oldData.status != 'active' && newData.status == 'completed') return false;
+        
+        // Winner can only be set when game is completed
+        if ('winner' in changedFields && newData.winner != null && newData.status != 'completed') return false;
+      }
+      
+      return true;
+    }
+    
+    function getPlayerNumber(userId, matchData) {
+      if (userId == matchData.player1.id) return 1;
+      if (matchData.player2 != null && userId == matchData.player2.id) return 2;
+      return null;
+    }
+    
+    function getChangedFields(oldData, newData) {
+      let changed = {};
+      for (let field in newData) {
+        if (oldData[field] != newData[field]) {
+          changed[field] = true;
+        }
+      }
+      return changed;
+    }
+    
+    function isValidLine(line, gridSize) {
+      // Parse dot coordinates from dot IDs
+      let startCoords = parseDotId(line.startDot);
+      let endCoords = parseDotId(line.endDot);
+      
+      if (startCoords == null || endCoords == null) return false;
+      
+      let maxCoord = gridSize - 1;
+      
+      // Check bounds
+      if (startCoords.x < 0 || startCoords.x > maxCoord || 
+          startCoords.y < 0 || startCoords.y > maxCoord ||
+          endCoords.x < 0 || endCoords.x > maxCoord || 
+          endCoords.y < 0 || endCoords.y > maxCoord) {
+        return false;
+      }
+      
+      // Check if line is horizontal or vertical
+      let isHorizontal = startCoords.y == endCoords.y;
+      let isVertical = startCoords.x == endCoords.x;
+      
+      if (!isHorizontal && !isVertical) return false;
+      
+      // Check if line connects adjacent dots
+      if (isHorizontal) {
+        return abs(startCoords.x - endCoords.x) == 1;
+      } else {
+        return abs(startCoords.y - endCoords.y) == 1;
+      }
+    }
+    
+    function parseDotId(dotId) {
+      let parts = dotId.split('-');
+      if (parts.size() != 2) return null;
+      
+      let y = int(parts[0]);
+      let x = int(parts[1]);
+      
+      if (y == null || x == null) return null;
+      
+      return { x: x, y: y };
+    }
+    
+    function lineExists(newLine, existingLines) {
+      for (let line in existingLines) {
+        if ((line.startDot == newLine.startDot && line.endDot == newLine.endDot) ||
+            (line.startDot == newLine.endDot && line.endDot == newLine.startDot)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+} 

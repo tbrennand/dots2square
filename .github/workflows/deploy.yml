@@ -1,0 +1,177 @@
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run type check
+        run: npx tsc --noEmit
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Firebase Hosting
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Setup Firebase CLI
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only hosting
+        env:
+          FIREBASE_SERVICE_ACCOUNT_DOTS2SQUARES: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DOTS2SQUARES }}
+          FIREBASE_PROJECT: dots2squares-game
+
+      - name: Deploy to Firebase Hosting
+        run: |
+          echo "🚀 Deploying to Firebase Hosting..."
+          firebase deploy --only hosting --token "$FIREBASE_TOKEN"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Comment deployment URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deploymentUrl = 'https://dots2squares-game.web.app';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🎉 **Deployment successful!**\n\nYour changes have been deployed to Firebase Hosting:\n\n🔗 **Live URL**: ${deploymentUrl}\n\n📊 **Build Info**:\n- Commit: \`${context.sha.substring(0, 7)}\`\n- Branch: \`${context.ref}\`\n- Triggered by: @${context.actor}`
+            });
+        if: github.event_name == 'push'
+
+  preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Setup Firebase CLI
+        uses: w9jds/firebase-action@master
+        with:
+          args: hosting:channel:deploy preview-${{ github.event.number }}
+        env:
+          FIREBASE_SERVICE_ACCOUNT_DOTS2SQUARES: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DOTS2SQUARES }}
+          FIREBASE_PROJECT: dots2squares-game
+
+      - name: Deploy Preview
+        run: |
+          echo "🎭 Deploying preview..."
+          firebase hosting:channel:deploy preview-${{ github.event.number }} --token "$FIREBASE_TOKEN"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Get preview URL
+        id: preview-url
+        run: |
+          URL=$(firebase hosting:channel:list --token "$FIREBASE_TOKEN" | grep "preview-${{ github.event.number }}" | awk '{print $2}')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Comment preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const previewUrl = '${{ steps.preview-url.outputs.url }}';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🎭 **Preview deployment ready!**\n\nYour changes have been deployed to a preview channel:\n\n🔗 **Preview URL**: ${previewUrl}\n\n📊 **Build Info**:\n- PR: #${context.issue.number}\n- Commit: \`${context.sha.substring(0, 7)}\`\n- Branch: \`${context.head_ref}\`\n\n⚠️ **Note**: This is a preview deployment. The URL will expire after 7 days.`
+            }); 
