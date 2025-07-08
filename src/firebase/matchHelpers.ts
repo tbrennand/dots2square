@@ -61,7 +61,13 @@ export interface CreateMatchOptions {
   maxPlayers?: number
 }
 
+// Helper to remove undefined fields from an object (shallow)
+function removeUndefined(obj: any) {
+  return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined));
+}
+
 export async function createMatch(options: CreateMatchOptions): Promise<string> {
+  console.log('createMatch called with options:', options); // Debug log
   try {
     const {
       player1Id,
@@ -135,13 +141,13 @@ export async function createMatch(options: CreateMatchOptions): Promise<string> 
 
     // Add to Firestore
     const matchesRef = collection(db, 'matches')
-    const docRef = await addDoc(matchesRef, {
+    const docRef = await addDoc(matchesRef, removeUndefined({
       ...matchData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
-    })
+    }))
 
-    console.log('Match created successfully:', docRef.id)
+    console.log('Match created successfully:', docRef.id); // Debug log
     return docRef.id
   } catch (error) {
     console.error('Error creating match:', error)

@@ -79,13 +79,19 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { createMatch as createMatchHelper } from '@/firebase/matchHelpers'
 
 const router = useRouter()
 const showJoinModal = ref(false)
 const matchCode = ref('')
 
-const createMatch = () => {
-  router.push('/lobby')
+const createMatch = async () => {
+  // Replace with actual user info as needed
+  const player1Id = 'player1-' + Math.random().toString(36).substring(2, 8)
+  const player1Name = 'Player 1'
+
+  const matchId = await createMatchHelper({ player1Id, player1Name })
+  router.push(`/lobby/${matchId}`)
 }
 
 const joinMatch = () => {
