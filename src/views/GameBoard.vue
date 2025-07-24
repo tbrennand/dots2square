@@ -163,7 +163,7 @@
           <!-- Chat -->
           <Chat 
             :matchId="currentMatchId" 
-            :currentPlayerName="matchData?.player${currentUserPlayerNumber.value ?? 1}?.name || 'Player'" 
+            :currentPlayerName="currentPlayerName"
           />
         </div>
       </div>
@@ -243,6 +243,11 @@ const canCurrentUserMove = computed(() => {
 // Get current user's player number
 const currentUserPlayerNumber = computed(() => {
   return matchStore.getPlayerNumber(currentUserId.value)
+})
+
+const currentPlayerName = computed(() => {
+  const playerNum = currentUserPlayerNumber.value ?? 1
+  return matchData.value?.[`player${playerNum}`]?.name || 'Player'
 })
 
 // Error handling functions
