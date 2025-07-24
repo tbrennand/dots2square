@@ -7,7 +7,7 @@ const routes = [
     component: () => import('../components/HomeScreen.vue'),
   },
   {
-    path: '/lobby',
+    path: '/lobby/:id',
     name: 'MatchLobby',
     component: () => import('../components/MatchLobby.vue'),
   },

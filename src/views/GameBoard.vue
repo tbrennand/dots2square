@@ -159,6 +159,12 @@
               </div>
             </div>
           </div>
+
+          <!-- Chat -->
+          <Chat 
+            :matchId="currentMatchId" 
+            :currentPlayerName="matchData?.player1?.name || 'Player'" 
+          />
         </div>
       </div>
     </div>
@@ -182,6 +188,7 @@ import DotGrid from '../components/DotGrid.vue'
 import TurnTracker from '../components/TurnTracker.vue'
 import ScoreCard from '../components/ScoreCard.vue'
 import GameControls from '../components/GameControls.vue'
+import Chat from '../components/Chat.vue'
 
 // Router and route
 const route = useRoute()

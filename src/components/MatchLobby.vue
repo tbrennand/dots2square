@@ -137,27 +137,7 @@
     </div>
 
     <!-- Chat/Message Area -->
-    <div class="chat-section">
-      <h3 class="section-title">Lobby Chat</h3>
-      <div class="chat-messages" ref="chatMessages">
-        <div v-for="message in chatMessages" :key="message.id" class="chat-message">
-          <span class="message-time">{{ formatTime(message.timestamp) }}</span>
-          <span class="message-author">{{ message.author }}:</span>
-          <span class="message-text">{{ message.text }}</span>
-        </div>
-      </div>
-      <div class="chat-input">
-        <input 
-          v-model="newMessage" 
-          @keyup.enter="sendMessage"
-          placeholder="Type a message..."
-          class="message-input"
-        />
-        <button @click="sendMessage" :disabled="!newMessage.trim()" class="send-btn">
-          Send
-        </button>
-      </div>
-    </div>
+    <Chat :matchId="matchId" :currentPlayerName="getPlayerName(getCurrentPlayerNumber())" />
 
     <!-- Error/Success Messages -->
     <div v-if="errorMessage" class="error-message">
@@ -174,8 +154,9 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMatchStore } from '../stores/matchStore'
-import { doc, updateDoc, onSnapshot, Unsubscribe } from 'firebase/firestore'
+import { doc, updateDoc, Unsubscribe } from 'firebase/firestore'
 import { db } from '../firebase/index'
+import Chat from './Chat.vue'
 
 // Router and route
 const route = useRoute()
@@ -192,14 +173,6 @@ const isStarting = ref(false)
 const isUpdatingReady = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
-const chatMessages = ref<Array<{
-  id: string
-  author: string
-  text: string
-  timestamp: Date
-}>>([])
-const newMessage = ref('')
-const chatMessagesRef = ref<HTMLElement>()
 
 // Computed properties
 const matchData = computed(() => matchStore.matchData)
@@ -396,34 +369,6 @@ const copyMatchLink = async () => {
   } catch (error) {
     errorMessage.value = 'Failed to copy link'
   }
-}
-
-const sendMessage = () => {
-  if (!newMessage.value.trim()) return
-
-  const message = {
-    id: Date.now().toString(),
-    author: getPlayerName(getCurrentPlayerNumber()),
-    text: newMessage.value.trim(),
-    timestamp: new Date()
-  }
-
-  chatMessages.value.push(message)
-  newMessage.value = ''
-
-  // Scroll to bottom
-  nextTick(() => {
-    if (chatMessagesRef.value) {
-      chatMessagesRef.value.scrollTop = chatMessagesRef.value.scrollHeight
-    }
-  })
-}
-
-const formatTime = (date: Date): string => {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date)
 }
 
 // Initialize
