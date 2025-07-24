@@ -87,6 +87,10 @@ async function sendMessage() {
 
 // Subscribe to messages
 onMounted(() => {
+  if (!props.matchId) {
+    console.warn('No matchId provided for chat subscription');
+    return;
+  }
   const messagesRef = collection(db, `matches/${props.matchId}/messages`)
   const messagesQuery = query(messagesRef, orderBy('timestamp', 'asc'))
   
@@ -94,8 +98,8 @@ onMounted(() => {
     chatMessages.value = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      timestamp: doc.data().timestamp.toDate()
-    }) as ChatMessage)
+      timestamp: doc.data().timestamp?.toDate() ?? new Date()
+    }) as ChatMessage) || [];
     
     // Scroll to bottom
     nextTick(() => {
@@ -104,7 +108,8 @@ onMounted(() => {
       }
     })
   }, (error) => {
-    console.error('Error listening to messages:', error)
+    console.error('Error listening to messages:', error);
+    chatMessages.value = [];
   })
 })
 
