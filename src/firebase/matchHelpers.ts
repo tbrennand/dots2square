@@ -68,16 +68,19 @@ function removeUndefined(obj: any) {
 
 // Deep version to handle nested objects and arrays
 function deepRemoveUndefined(value: any): any {
-  if (value === undefined) return null; // Convert undefined to null, as Firebase allows null
+  if (value === undefined) return null;
   if (Array.isArray(value)) {
     return value.map(deepRemoveUndefined).filter(v => v !== undefined);
   }
   if (typeof value === 'object' && value !== null) {
-    return Object.fromEntries(
-      Object.entries(value)
-        .map(([k, v]) => [k, deepRemoveUndefined(v)])
-        .filter(([_, v]) => v !== undefined)
-    );
+    const cleaned: any = {};
+    for (const [k, v] of Object.entries(value)) {
+      const cleanedV = deepRemoveUndefined(v);
+      if (cleanedV !== undefined) {
+        cleaned[k] = cleanedV;
+      }
+    }
+    return cleaned;
   }
   return value;
 }
@@ -157,12 +160,13 @@ export async function createMatch(options: CreateMatchOptions): Promise<string> 
 
     // Add to Firestore
     const matchesRef = collection(db, 'matches')
-    const cleanedData = deepRemoveUndefined({
-      ...matchData,
+    const cleanedData = deepRemoveUndefined(matchData);
+    console.log('Cleaned match data:', cleanedData);
+    const docRef = await addDoc(matchesRef, {
+      ...cleanedData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-    const docRef = await addDoc(matchesRef, cleanedData)
 
     console.log('Match created successfully:', docRef.id); // Debug log
     return docRef.id
