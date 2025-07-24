@@ -29,8 +29,13 @@
     <div v-else-if="isCompleted" class="completed-controls">
       <p class="game-complete">Game Complete!</p>
       <div class="control-buttons">
-        <button @click="$emit('rematch')" class="btn-rematch">
-          Rematch
+        <button 
+          @click="$emit('rematch')" 
+          class="btn-rematch"
+          :disabled="isCreating"
+        >
+          <span v-if="isCreating">Creating...</span>
+          <span v-else>Rematch</span>
         </button>
       </div>
     </div>
@@ -48,6 +53,7 @@ defineProps<{
   isWaiting: boolean
   isActive: boolean
   isCompleted: boolean
+  isCreating?: boolean
 }>()
 
 defineEmits<{

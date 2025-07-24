@@ -176,6 +176,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useMatchStore } from '../stores/matchStore'
 import { doc, updateDoc, onSnapshot, Unsubscribe } from 'firebase/firestore'
 import { db } from '../firebase/index'
+import { auth } from '../firebase/index'
+import { onAuthStateChanged } from 'firebase/auth'
 
 // Router and route
 const route = useRoute()
@@ -187,7 +189,7 @@ const matchStore = useMatchStore()
 // Local state
 const matchId = ref('')
 const isHost = ref(false)
-const currentPlayerId = ref('')
+const currentPlayerId = ref<string | null>(null)
 const isStarting = ref(false)
 const isUpdatingReady = ref(false)
 const errorMessage = ref('')
@@ -200,6 +202,14 @@ const chatMessages = ref<Array<{
 }>>([])
 const newMessage = ref('')
 const chatMessagesRef = ref<HTMLElement>()
+
+// Auth listener
+const authUnsubscribe = onAuthStateChanged(auth, (user) => {
+  currentPlayerId.value = user ? user.uid : null
+  if (!user) {
+    console.warn('User not authenticated')
+  }
+})
 
 // Computed properties
 const matchData = computed(() => matchStore.matchData)
@@ -232,7 +242,8 @@ const isCurrentPlayerReady = computed(() => {
 })
 
 // Helper functions
-const getCurrentPlayerNumber = (): number => {
+function getCurrentPlayerNumber(): number {
+  if (!currentPlayerId.value) return 0
   if (matchData.value?.player1?.id === currentPlayerId.value) return 1
   if (matchData.value?.player2?.id === currentPlayerId.value) return 2
   return 0
@@ -429,7 +440,6 @@ const formatTime = (date: Date): string => {
 // Initialize
 onMounted(() => {
   matchId.value = route.params.id as string
-  currentPlayerId.value = 'user-123' // TODO: Get from auth
   
   // Determine if current user is host
   if (matchData.value?.player1?.id === currentPlayerId.value) {
@@ -449,6 +459,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   matchStore.unsubscribeFromMatch()
+  authUnsubscribe()
 })
 </script>
 

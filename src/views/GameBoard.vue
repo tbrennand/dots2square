@@ -56,7 +56,7 @@
         <div class="header-left">
           <h1 class="game-title">Dots to Squares</h1>
           <p class="match-info">
-            Match: {{ currentMatchId?.slice(0, 8) }}... | 
+            Match: {{ shortMatchId }}... | 
             Status: {{ getMatchStatus() }}
             <span v-if="!isConnected" class="connection-status disconnected">Disconnected</span>
             <span v-else class="connection-status connected">Connected</span>
@@ -112,6 +112,7 @@
             :is-waiting="isWaiting"
             :is-active="isActive"
             :is-completed="isCompleted"
+            :is-creating="isCreating"
             @forfeit="handleForfeit"
             @rematch="handleRematch"
           />
@@ -182,6 +183,13 @@ import DotGrid from '../components/DotGrid.vue'
 import TurnTracker from '../components/TurnTracker.vue'
 import ScoreCard from '../components/ScoreCard.vue'
 import GameControls from '../components/GameControls.vue'
+import { auth } from '../firebase'
+import { onAuthStateChanged } from 'firebase/auth'
+import { storeToRefs } from 'pinia'
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '../firebase'
+import { createMatch } from '../firebase/matchHelpers'
+import { useRematch } from '../composables/useRematch'
 
 // Router and route
 const route = useRoute()
@@ -189,18 +197,7 @@ const router = useRouter()
 
 // Match store
 const matchStore = useMatchStore()
-
-// Local state
-const currentUserId = ref<string>('user-123') // TODO: Get from auth
-const isProcessingMove = ref(false)
-const showConnectionWarning = ref(false)
-const connectionWarningMessage = ref('')
-const lastUpdateTime = ref('Just now')
-const loadingProgress = ref(0)
-const loadingMessage = ref('Loading game...')
-const errorType = ref<'match-not-found' | 'opponent-disconnected' | 'firestore-error' | 'unknown'>('unknown')
-
-// Computed properties from store
+const storeRefs = storeToRefs(matchStore)
 const {
   currentMatchId,
   matchData,
@@ -218,24 +215,56 @@ const {
   lines,
   squares,
   gridSize,
-  players,
+  players
+} = storeRefs
+const {
   getMatchStatus,
   getMatchProgress,
   getRemainingSquares,
   getClaimedSquaresByPlayer,
   getPlayerNumber,
   isPlayerInMatch,
-  canPlayerMove
+  canPlayerMove,
+  subscribeToMatchById,
+  unsubscribeFromMatch,
+  clearError
 } = matchStore
+
+// Local state
+const currentUserId = ref<string | null>(null)
+const isProcessingMove = ref(false)
+const showConnectionWarning = ref(false)
+const connectionWarningMessage = ref('')
+const lastUpdateTime = ref('Just now')
+const loadingProgress = ref(0)
+const loadingMessage = ref('Loading game...')
+const errorType = ref<'match-not-found' | 'opponent-disconnected' | 'firestore-error' | 'unknown'>('unknown')
+
+// Add useRematch initialization
+const {
+  isCreating,
+  error: rematchError,
+  newMatchId,
+  canCreateRematch,
+  setOriginalMatch,
+  navigateToRematch,
+  copyRematchLink,
+  reset
+} = useRematch()
+
+// Safe computed for short match ID
+const shortMatchId = computed(() => currentMatchId.value?.slice(0, 8) || 'Unknown')
 
 // Check if current user can move
 const canCurrentUserMove = computed(() => {
-  return matchStore.canPlayerMove(currentUserId.value)
+  if (!currentUserId.value) return false
+  return canPlayerMove(currentUserId.value)
 })
 
 // Get current user's player number
 const currentUserPlayerNumber = computed(() => {
-  return matchStore.getPlayerNumber(currentUserId.value)
+  if (!currentUserId.value) return null
+  return getPlayerNumber(currentUserId.value)
 })
 
 // Error handling functions
@@ -267,8 +296,8 @@ const handleOpponentDisconnect = () => {
 
 const retryConnection = () => {
   if (currentMatchId.value) {
-    matchStore.clearError()
-    matchStore.subscribeToMatchById(currentMatchId.value)
+    clearError()
+    subscribeToMatchById(currentMatchId.value)
   }
 }
 
@@ -279,10 +308,10 @@ const dismissConnectionWarning = () => {
 
 // Handle line selection from DotGrid
 const handleLineSelected = async (line: { startDot: string; endDot: string }) => {
-  if (!currentMatchId.value || isProcessingMove.value) return
+  if (!currentMatchId.value || !currentUserId.value || isProcessingMove.value) return
   
   // Check if user can make a move
-  if (!canPlayerMove.value) {
+  if (!canPlayerMove(currentUserId.value)) {
     console.log('Not your turn or game not active')
     return
   }
@@ -339,20 +368,49 @@ const handleLineSelected = async (line: { startDot: string; endDot: string }) =>
 }
 
 // Handle forfeit
-const handleForfeit = () => {
-  // TODO: Implement forfeit logic
-  console.log('Forfeit requested')
+const handleForfeit = async () => {
+  if (!currentMatchId.value || !currentUserId.value || !currentUserPlayerNumber.value) return
+  try {
+    const matchRef = doc(db, 'matches', currentMatchId.value)
+    await updateDoc(matchRef, {
+      status: 'completed',
+      gameOver: true,
+      winner: currentUserPlayerNumber.value === 1 ? 2 : 1,
+      updatedAt: serverTimestamp()
+    })
+    console.log('Match forfeited')
+  } catch (error) {
+    console.error('Forfeit error:', error)
+  }
 }
 
 // Handle rematch
-const handleRematch = () => {
-  // TODO: Implement rematch logic
-  console.log('Rematch requested')
+const handleRematch = async () => {
+  if (!matchData.value || !currentUserId.value || !currentUserPlayerNumber.value || !currentMatchId.value) return
+  
+  if (!matchData.value.player2) return  // Cannot rematch without opponent
+  
+  const currentUserName = currentUserPlayerNumber.value === 1 
+    ? matchData.value.player1.name 
+    : matchData.value.player2.name
+  
+  try {
+    await navigateToRematch({
+      originalMatchId: currentMatchId.value,
+      currentUserId: currentUserId.value,
+      currentUserName,
+      gridSize: gridSize.value,
+      isPublic: matchData.value.isPublic
+    })
+  } catch (error) {
+    console.error('Rematch error:', error)
+    // Optionally set matchStore.error = rematchError.value
+  }
 }
 
 // Navigation
 const goHome = () => {
-  matchStore.unsubscribeFromMatch()
+  unsubscribeFromMatch()
   router.push('/')
 }
 
@@ -421,6 +479,22 @@ watch(players, (newPlayers, oldPlayers) => {
   }
 })
 
+// Watch for setting original match
+watch(matchData, (newData) => {
+  if (newData) {
+    setOriginalMatch(newData)
+  }
+})
+
+// Auth state listener
+const authUnsubscribe = onAuthStateChanged(auth, (user) => {
+  currentUserId.value = user ? user.uid : null
+  if (!user) {
+    // TODO: Handle unauthenticated user, e.g., redirect to login
+    console.warn('User not authenticated')
+  }
+})
+
 // Initialize match subscription
 onMounted(() => {
   const matchId = route.params.id as string
@@ -444,7 +518,7 @@ onMounted(() => {
       }
     }, 600)
 
-    matchStore.subscribeToMatchById(matchId)
+    subscribeToMatchById(matchId)
     
     // Clear intervals when loading is complete
     watch(isLoading, (loading) => {
@@ -465,7 +539,9 @@ onMounted(() => {
 
 // Cleanup on unmount
 onUnmounted(() => {
-  matchStore.unsubscribeFromMatch()
+  authUnsubscribe()
+  unsubscribeFromMatch()
+  reset()
 })
 </script>
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useLeaderboard } from '@/composables/useLeaderboard'
 import type { LeaderboardEntry } from '@/firebase/userHelpers'
+import { getLeaderboard, subscribeToLeaderboard, getUserRank } from '@/firebase/userHelpers'
 
 // Mock Firebase helpers
 vi.mock('@/firebase/userHelpers', () => ({
@@ -47,7 +48,6 @@ describe('useLeaderboard', () => {
 
   describe('initial state', () => {
     it('should have correct initial state', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue([])
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -61,7 +61,6 @@ describe('useLeaderboard', () => {
     })
 
     it('should auto-load leaderboard on initialization', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue([])
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -72,7 +71,6 @@ describe('useLeaderboard', () => {
     })
 
     it('should auto-subscribe to leaderboard updates', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue([])
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -85,7 +83,6 @@ describe('useLeaderboard', () => {
 
   describe('computed properties', () => {
     it('should return top 3 players', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue(mockLeaderboard)
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -99,7 +96,6 @@ describe('useLeaderboard', () => {
     })
 
     it('should find current user entry', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue(mockLeaderboard)
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -110,7 +106,6 @@ describe('useLeaderboard', () => {
     })
 
     it('should return null for current user entry when user not found', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue(mockLeaderboard)
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -121,7 +116,6 @@ describe('useLeaderboard', () => {
     })
 
     it('should return true for hasData when leaderboard has entries', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue(mockLeaderboard)
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -132,7 +126,6 @@ describe('useLeaderboard', () => {
     })
 
     it('should return false for hasData when leaderboard is empty', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue([])
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -145,7 +138,6 @@ describe('useLeaderboard', () => {
 
   describe('loadLeaderboard', () => {
     it('should load leaderboard successfully', async () => {
-      const { getLeaderboard, subscribeToLeaderboard, getUserRank } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue(mockLeaderboard)
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -160,7 +152,6 @@ describe('useLeaderboard', () => {
     })
 
     it('should handle load errors', async () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockRejectedValue(new Error('Firebase error'))
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -173,7 +164,6 @@ describe('useLeaderboard', () => {
     })
 
     it('should set loading state during load', async () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockImplementation(() => new Promise(resolve => setTimeout(() => resolve(mockLeaderboard), 100)))
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -192,7 +182,6 @@ describe('useLeaderboard', () => {
 
   describe('refreshLeaderboard', () => {
     it('should reload leaderboard data', async () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue(mockLeaderboard)
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -208,7 +197,6 @@ describe('useLeaderboard', () => {
 
   describe('clearError', () => {
     it('should clear error message', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue([])
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -225,7 +213,6 @@ describe('useLeaderboard', () => {
 
   describe('reset', () => {
     it('should reset all state and unsubscribe', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       const mockUnsubscribe = vi.fn()
       vi.mocked(getLeaderboard).mockResolvedValue([])
@@ -245,7 +232,6 @@ describe('useLeaderboard', () => {
 
   describe('subscription handling', () => {
     it('should update leaderboard when subscription receives data', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       let subscriptionCallback: (data: LeaderboardEntry[]) => void
       vi.mocked(getLeaderboard).mockResolvedValue([])
@@ -263,7 +249,6 @@ describe('useLeaderboard', () => {
     })
 
     it('should handle subscription errors', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       let errorCallback: (error: Error) => void
       vi.mocked(getLeaderboard).mockResolvedValue([])
@@ -281,7 +266,6 @@ describe('useLeaderboard', () => {
     })
 
     it('should update user rank when subscription receives data', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       let subscriptionCallback: (data: LeaderboardEntry[]) => void
       vi.mocked(getLeaderboard).mockResolvedValue([])
@@ -301,7 +285,6 @@ describe('useLeaderboard', () => {
 
   describe('options handling', () => {
     it('should use custom limit', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue([])
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -313,7 +296,6 @@ describe('useLeaderboard', () => {
     })
 
     it('should use current user ID for rank lookup', async () => {
-      const { getLeaderboard, subscribeToLeaderboard, getUserRank } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue(mockLeaderboard)
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})
@@ -329,7 +311,6 @@ describe('useLeaderboard', () => {
 
   describe('composable interface', () => {
     it('should return all required properties and methods', () => {
-      const { getLeaderboard, subscribeToLeaderboard } = require('@/firebase/userHelpers')
       
       vi.mocked(getLeaderboard).mockResolvedValue([])
       vi.mocked(subscribeToLeaderboard).mockReturnValue(() => {})

@@ -67,8 +67,8 @@ export function useMatchSubscription(
 
   // Watch for match data changes and call callbacks
   watch(
-    () => matchStore.matchData,
-    (newMatch) => {
+    () => matchStore.matchData.value,
+    (newMatch: MatchData | null) => {
       if (onMatchUpdate) {
         onMatchUpdate(newMatch)
       }
@@ -89,8 +89,8 @@ export function useMatchSubscription(
 
   // Watch for errors
   watch(
-    () => matchStore.error,
-    (newError) => {
+    () => matchStore.error.value,
+    (newError: string | null) => {
       if (newError && onError) {
         onError(newError)
       }
