@@ -1,6 +1,7 @@
 <template>
   <div class="home-screen">
     <div class="hero-section">
+      <img src="@/assets/logo.png" alt="Dots to Squares Logo" class="game-logo" />
       <h1 class="game-title">🎮 Dots to Squares</h1>
       <p class="game-description">
         Connect the dots, claim the squares, and outsmart your opponent in this classic strategy game!
@@ -144,6 +145,12 @@ const playLocal = () => {
   color: #6b7280;
   margin: 0;
   line-height: 1.6;
+}
+
+.game-logo {
+  max-width: 150px;
+  margin: 0 auto 1rem auto;
+  display: block;
 }
 
 .action-buttons {
