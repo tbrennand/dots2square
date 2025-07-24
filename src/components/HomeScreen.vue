@@ -8,6 +8,10 @@
     </div>
 
     <div class="action-buttons">
+      <div class="name-input">
+        <label for="playerName">Your Name:</label>
+        <input id="playerName" v-model="playerName" type="text" placeholder="Enter your name..." />
+      </div>
       <button @click="createMatch" class="action-btn create-btn">
         <span class="btn-icon">🎯</span>
         <span class="btn-text">Create Match</span>
@@ -84,11 +88,12 @@ import { createMatch as createMatchHelper } from '@/firebase/matchHelpers'
 const router = useRouter()
 const showJoinModal = ref(false)
 const matchCode = ref('')
+const playerName = ref('')
 
 const createMatch = async () => {
   // Replace with actual user info as needed
   const player1Id = 'player1-' + Math.random().toString(36).substring(2, 8)
-  const player1Name = 'Player 1'
+  const player1Name = playerName.value.trim() || 'Player 1'
 
   const matchId = await createMatchHelper({ player1Id, player1Name })
   router.push(`/lobby/${matchId}`)
@@ -254,6 +259,25 @@ const playLocal = () => {
 
 .rule-text {
   color: #374151;
+  font-size: 1rem;
+}
+
+.name-input {
+  margin-bottom: 1rem;
+}
+
+.name-input label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.name-input input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
   font-size: 1rem;
 }
 
