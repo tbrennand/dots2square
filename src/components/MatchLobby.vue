@@ -359,7 +359,7 @@ const kickPlayer = async (playerNumber: number) => {
 }
 
 const copyMatchLink = async () => {
-  const matchUrl = `${window.location.origin}/match/${matchId.value}`
+  const matchUrl = `${window.location.origin}/lobby/${matchId.value}`
   
   try {
     await navigator.clipboard.writeText(matchUrl)
