@@ -1,5 +1,6 @@
 <template>
-  <div class="match-lobby">
+  <div class="match-lobby card">
+    <img src="@/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="lobby-logo" />
     <div class="lobby-header">
       <h2>{{ isHost ? 'Match Lobby' : 'Joining Match' }}</h2>
       <p class="subtitle">{{ isHost ? 'Waiting for players to join' : 'Waiting for host to start' }}</p>
@@ -840,5 +841,11 @@ onUnmounted(() => {
   .message-input {
     margin-right: 0;
   }
+}
+
+.lobby-logo {
+  max-width: 200px;
+  margin: 0 auto 1rem auto;
+  display: block;
 }
 </style> 

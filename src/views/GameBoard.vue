@@ -52,8 +52,9 @@
     <!-- Game Content -->
     <div v-else-if="matchData" class="game-content">
       <!-- Game Header -->
-      <div class="game-header">
+      <div class="game-header card">
         <div class="header-left">
+          <img src="@/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="header-logo" />
           <h1 class="game-title">Dots to Squares</h1>
           <p class="match-info">
             Match: {{ currentMatchId?.slice(0, 8) }}... | 
@@ -742,6 +743,15 @@ onUnmounted(() => {
   gap: 1.5rem;
   min-width: 280px;
   max-width: 320px;
+}
+
+.side-panel .card {
+  @apply bg-white rounded-xl shadow-card p-4;
+}
+
+.header-logo {
+  max-width: 150px;
+  margin-right: 1rem;
 }
 
 /* Match Info Card */

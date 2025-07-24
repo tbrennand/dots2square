@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
+
+body {
+  @apply bg-background text-text font-sans;
+}
+
+.btn {
+  @apply px-4 py-2 rounded-lg font-semibold transition-all duration-200;
+}
+
+.btn-primary {
+  @apply bg-accent text-white hover:bg-accent-hover shadow-card hover:shadow-lg;
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-card p-6;
+} 

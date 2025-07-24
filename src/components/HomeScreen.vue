@@ -1,7 +1,7 @@
 <template>
   <div class="home-screen">
     <div class="hero-section">
-      <img src="@/assets/logo.png" alt="Dots to Squares Logo" class="game-logo" />
+      <img src="@/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="game-logo" />
       <h1 class="game-title">🎮 Dots to Squares</h1>
       <p class="game-description">
         Connect the dots, claim the squares, and outsmart your opponent in this classic strategy game!
@@ -133,11 +133,10 @@ const playLocal = () => {
 }
 
 .game-title {
-  font-size: 3.5rem;
+  font-size: 2.5rem;
   font-weight: 800;
-  color: #1f2937;
-  margin: 0 0 1rem 0;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  color: primary;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .game-description {
@@ -148,8 +147,8 @@ const playLocal = () => {
 }
 
 .game-logo {
-  max-width: 150px;
-  margin: 0 auto 1rem auto;
+  max-width: 300px;
+  margin: 0 auto 1.5rem auto;
   display: block;
 }
 
