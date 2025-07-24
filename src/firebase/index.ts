@@ -1,13 +1,13 @@
 // Firebase initialization
 import { initializeApp } from 'firebase/app'
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
-import { getAuth, connectAuthEmulator } from 'firebase/auth'
+import { Firestore, getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { Auth, getAuth, connectAuthEmulator } from 'firebase/auth'
 import { firebaseConfig } from './config'
 
 // Initialize Firebase
 const firebaseApp = initializeApp(firebaseConfig)
-const db = getFirestore(firebaseApp)
-const auth = getAuth(firebaseApp)
+const db: Firestore = getFirestore(firebaseApp)
+const auth: Auth = getAuth(firebaseApp)
 
 // Connect to emulators in development
 // if (import.meta.env.DEV) {

@@ -163,7 +163,7 @@
           <!-- Chat -->
           <Chat 
             :matchId="currentMatchId" 
-            :currentPlayerName="matchData?.player1?.name || 'Player'" 
+            :currentPlayerName="matchData?.player${currentUserPlayerNumber.value ?? 1}?.name || 'Player'" 
           />
         </div>
       </div>
