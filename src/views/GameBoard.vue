@@ -55,13 +55,16 @@
         </div>
 
         <div class="game-controls">
-          <button @click="toggleAudio" :class="['audio-button', { 'audio-disabled': !audioEnabled }]">
-            {{ audioEnabled ? '🔊' : '🔇' }}
+          <button @click="toggleAudio" :class="['audio-toggle', { 'audio-disabled': !audioEnabled }]">
+            <span class="audio-icon">{{ audioEnabled ? '🔊' : '🔇' }}</span>
+            <span class="audio-text">{{ audioEnabled ? 'Sound ON' : 'Sound OFF' }}</span>
           </button>
-          <button @click="switchPlayer" class="switch-player-button">
-            Switch to {{ getPlayerName(currentUserPlayerNumber === 1 ? 2 : 1) }}
+          <button @click="switchPlayer" class="pass-button">
+            Pass
           </button>
-          <button @click="forfeitMatch" class="forfeit-button">Forfeit Match</button>
+          <button @click="forfeitMatch" class="quit-button">
+            Quit
+          </button>
         </div>
       </header>
 
@@ -527,40 +530,48 @@ watch(gameOver, (isOver) => {
   gap: 0.5rem;
 }
 
-.audio-button {
-  padding: 0.375rem;
+.audio-toggle {
+  padding: 0.5rem 0.75rem;
   background: #f97316;
   color: white;
   border: none;
   border-radius: 0.5rem;
-  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
 }
 
-.audio-button:hover {
+.audio-toggle:hover {
   background: #ea580c;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
 }
 
-.audio-button.audio-disabled {
+.audio-toggle.audio-disabled {
   background: #6b7280;
   box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3);
 }
 
-.audio-button.audio-disabled:hover {
+.audio-toggle.audio-disabled:hover {
   background: #4b5563;
   box-shadow: 0 4px 8px rgba(107, 114, 128, 0.4);
 }
 
-.switch-player-button {
+.audio-icon {
+  font-size: 1rem;
+}
+
+.audio-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pass-button {
   padding: 0.5rem 0.75rem;
   background: #1f2937;
   color: white;
@@ -573,13 +584,13 @@ watch(gameOver, (isOver) => {
   box-shadow: 0 2px 4px rgba(31, 41, 55, 0.3);
 }
 
-.switch-player-button:hover {
+.pass-button:hover {
   background: #111827;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(31, 41, 55, 0.4);
 }
 
-.forfeit-button {
+.quit-button {
   padding: 0.5rem 0.75rem;
   background: #dc2626;
   color: white;
@@ -592,7 +603,7 @@ watch(gameOver, (isOver) => {
   box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
 }
 
-.forfeit-button:hover {
+.quit-button:hover {
   background: #b91c1c;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
