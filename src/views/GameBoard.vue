@@ -53,12 +53,14 @@
 
       <!-- Game Grid -->
       <div class="game-grid-container">
-        <DotGrid
-          :grid-size="gridSize"
-          :drawn-lines="lines"
-          :claimed-squares="squares"
-          @line-selected="handleLineSelected"
-        />
+        <div class="grid-wrapper">
+          <DotGrid
+            :grid-size="gridSize"
+            :drawn-lines="lines"
+            :claimed-squares="squares"
+            @line-selected="handleLineSelected"
+          />
+        </div>
       </div>
 
       <!-- Chat -->
@@ -78,6 +80,7 @@
         <div>Turn: {{ currentPlayer }} | Can Move: {{ canCurrentUserMove }}</div>
         <div>Timer: Active={{ timerState.isActive }} | Time={{ timerState.timeRemaining }}</div>
         <div>Current User: {{ currentUserId }} | Player Number: {{ currentUserPlayerNumber }}</div>
+        <div>Match Data Grid Size: {{ matchData?.gridSize }} | Store Grid Size: {{ gridSize }}</div>
       </div>
     </div>
   </div>
@@ -277,7 +280,7 @@ watch(gameOver, (isOver) => {
   justify-content: center;
   align-items: center;
   padding: 1rem 0;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .header-content {
@@ -415,12 +418,21 @@ watch(gameOver, (isOver) => {
   align-items: center;
   background: white;
   border-radius: 0.75rem;
-  padding: 2rem;
+  padding: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 1rem;
   min-height: 500px;
   overflow: visible;
   position: relative;
+}
+
+.grid-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 
@@ -491,7 +503,7 @@ watch(gameOver, (isOver) => {
   }
   
   .game-grid-container {
-    padding: 1.5rem;
+    padding: 0.75rem;
     min-height: 350px;
   }
   
@@ -543,7 +555,7 @@ watch(gameOver, (isOver) => {
   }
   
   .game-grid-container {
-    padding: 1rem;
+    padding: 0.5rem;
     min-height: 300px;
   }
   
