@@ -1,59 +1,23 @@
 <template>
-  <div class="game-controls">
-    <h3 class="controls-title">Game Controls</h3>
-    
-    <!-- Waiting State -->
-    <div v-if="isWaiting" class="waiting-state">
-      <p class="waiting-text">Waiting for players...</p>
-    </div>
-    
-    <!-- Active Game Controls -->
-    <div v-else-if="isActive" class="active-controls">
-      <div class="move-status">
-        <p v-if="canMove" class="can-move">Your turn!</p>
-        <p v-else class="waiting-turn">Waiting for opponent...</p>
-      </div>
-      
-      <div class="control-buttons">
-        <button 
-          @click="$emit('forfeit')" 
-          class="btn-forfeit"
-          :disabled="!canMove"
-        >
-          Forfeit
-        </button>
-      </div>
-    </div>
-    
-    <!-- Completed Game Controls -->
-    <div v-else-if="isCompleted" class="completed-controls">
-      <p class="game-complete">Game Complete!</p>
-      <div class="control-buttons">
-        <button @click="$emit('rematch')" class="btn-rematch">
-          Rematch
-        </button>
-      </div>
-    </div>
-    
-    <!-- Default State -->
-    <div v-else class="default-controls">
-      <p class="no-controls">No controls available</p>
-    </div>
+  <div class="game-controls text-center">
+    <button @click="onForfeit" :disabled="!canMove" class="btn btn-danger w-full">
+      Forfeit Match
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   canMove: boolean
-  isWaiting: boolean
-  isActive: boolean
-  isCompleted: boolean
 }>()
 
-defineEmits<{
-  forfeit: []
-  rematch: []
-}>()
+const emit = defineEmits(['forfeit'])
+
+const onForfeit = () => {
+  if (confirm('Are you sure you want to forfeit the match?')) {
+    emit('forfeit')
+  }
+}
 </script>
 
 <style scoped>

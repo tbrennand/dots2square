@@ -1,16 +1,11 @@
 <template>
-  <div class="turn-tracker">
-    <div v-if="!gameOver" class="current-turn">
-      <div class="player-indicator" :class="{ active: currentPlayer === 1 }">
-        Player 1
-      </div>
-      <div class="vs">vs</div>
-      <div class="player-indicator" :class="{ active: currentPlayer === 2 }">
-        Player 2
-      </div>
+  <div class="turn-tracker text-center">
+    <div v-if="!gameOver">
+      <h3 class="text-xl font-bold text-secondary">Current Turn</h3>
+      <p class="text-4xl font-extrabold text-primary mt-2">{{ currentPlayer === 1 ? 'Player 1' : 'Player 2' }}</p>
     </div>
-    <div v-else class="game-over">
-      Game Over!
+    <div v-else>
+      <h3 class="text-3xl font-extrabold text-primary">Game Over!</h3>
     </div>
   </div>
 </template>

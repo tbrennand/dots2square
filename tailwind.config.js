@@ -1,33 +1,33 @@
 module.exports = {
   content: [
-    './index.html',
-    './src/**/*.{vue,js,ts,jsx,tsx}',
+    "./index.html",
+    "./src/**/*.{vue,js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: '#FFA500', // Orange from pencil
-          dark: '#FF8C00',
-        },
-        secondary: {
-          DEFAULT: '#6B7280', // Gray from background
-          light: '#9CA3AF',
-        },
-        accent: {
-          DEFAULT: '#3B82F6', // Blue for buttons
-          hover: '#2563EB',
-        },
-        background: '#F3F4F6', // Light gray
-        text: '#1F2937', // Dark text
+        'primary': '#F9A826', // A vibrant, pencil-orange
+        'secondary': '#4A5568', // A dark, graphite-gray for text
+        'accent': '#E53E3E', // A friendly red for leave/cancel actions
+        'background': '#F7FAFC', // A very light gray for the page background
+        'surface': '#FFFFFF', // Clean white for cards
+        'muted': '#A0AEC0', // A lighter gray for subtitles and borders
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'], // Modern font
+        sans: ['Nunito', 'sans-serif'],
+      },
+      borderRadius: {
+        'xl': '1rem',
+        '2xl': '1.5rem',
       },
       boxShadow: {
-        card: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      },
+        'subtle': '0 2px 4px 0 rgba(0,0,0,0.05)',
+        'DEFAULT': '0 4px 12px 0 rgba(0,0,0,0.08)',
+        'lg': '0 10px 20px 0 rgba(0,0,0,0.1)',
+      }
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms'),
+  ],
 } 

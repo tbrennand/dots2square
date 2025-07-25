@@ -1,67 +1,30 @@
 <template>
-  <div class="dot-grid-container">
-    <svg 
-      class="dot-grid" 
-      :width="gridWidth" 
-      :height="gridHeight" 
-      @click="handleGridClick"
+  <div class="dot-grid-container" :style="gridStyle">
+    <!-- Dots -->
+    <div v-for="dot in dots" :key="dot.id" class="dot" :style="{ top: `${dot.y * 100}px`, left: `${dot.x * 100}px` }"></div>
+    
+    <!-- Potential Lines (for hover effect) -->
+    <div
+      v-for="line in potentialLines"
+      :key="line.id"
+      class="line-container"
+      @click="selectLine(line)"
+      @mouseenter="hoverLine = line.id"
+      @mouseleave="hoverLine = null"
     >
-      <!-- Draw claimed squares with player colors -->
-      <rect
-        v-for="square in claimedSquares"
-        :key="square.id"
-        :x="square.topLeftX * spacing + 5"
-        :y="square.topLeftY * spacing + 5"
-        :width="spacing - 10"
-        :height="spacing - 10"
-        :fill="getPlayerColor(square.player)"
-        :opacity="0.3"
-        class="claimed-square"
-      />
-      
-      <!-- Draw lines -->
-      <line
-        v-for="line in drawnLines"
-        :key="line.id"
-        :x1="getDotPosition(line.startDot).x"
-        :y1="getDotPosition(line.startDot).y"
-        :x2="getDotPosition(line.endDot).x"
-        :y2="getDotPosition(line.endDot).y"
-        :stroke="getPlayerColor(line.player)"
-        stroke-width="3"
-        stroke-linecap="round"
-        class="drawn-line"
-      />
-      
-      <!-- Draw dots -->
-      <circle
-        v-for="dot in dots"
-        :key="dot.id"
-        :cx="dot.x * spacing"
-        :cy="dot.y * spacing"
-        r="4"
-        fill="#374151"
-        stroke="#6b7280"
-        stroke-width="1"
-        class="dot"
-      />
-      
-      <!-- Draw hover lines for possible moves -->
-      <line
-        v-for="possibleLine in possibleLines"
-        :key="`hover-${possibleLine.id}`"
-        :x1="getDotPosition(possibleLine.startDot).x"
-        :y1="getDotPosition(possibleLine.startDot).y"
-        :x2="getDotPosition(possibleLine.endDot).x"
-        :y2="getDotPosition(possibleLine.endDot).y"
-        stroke="#9ca3af"
-        stroke-width="2"
-        stroke-dasharray="5,5"
-        opacity="0.5"
-        class="hover-line"
-        @click.stop="selectLine(possibleLine)"
-      />
-    </svg>
+      <div class="line-hitbox"></div>
+      <div class="line-visual" :class="{ 'line-hover': hoverLine === line.id }"></div>
+    </div>
+
+    <!-- Drawn Lines -->
+    <div v-for="line in drawnLines" :key="line.id" class="line-container drawn">
+      <div class="line-visual line-drawn"></div>
+    </div>
+    
+    <!-- Claimed Squares -->
+    <div v-for="square in claimedSquares" :key="square.id" class="square" :style="squareStyle(square)">
+      <span class="text-4xl">{{ square.player === 1 ? '✏️' : '🎨' }}</span>
+    </div>
   </div>
 </template>
 
