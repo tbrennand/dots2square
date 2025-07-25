@@ -57,16 +57,15 @@
             </button>
           </div>
 
-          <!-- Chat Bot Option -->
-          <div class="chat-option">
-            <button @click="toggleChat" class="btn btn-outline w-full">
-              {{ showChat ? '💬 Hide Chat' : '💬 Chat with Host' }}
-            </button>
-          </div>
-
-          <!-- Chat Section -->
-          <div v-if="showChat" class="chat-section">
-            <Chat v-if="matchId" :matchId="matchId" :currentPlayerName="'Guest'" />
+          <!-- Chat with Host -->
+          <div class="chat-host-section">
+            <Chat 
+              v-if="matchId" 
+              :matchId="matchId" 
+              :currentPlayerName="playerName || 'Guest'"
+              :hasSecondPlayer="true"
+              :isHostChat="true"
+            />
           </div>
         </div>
       </div>
@@ -89,7 +88,6 @@ const matchStore = useMatchStore()
 const matchId = ref('')
 const playerName = ref('')
 const isJoining = ref(false)
-const showChat = ref(false)
 
 // Computed properties
 const matchData = computed(() => matchStore.matchData)
@@ -127,10 +125,6 @@ const declineInvite = () => {
   router.push('/')
 }
 
-const toggleChat = () => {
-  showChat.value = !showChat.value
-}
-
 // Initialize
 onMounted(async () => {
   try {
@@ -154,8 +148,8 @@ onMounted(async () => {
   @apply bg-gray-50 p-4 rounded-lg;
 }
 
-.chat-section {
-  @apply border-t pt-4;
+.chat-host-section {
+  @apply mt-4;
 }
 
 .loading-spinner {

@@ -14,7 +14,7 @@
     <!-- Slide-out Chat Panel -->
     <div class="chat-panel" :class="{ 'chat-panel--open': isOpen }">
       <div class="chat-panel-header">
-        <h3 class="chat-panel-title">💬 Chat</h3>
+        <h3 class="chat-panel-title">{{ props.isHostChat ? '💬 Chat with Host' : '💬 Chat' }}</h3>
         <button @click="toggleChat" class="chat-close-btn" title="Close chat">
           ✕
         </button>
@@ -63,16 +63,19 @@ interface ChatMessage {
   author: string
   text: string
   timestamp: Date
+  isHostChat?: boolean
 }
 
 interface Props {
   matchId: string
   currentPlayerName: string
   hasSecondPlayer?: boolean
+  isHostChat?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  hasSecondPlayer: false
+  hasSecondPlayer: false,
+  isHostChat: false
 })
 
 const chatMessages = ref<ChatMessage[]>([])
@@ -130,7 +133,8 @@ async function sendMessage() {
   const message = {
     author: props.currentPlayerName,
     text: messageText,
-    timestamp: serverTimestamp()
+    timestamp: serverTimestamp(),
+    isHostChat: props.isHostChat || false
   }
   
   try {
@@ -167,11 +171,20 @@ onMounted(() => {
   const messagesQuery = query(messagesRef, orderBy('timestamp', 'asc'))
   
   unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-    chatMessages.value = snapshot.docs.map(doc => ({
+    const allMessages = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       timestamp: doc.data().timestamp?.toDate() ?? new Date()
     }) as ChatMessage) || [];
+    
+    // Filter messages based on chat type
+    if (props.isHostChat) {
+      // For host chat, only show messages marked as host chat
+      chatMessages.value = allMessages.filter(msg => msg.isHostChat === true);
+    } else {
+      // For regular chat, only show messages NOT marked as host chat
+      chatMessages.value = allMessages.filter(msg => msg.isHostChat !== true);
+    }
     
     // Update unread count
     if (!isOpen.value && sortedMessages.value.length > 0) {
