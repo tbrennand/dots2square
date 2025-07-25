@@ -18,8 +18,14 @@
               <div v-if="currentPlayer === 1" class="active-turn">
                 <span class="turn-text">{{ currentUserPlayerNumber === 1 ? 'Your Turn' : `${getPlayerName(1)}'s Turn` }}</span>
                 <div v-if="isTimerActive && currentPlayer === 1" class="timer-display">
-                  <div class="timer-countdown" :class="{ 'timer-warning': timeRemaining <= 10, 'timer-critical': timeRemaining <= 5 }">
+                  <div class="timer-countdown" :class="{ 
+                    'timer-warning': timeRemaining <= 10, 
+                    'timer-critical': timeRemaining <= 5 
+                  }">
                     {{ Math.ceil(timeRemaining) }}s
+                  </div>
+                  <div v-if="missedTurns[matchData?.player1?.id || ''] > 0" class="missed-turns">
+                    Missed: {{ missedTurns[matchData?.player1?.id || ''] }}/3
                   </div>
                 </div>
               </div>
@@ -44,8 +50,14 @@
               <div v-if="currentPlayer === 2" class="active-turn">
                 <span class="turn-text">{{ currentUserPlayerNumber === 2 ? 'Your Turn' : `${getPlayerName(2)}'s Turn` }}</span>
                 <div v-if="isTimerActive && currentPlayer === 2" class="timer-display">
-                  <div class="timer-countdown" :class="{ 'timer-warning': timeRemaining <= 10, 'timer-critical': timeRemaining <= 5 }">
+                  <div class="timer-countdown" :class="{ 
+                    'timer-warning': timeRemaining <= 10, 
+                    'timer-critical': timeRemaining <= 5 
+                  }">
                     {{ Math.ceil(timeRemaining) }}s
+                  </div>
+                  <div v-if="missedTurns[matchData?.player2?.id || ''] > 0" class="missed-turns">
+                    Missed: {{ missedTurns[matchData?.player2?.id || ''] }}/3
                   </div>
                 </div>
               </div>
@@ -279,7 +291,9 @@ const winner = computed(() => {
   return 'tie'
 })
 
-// Turn timer
+// Turn timer with forfeit tracking
+const missedTurns = ref<{ [playerId: string]: number }>({})
+
 const {
   timeRemaining,
   timeRemainingPercentage,
@@ -291,6 +305,65 @@ const {
   currentMatchId.value || '',
   currentUserId.value
 )
+
+// Handle timer expiration and missed turns
+const handleTimerExpired = async () => {
+  console.log('⏰ Turn timer expired')
+  
+  if (!matchData.value || !currentMatchId.value) return
+  
+  const currentPlayerId = currentPlayer.value === 1 ? matchData.value.player1.id : matchData.value.player2?.id
+  if (!currentPlayerId) return
+  
+  // Track missed turn
+  if (!missedTurns.value[currentPlayerId]) {
+    missedTurns.value[currentPlayerId] = 0
+  }
+  missedTurns.value[currentPlayerId]++
+  
+  console.log(`📊 Player ${currentPlayer.value} missed turns: ${missedTurns.value[currentPlayerId]}`)
+  
+  // Check for forfeit (3 missed turns)
+  if (missedTurns.value[currentPlayerId] >= 3) {
+    console.log(`🚫 Player ${currentPlayer.value} forfeits after 3 missed turns`)
+    
+    // Force game end with opponent as winner
+    try {
+      await playMove(currentMatchId.value, currentUserId.value, {
+        startDot: '0-0', // Dummy move to trigger forfeit
+        endDot: '0-1',
+        forfeit: true,
+        winner: currentPlayer.value === 1 ? 2 : 1
+      })
+    } catch (error) {
+      console.error('Error handling forfeit:', error)
+    }
+    return
+  }
+  
+  // Switch to other player
+  await switchPlayer()
+}
+
+// Watch for timer warnings and play sound
+watch(timeRemaining, (newTime, oldTime) => {
+  // Play sound every second for last 5 seconds
+  if (newTime <= 5 && newTime > 0) {
+    const newSecond = Math.ceil(newTime)
+    const oldSecond = Math.ceil(oldTime || 0)
+    
+    // Only play sound when we cross to a new second
+    if (newSecond !== oldSecond && newSecond <= 5) {
+      console.log(`🔊 Playing countdown sound: ${newSecond}s remaining`)
+      playCountdownSound()
+    }
+  }
+  
+  // Handle timer expiration
+  if (newTime <= 0 && (oldTime || 0) > 0) {
+    handleTimerExpired()
+  }
+}, { immediate: false })
 
 // Sync Firebase state to local state
 const syncFromFirebase = () => {
@@ -476,9 +549,27 @@ const getPlayerName = (playerNumber: number) => {
   return `Player ${playerNumber}`
 }
 
-// Switch player manually (for testing)
-const switchPlayer = () => {
+// Switch player turn (Pass turn)
+const switchPlayer = async () => {
+  if (!currentMatchId.value || !matchData.value) return
+  
+  console.log('🔄 Manually switching turn')
+  
+  // Update local state optimistically
   currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
+  
+  // Send pass turn to Firebase
+  try {
+    await playMove(currentMatchId.value, currentUserId.value, {
+      startDot: '0-0', // Dummy move to indicate pass
+      endDot: '0-1',
+      pass: true
+    })
+  } catch (error) {
+    console.error('Error passing turn:', error)
+    // Revert local change
+    currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
+  }
 }
 
 // Reset game
@@ -766,6 +857,16 @@ watch(gameOver, (isOver) => {
 @keyframes pulse-critical {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
+}
+
+.missed-turns {
+  font-size: 0.625rem;
+  color: #dc2626;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 0.125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .game-controls {
