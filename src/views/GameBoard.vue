@@ -1,88 +1,59 @@
 <template>
-  <div class="game-board-screen">
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p class="loading-text">Loading your game...</p>
-    </div>
-    
-    <!-- Error State -->
-    <div v-else-if="error" class="error-container">
-      <h2 class="error-title">Oops! Something went wrong.</h2>
-      <p class="error-message">{{ error }}</p>
-      <button @click="goHome" class="btn btn-primary">Return Home</button>
-    </div>
+  <div class="game-board-container">
+    <div v-if="isLoading" class="loading-state">Loading Game...</div>
+    <div v-else-if="error" class="error-state">Error: {{ error }}</div>
 
-    <!-- Game Content -->
-    <div v-else-if="matchData" class="game-container">
-      <!-- Header Row: Logo, Player Panels, Forfeit -->
+    <div v-else-if="matchData" class="game-layout">
       <header class="game-header">
-        <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="header-logo" />
+        <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="logo" />
         
         <div class="player-panels">
-          <div class="player-panel" :class="{ 'current': currentPlayer === 1 }">
-            <div class="player-avatar player1">
-              <span class="player-icon">✏️</span>
-            </div>
-            <div class="player-info">
+          <!-- Player 1 Panel -->
+          <div :class="['player-panel', { 'is-turn': currentPlayer === 1 }]">
+            <div class="panel-header">
               <span class="player-name">{{ matchData.player1?.name || 'Player 1' }}</span>
-              <span class="player-score">{{ scores[1] || 0 }} squares</span>
-              <span v-if="currentPlayer === 1" class="turn-status">
-                <span class="turn-text">Your Turn</span>
-                <span v-if="timerState.isActive && timerState.timeRemaining > 0" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
-              </span>
+              <span class="player-score">Score: {{ scores[1] || 0 }}</span>
+            </div>
+            <div v-if="currentPlayer === 1" class="turn-indicator">
+              <span>Your Turn</span>
+              <span class="timer">{{ formatTime(timerState.timeRemaining) }}</span>
             </div>
           </div>
-          
-          <div class="vs-divider">VS</div>
-          
-          <div class="player-panel" :class="{ 'current': currentPlayer === 2 }">
-            <div class="player-avatar player2">
-              <span class="player-icon">🎨</span>
-            </div>
-            <div class="player-info">
+
+          <!-- Player 2 Panel -->
+          <div :class="['player-panel', { 'is-turn': currentPlayer === 2 }]">
+            <div class="panel-header">
               <span class="player-name">{{ matchData.player2?.name || 'Player 2' }}</span>
-              <span class="player-score">{{ scores[2] || 0 }} squares</span>
-              <span v-if="currentPlayer === 2" class="turn-status">
-                <span class="turn-text">Your Turn</span>
-                <span v-if="timerState.isActive && timerState.timeRemaining > 0" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
-              </span>
+              <span class="player-score">Score: {{ scores[2] || 0 }}</span>
+            </div>
+            <div v-if="currentPlayer === 2" class="turn-indicator">
+              <span>Your Turn</span>
+              <span class="timer">{{ formatTime(timerState.timeRemaining) }}</span>
             </div>
           </div>
         </div>
-        
-        <button @click="handleForfeit" class="forfeit-btn" :disabled="!canCurrentUserMove">
-          🏳️ Forfeit
-        </button>
+
+        <button @click="handleForfeit" class="forfeit-button">Forfeit Game</button>
       </header>
 
-      <!-- Game Grid - No Container -->
-      <DotGrid
-        :grid-size="gridSize"
-        :drawn-lines="lines"
-        :claimed-squares="squares"
-        :can-make-move="canCurrentUserMove"
-        @line-selected="handleLineSelected"
-      />
+      <main class="game-main">
+        <DotGrid
+          :grid-size="gridSize"
+          :drawn-lines="lines"
+          :claimed-squares="squares"
+          :can-make-move="canCurrentUserMove"
+          @line-selected="handleLineSelected"
+        />
+      </main>
 
-      <!-- Chat -->
-      <div class="chat-container">
+      <aside class="game-chat">
         <Chat 
           v-if="currentMatchId"
           :matchId="currentMatchId" 
           :currentPlayerName="currentPlayerName"
           :hasSecondPlayer="true"
-          :isHostChat="false"
         />
-      </div>
-
-      <!-- Debug Info (Development Only) -->
-      <div v-if="isDev" class="debug-info">
-        <div>Grid: {{ gridSize }}x{{ gridSize }} | Lines: {{ lines.length }} | Squares: {{ squares.length }}</div>
-        <div>Turn: {{ currentPlayer }} | Can Move: {{ canCurrentUserMove }}</div>
-        <div>Timer: Active={{ timerState.isActive }} | Time={{ timerState.timeRemaining }}</div>
-        <div>Current User: {{ currentUserId }} | Player Number: {{ currentUserPlayerNumber }}</div>
-      </div>
+      </aside>
     </div>
   </div>
 </template>
@@ -94,7 +65,6 @@ import { useMatchStore } from '../stores/matchStore'
 import { playMove } from '../firebase/matchHelpers'
 import { useTurnTimer } from '../composables/useTurnTimer'
 import DotGrid from '../components/DotGrid.vue'
-import GameControls from '../components/GameControls.vue'
 import Chat from '../components/Chat.vue'
 import { storeToRefs } from 'pinia'
 
@@ -102,12 +72,8 @@ const route = useRoute()
 const router = useRouter()
 const matchStore = useMatchStore()
 
-const currentUserId = ref('user-123') // TODO: Get from auth
+const currentUserId = ref('user-123') // TODO: Replace with actual user auth
 
-// Development mode check
-const isDev = computed(() => import.meta.env.DEV)
-
-// Using store state directly
 const { 
   currentMatchId, 
   matchData, 
@@ -119,44 +85,25 @@ const {
   currentPlayer,
   scores,
   gameOver
-} = storeToRefs(useMatchStore())
+} = storeToRefs(matchStore)
 
-// Initialize turn timer
 const turnTimer = useTurnTimer(currentMatchId.value || '', currentUserId.value)
 const timerState = computed(() => turnTimer.getTimerState())
 
-// Debug timer state
-console.log('Timer state:', timerState.value)
-
 const canCurrentUserMove = computed(() => matchStore.canPlayerMove(currentUserId.value))
-const currentUserPlayerNumber = computed(() => matchStore.getPlayerNumber(currentUserId.value))
 const currentPlayerName = computed(() => {
-  const playerNum = currentUserPlayerNumber.value ?? 1
-  const player = playerNum === 1 ? matchData.value?.player1 : matchData.value?.player2
-  return player?.name || 'Player'
+  const playerNum = matchStore.getPlayerNumber(currentUserId.value) ?? 1
+  return (playerNum === 1 ? matchData.value?.player1?.name : matchData.value?.player2?.name) || 'Player'
 })
 
 const handleLineSelected = async (line: { startDot: string; endDot: string }) => {
   if (!currentMatchId.value || !canCurrentUserMove.value) return
-  
-  // Reset timer for current player when they make a move
-  turnTimer.resetTimerForPlayer(currentUserId.value)
-  
   await playMove(currentMatchId.value, currentUserId.value, line)
 }
 
 const handleForfeit = () => {
+  console.log('Forfeit game requested by', currentUserId.value)
   // TODO: Implement forfeit logic
-  console.log('Forfeit requested')
-}
-
-const goHome = () => router.push('/')
-
-// Helper functions
-const getCurrentPlayerName = () => {
-  const playerNum = currentPlayer.value
-  const player = playerNum === 1 ? matchData.value?.player1 : matchData.value?.player2
-  return player?.name || `Player ${playerNum}`
 }
 
 const formatTime = (seconds: number) => {
@@ -174,400 +121,144 @@ onMounted(() => {
   }
 })
 
-// Watch for match data changes to sync timer
 watch(matchData, (newMatchData) => {
-  if (newMatchData && newMatchData.status === 'active') {
-    // Sync timer with server data
+  if (newMatchData?.status === 'active') {
     const turnStartTime = newMatchData.turnStartedAt?.toDate() || null
     const turnDuration = newMatchData.turnDuration || 30
-    
     turnTimer.syncTimerWithServer(turnStartTime, turnDuration)
-    
-    // Start timer for current player if it's their turn
-    if (newMatchData.currentPlayerId === currentUserId.value) {
-      turnTimer.startTimer(currentUserId.value, turnDuration)
-    } else {
-      // Stop timer if it's not this player's turn
-      turnTimer.stopTimer()
-    }
   }
-}, { immediate: true })
+}, { immediate: true, deep: true })
 
-onUnmounted(() => matchStore.unsubscribeFromMatch())
+onUnmounted(() => {
+  matchStore.unsubscribeFromMatch()
+})
 
 watch(gameOver, (isOver) => {
-  if (isOver) {
-    // Navigate to a results screen, for example
-    console.log('Game has ended!')
+  if (isOver && currentMatchId.value) {
+    router.push({ name: 'GameResult', query: { matchId: currentMatchId.value } })
   }
 })
 </script>
 
 <style scoped>
-.game-board-screen {
-  min-height: 100vh;
-  background: #f8fafc;
+.game-board-container {
   display: flex;
   flex-direction: column;
-}
-
-/* Loading State */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   height: 100vh;
-  gap: 1rem;
-}
-
-.loading-spinner {
-  width: 3rem;
-  height: 3rem;
-  border: 3px solid #e5e7eb;
-  border-top: 3px solid #f97316;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: 1.125rem;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-/* Error State */
-.error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
+  background-color: #f8fafc;
   padding: 2rem;
-  text-align: center;
-  gap: 1rem;
 }
 
-.error-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-.error-message {
-  color: #6b7280;
-  margin-bottom: 1rem;
-}
-
-/* Game Container */
-.game-container {
-  flex: 1;
+.loading-state, .error-state {
   display: flex;
-  flex-direction: column;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-  padding: 1.5rem;
-  gap: 2rem;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  font-size: 1.5rem;
+  color: #4b5563;
 }
 
-/* Header */
+.game-layout {
+  display: grid;
+  grid-template-columns: 1fr 350px; /* Main game area and chat sidebar */
+  grid-template-rows: auto 1fr; /* Header and main content */
+  grid-template-areas:
+    "header header"
+    "main chat";
+  gap: 2rem;
+  height: 100%;
+}
+
 .game-header {
+  grid-area: header;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
   background: white;
+  padding: 1rem 2rem;
   border-radius: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.header-logo {
-  width: 200px;
-  height: auto;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+.logo {
+  height: 50px;
+  width: auto;
 }
 
-/* Player Panels */
 .player-panels {
   display: flex;
-  align-items: center;
   gap: 2rem;
 }
 
 .player-panel {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
-  background: #f8fafc;
+  padding: 1rem;
   border-radius: 0.75rem;
   border: 2px solid transparent;
+  width: 250px;
+  background-color: #f1f5f9;
   transition: all 0.3s ease;
-  min-width: 200px;
 }
 
-.player-panel.current {
+.player-panel.is-turn {
   border-color: #f97316;
-  background: #fef3c7;
+  background-color: #fff7ed;
   box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
 }
 
-.vs-divider {
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: #6b7280;
-  padding: 0 1rem;
-}
-
-.forfeit-btn {
+.panel-header {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: #fee2e2;
-  color: #dc2626;
-  border: none;
-  border-radius: 0.75rem;
+  justify-content: space-between;
   font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
-}
-
-.forfeit-btn:hover:not(:disabled) {
-  background: #fecaca;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.2);
-}
-
-.forfeit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.player-avatar {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 1.125rem;
-  color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.player-avatar.player1 {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-}
-
-.player-avatar.player2 {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-}
-
-.player-icon {
-  font-size: 1.25rem;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-
-.player-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.player-name {
-  font-weight: 600;
-  color: #1f2937;
-  font-size: 1rem;
+  color: #374151;
 }
 
 .player-score {
   font-weight: 700;
   color: #f97316;
-  font-size: 0.875rem;
 }
 
-.turn-status {
+.turn-indicator {
+  margin-top: 0.5rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-top: 0.25rem;
-}
-
-.turn-text {
+  justify-content: space-between;
+  align-items: center;
+  color: #16a34a;
   font-weight: 600;
-  color: #f97316;
-  font-size: 0.875rem;
 }
 
-.timer-text {
-  font-weight: 700;
+.timer {
+  font-family: 'monospace';
+  font-size: 1.125rem;
   color: #dc2626;
-  font-size: 0.875rem;
 }
 
-/* Game Grid Container */
-.game-grid-container {
-  flex: 1;
+.forfeit-button {
+  padding: 0.75rem 1.5rem;
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.forfeit-button:hover {
+  background-color: #fecaca;
+}
+
+.game-main {
+  grid-area: main;
+  flex-grow: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: white;
-  border-radius: 0.75rem;
-  padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1rem;
-  min-height: 500px;
-  overflow: visible;
-  position: relative;
 }
 
-.grid-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-
-
-/* Chat Container */
-.chat-container {
-  height: 300px;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-/* Debug Info */
-.debug-info {
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 0.75rem;
-  border-radius: 0.75rem;
-  font-size: 0.75rem;
-  z-index: 10;
-  backdrop-filter: blur(10px);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .game-container {
-    padding: 0.75rem;
-  }
-  
-  .game-header {
-    padding: 0.75rem 0;
-  }
-  
-  .header-logo {
-    width: 202px; /* 70% of 288px */
-  }
-  
-  .forfeit-btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.8rem;
-  }
-  
-  .scoreboard {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  .score-item {
-    padding: 0.75rem;
-  }
-  
-  .player-avatar {
-    width: 2rem;
-    height: 2rem;
-    font-size: 0.875rem;
-  }
-  
-  .player-name {
-    font-size: 0.8rem;
-  }
-  
-  .player-score {
-    font-size: 0.9rem;
-  }
-  
-  .game-grid-container {
-    padding: 0.75rem;
-    min-height: 350px;
-  }
-  
-  .chat-container {
-    height: 250px;
-  }
-}
-
-@media (max-width: 480px) {
-  .game-container {
-    padding: 0.5rem;
-  }
-  
-  .game-header {
-    padding: 0.5rem 0;
-  }
-  
-  .header-logo {
-    width: 224px; /* 70% of 320px */
-  }
-}
-
-@media (min-width: 1024px) {
-  .header-logo {
-    width: 269px; /* 70% of 384px */
-  }
-  
-  .forfeit-btn {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.75rem;
-  }
-  
-  .score-item {
-    padding: 0.5rem;
-  }
-  
-  .player-avatar {
-    width: 1.75rem;
-    height: 1.75rem;
-    font-size: 0.75rem;
-  }
-  
-  .player-name {
-    font-size: 0.75rem;
-  }
-  
-  .player-score {
-    font-size: 0.8rem;
-  }
-  
-  .game-grid-container {
-    padding: 0.5rem;
-    min-height: 300px;
-  }
-  
-  .chat-container {
-    height: 200px;
-  }
+.game-chat {
+  grid-area: chat;
+  width: 100%; /* Take up full width of the grid column */
+  flex-shrink: 0;
+  /* This would ideally be a slide-out panel, but for now, it's fixed */
 }
 </style> 
