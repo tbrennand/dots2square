@@ -401,8 +401,24 @@ export async function playMove(
       // Determine if game is complete
       const gridSize = matchData.gridSize || 5
       const totalSquares = (gridSize - 1) * (gridSize - 1)
-      const claimedSquares = updatedSquares.filter(s => s.player !== undefined).length
+      
+      // Debug: Log all squares and their player values
+      console.log('🎮 Game Completion Check:', {
+        totalSquares,
+        allSquares: updatedSquares.map(s => ({ id: s.id, player: s.player, playerType: typeof s.player })),
+        squaresWithPlayers: updatedSquares.filter(s => s.player !== undefined).map(s => ({ id: s.id, player: s.player })),
+        squaresWithNumericPlayers: updatedSquares.filter(s => typeof s.player === 'number').map(s => ({ id: s.id, player: s.player }))
+      })
+      
+      // Fix: Only count squares with numeric players (1 or 2) as claimed
+      const claimedSquares = updatedSquares.filter(s => typeof s.player === 'number' && (s.player === 1 || s.player === 2)).length
       const gameCompleted = claimedSquares >= totalSquares
+      
+      console.log('🎮 Game Completion Result:', {
+        claimedSquares,
+        totalSquares,
+        gameCompleted
+      })
       
       // Determine winner
       let winner: number | 'tie' | null = null
