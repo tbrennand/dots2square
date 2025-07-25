@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 
 // Define interfaces for the component
 interface Dot {
@@ -78,10 +78,30 @@ const emit = defineEmits<{
 
 // Component state
 const gridSize = props.gridSize || 5
-const spacing = 60
-const gridWidth = gridSize * spacing
-const gridHeight = gridSize * spacing
+const spacing = ref(60) // Default spacing
+const gridWidth = computed(() => gridSize * spacing.value)
+const gridHeight = computed(() => gridSize * spacing.value)
 const hoverLine = ref<string | null>(null)
+
+// Update spacing based on screen size
+const updateSpacing = () => {
+  if (typeof window !== 'undefined') {
+    const width = window.innerWidth
+    if (width <= 480) spacing.value = 40 // Mobile
+    else if (width <= 768) spacing.value = 50 // Tablet
+    else spacing.value = 60 // Desktop
+  }
+}
+
+// Initialize and watch for window resize
+onMounted(() => {
+  updateSpacing()
+  window.addEventListener('resize', updateSpacing)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateSpacing)
+})
 
 // Generate dots based on grid size
 const dots = computed(() => {
@@ -100,8 +120,8 @@ const dots = computed(() => {
 
 // Grid style computed property
 const gridStyle = computed(() => ({
-  width: `${gridWidth}px`,
-  height: `${gridHeight}px`,
+  width: `${gridWidth.value}px`,
+  height: `${gridHeight.value}px`,
   position: 'relative' as const,
   border: '2px solid #e5e7eb',
   borderRadius: '12px',
@@ -174,9 +194,9 @@ const potentialLines = computed(() => possibleLines.value)
 
 // Square style method
 const squareStyle = (square: Square) => {
-  const x = square.topLeftX * spacing
-  const y = square.topLeftY * spacing
-  const size = spacing - 4 // Slightly smaller than spacing
+  const x = square.topLeftX * spacing.value
+  const y = square.topLeftY * spacing.value
+  const size = spacing.value - 4 // Slightly smaller than spacing
   
   return {
     position: 'absolute' as const,
@@ -208,7 +228,7 @@ const getPlayerColor = (player?: number): string => {
 // Get dot position for coordinates
 const getDotPosition = (dotId: string) => {
   const [y, x] = dotId.split('-').map(Number)
-  return { x: x * spacing, y: y * spacing }
+  return { x: x * spacing.value, y: y * spacing.value }
 }
 
 // Calculate line position and style
@@ -257,8 +277,8 @@ const handleGridClick = (event: MouseEvent) => {
   
   // Find closest dot
   const clickedDot = dots.value.find(dot => {
-    const dotX = dot.x * spacing
-    const dotY = dot.y * spacing
+    const dotX = dot.x * spacing.value
+    const dotY = dot.y * spacing.value
     const distance = Math.sqrt((x - dotX) ** 2 + (y - dotY) ** 2)
     return distance < 20
   })
