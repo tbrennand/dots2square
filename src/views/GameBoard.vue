@@ -181,7 +181,7 @@ watch(gameOver, (isOver) => {
 }
 
 .logo {
-  height: 50px;
+  height: 80px; /* Increased logo height */
   width: auto;
 }
 
@@ -249,10 +249,10 @@ watch(gameOver, (isOver) => {
 
 .game-main {
   grid-area: main;
-  flex-grow: 1;
   display: flex;
   justify-content: center;
   align-items: center;
+  /* Removed background, padding, and shadow to make the container invisible */
 }
 
 .game-chat {
