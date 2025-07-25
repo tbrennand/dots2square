@@ -18,12 +18,17 @@
                 </div>
                 <div class="player-score">{{ scores[1] }} squares</div>
               </div>
-              <div v-if="currentPlayer === 1" class="turn-indicator">
-                <span class="turn-text">{{ currentUserPlayerNumber === 1 ? 'Your Turn' : `${getPlayerName(1)}'s Turn` }}</span>
-                <div class="timer-container">
-                  <span class="timer" :class="{ 'timer-warning': timeRemaining <= 10 }">
-                    {{ formatTime(timeRemaining) }}
-                  </span>
+              <div class="turn-status">
+                <div v-if="currentPlayer === 1" class="active-turn">
+                  <span class="turn-text">{{ currentUserPlayerNumber === 1 ? 'Your Turn' : `${getPlayerName(1)}'s Turn` }}</span>
+                  <div class="timer-container">
+                    <span class="timer" :class="{ 'timer-warning': timeRemaining <= 10 }">
+                      {{ formatTime(timeRemaining) }}
+                    </span>
+                  </div>
+                </div>
+                <div v-else class="waiting-turn">
+                  <span class="waiting-text">{{ currentUserPlayerNumber === 1 ? 'Waiting...' : 'Waiting for turn' }}</span>
                 </div>
               </div>
             </div>
@@ -42,12 +47,17 @@
                 </div>
                 <div class="player-score">{{ scores[2] }} squares</div>
               </div>
-              <div v-if="currentPlayer === 2" class="turn-indicator">
-                <span class="turn-text">{{ currentUserPlayerNumber === 2 ? 'Your Turn' : `${getPlayerName(2)}'s Turn` }}</span>
-                <div class="timer-container">
-                  <span class="timer" :class="{ 'timer-warning': timeRemaining <= 10 }">
-                    {{ formatTime(timeRemaining) }}
-                  </span>
+              <div class="turn-status">
+                <div v-if="currentPlayer === 2" class="active-turn">
+                  <span class="turn-text">{{ currentUserPlayerNumber === 2 ? 'Your Turn' : `${getPlayerName(2)}'s Turn` }}</span>
+                  <div class="timer-container">
+                    <span class="timer" :class="{ 'timer-warning': timeRemaining <= 10 }">
+                      {{ formatTime(timeRemaining) }}
+                    </span>
+                  </div>
+                </div>
+                <div v-else class="waiting-turn">
+                  <span class="waiting-text">{{ currentUserPlayerNumber === 2 ? 'Waiting...' : 'Waiting for turn' }}</span>
                 </div>
               </div>
             </div>
@@ -393,8 +403,8 @@ watch(gameOver, (isOver) => {
 .player-panel {
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
-  border: 2px solid transparent;
-  min-width: 200px;
+  border: 3px solid #e5e7eb;
+  min-width: 220px;
   max-height: 60px;
   background: #f9fafb;
   transition: all 0.3s ease;
@@ -404,7 +414,8 @@ watch(gameOver, (isOver) => {
 .player-panel.is-turn {
   border-color: #f97316;
   background: #fff7ed;
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+  transform: scale(1.02);
 }
 
 .player-panel.is-you::before {
@@ -413,7 +424,7 @@ watch(gameOver, (isOver) => {
   left: 0;
   top: 0;
   bottom: 0;
-  width: 3px;
+  width: 4px;
   background: #1f2937;
   border-radius: 0.75rem 0 0 0.75rem;
 }
@@ -510,38 +521,66 @@ watch(gameOver, (isOver) => {
   white-space: nowrap;
 }
 
+.turn-status {
+  margin-top: 0.25rem;
+}
+
+.active-turn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.turn-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #f97316;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.waiting-turn {
+  display: flex;
+  align-items: center;
+}
+
+.waiting-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .timer-container {
   display: flex;
   align-items: center;
 }
 
 .timer {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #dc2626;
-  background: rgba(254, 226, 226, 0.8);
+  color: #1f2937;
+  background: #ffffff;
   padding: 0.25rem 0.5rem;
   border-radius: 0.375rem;
-  min-width: 2.5rem;
+  border: 1px solid #e5e7eb;
+  min-width: 35px;
   text-align: center;
-  border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
-.timer-warning {
-  background: #dc2626;
-  color: white;
-  animation: pulse 1s infinite;
-  border-color: #dc2626;
+.timer.timer-warning {
+  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fecaca;
+  animation: pulse 1s ease-in-out infinite alternate;
 }
 
 @keyframes pulse {
-  0%, 100% { 
-    opacity: 1; 
+  from {
     transform: scale(1);
   }
-  50% { 
-    opacity: 0.8; 
+  to {
     transform: scale(1.05);
   }
 }
