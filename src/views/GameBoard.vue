@@ -67,9 +67,9 @@
 
       <main class="game-main">
         <DotGrid
-          :grid-size="gridSize"
-          :drawn-lines="lines"
-          :claimed-squares="squares"
+          :grid-size="gameGridSize"
+          :drawn-lines="gameLines"
+          :claimed-squares="gameSquares"
           :can-make-move="canCurrentPlayerMove"
           @line-selected="handleLineSelected"
         />
@@ -115,8 +115,15 @@ const route = useRoute()
 const router = useRouter()
 const matchStore = useMatchStore()
 
-// Get current user ID from route or localStorage (simulate for now)
-const currentUserId = ref(route.query.playerId as string || 'user-123')
+// Get current user ID from route query parameter - this is critical for multiplayer sync
+const currentUserId = ref((route.query.playerId as string) || (route.query.userId as string) || 'user-' + Date.now())
+
+// Debug player identification
+console.log('🎮 GameBoard: Initializing with:', {
+  matchId: route.params.id,
+  playerId: currentUserId.value,
+  route: route.fullPath
+})
 
 const { 
   currentMatchId, 
@@ -154,6 +161,30 @@ const canCurrentPlayerMove = computed(() => {
 
 const currentUserPlayerNumber = computed(() => {
   return matchStore.getPlayerNumber(currentUserId.value)
+})
+
+// Computed data for DotGrid - ensure fresh reactive data
+const gameLines = computed(() => {
+  const linesData = lines.value || []
+  console.log('🎮 GameBoard: Preparing lines for DotGrid:', linesData)
+  return linesData
+})
+
+const gameSquares = computed(() => {
+  const squaresData = squares.value || []
+  console.log('🎮 GameBoard: Preparing squares for DotGrid:', squaresData)
+  // Ensure squares have the correct format for DotGrid
+  return squaresData.map(square => ({
+    ...square,
+    topLeftX: square.topLeftX ?? square.x ?? 0,
+    topLeftY: square.topLeftY ?? square.y ?? 0
+  }))
+})
+
+const gameGridSize = computed(() => {
+  const size = gridSize.value || 5
+  console.log('🎮 GameBoard: Grid size:', size)
+  return size
 })
 
 // Helper functions
@@ -232,6 +263,19 @@ const clearTurnTimer = () => {
     turnTimer.value = null
   }
   stopCountdownSound()
+}
+
+// Force refresh data subscription every few seconds to ensure sync
+let syncInterval: number | null = null
+
+const ensureDataSync = () => {
+  if (currentMatchId.value) {
+    console.log('🔄 GameBoard: Force refreshing match data for sync...')
+    matchStore.unsubscribeFromMatch()
+    setTimeout(() => {
+      matchStore.subscribeToMatchById(currentMatchId.value!)
+    }, 100)
+  }
 }
 
 // Handle line selection from DotGrid
@@ -314,7 +358,13 @@ onMounted(() => {
   
   const matchId = route.params.id as string
   if (matchId) {
+    console.log('🎮 GameBoard: Subscribing to match:', matchId, 'as player:', currentUserId.value)
     matchStore.subscribeToMatchById(matchId)
+    
+    // Set up periodic sync check to ensure all players stay synchronized
+    syncInterval = window.setInterval(() => {
+      ensureDataSync()
+    }, 10000) // Refresh every 10 seconds
   } else {
     router.push('/')
   }
@@ -323,6 +373,9 @@ onMounted(() => {
 // Cleanup on unmount
 onUnmounted(() => {
   clearTurnTimer()
+  if (syncInterval) {
+    clearInterval(syncInterval)
+  }
   matchStore.unsubscribeFromMatch()
 })
 
