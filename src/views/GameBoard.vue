@@ -236,15 +236,28 @@ const clearTurnTimer = () => {
 
 // Handle line selection from DotGrid
 const handleLineSelected = async (line: { startDot: string; endDot: string }) => {
-  if (!canCurrentPlayerMove.value || !currentMatchId.value) return
+  console.log('🎮 GameBoard: Line selected:', line, {
+    canMove: canCurrentPlayerMove.value,
+    matchId: currentMatchId.value,
+    userId: currentUserId.value,
+    currentPlayer: currentPlayer.value,
+    userPlayerNumber: currentUserPlayerNumber.value
+  })
+  
+  if (!canCurrentPlayerMove.value || !currentMatchId.value) {
+    console.log('🚫 GameBoard: Move blocked - cannot move or no match ID')
+    return
+  }
   
   try {
-    await playMove(currentMatchId.value, currentUserId.value, {
+    console.log('🎮 GameBoard: Sending move to Firebase...')
+    const result = await playMove(currentMatchId.value, currentUserId.value, {
       startDot: line.startDot,
       endDot: line.endDot
     })
+    console.log('✅ GameBoard: Move result:', result)
   } catch (error) {
-    console.error('Error playing move:', error)
+    console.error('❌ GameBoard: Error playing move:', error)
   }
 }
 
@@ -280,6 +293,14 @@ const resetGame = () => {
 
 // Watch for turn changes and restart timer
 watch([currentPlayer, matchData], ([newPlayer, newMatchData]) => {
+  console.log('🎮 GameBoard: Match data updated:', {
+    currentPlayer: newPlayer,
+    status: newMatchData?.status,
+    linesCount: newMatchData?.lines?.length || 0,
+    squaresCount: newMatchData?.squares?.length || 0,
+    scores: newMatchData?.scores
+  })
+  
   if (newMatchData?.status === 'active' && !gameOver.value) {
     startTurnTimer()
   } else {

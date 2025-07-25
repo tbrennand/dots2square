@@ -123,10 +123,18 @@ const gridStyle = computed(() => ({
 }))
 
 // Get drawn lines from props
-const drawnLines = computed(() => props.drawnLines || [])
+const drawnLines = computed(() => {
+  const lines = props.drawnLines || []
+  console.log('🎯 DotGrid: Drawn lines received:', lines)
+  return lines
+})
 
 // Get claimed squares from props
-const claimedSquares = computed(() => props.claimedSquares || [])
+const claimedSquares = computed(() => {
+  const squares = props.claimedSquares || []
+  console.log('🎯 DotGrid: Claimed squares received:', squares)
+  return squares
+})
 
 // Generate possible lines (all valid connections between adjacent dots)
 const possibleLines = computed(() => {
