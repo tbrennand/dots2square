@@ -7,7 +7,7 @@
         <p class="subtitle">
           {{ isHost 
             ? (hasPlayer2 ? 'Both players joined! Ready to start.' : 'Waiting for second player to join...') 
-            : 'Waiting for host to start' 
+            : (hasPlayer2 ? 'Waiting for host to start the game' : 'Waiting for second player to join...') 
           }}
         </p>
       </div>
@@ -46,7 +46,7 @@
             <div class="player-name">{{ getPlayerName(1) }}</div>
             <div class="player-status">
               <span class="status-indicator" :class="getPlayerStatusClass(1)"></span>
-              {{ getPlayerStatusText(1) }}
+              Online
             </div>
             <div class="player-role">{{ isHost ? 'Host' : 'Player' }}</div>
           </div>
@@ -64,7 +64,7 @@
             <div class="player-name">{{ getPlayerName(2) }}</div>
             <div class="player-status">
               <span class="status-indicator" :class="getPlayerStatusClass(2)"></span>
-              {{ getPlayerStatusText(2) }}
+              Online
             </div>
             <div class="player-role">Player</div>
           </div>
@@ -87,20 +87,7 @@
       </div>
     </div>
 
-    <!-- Ready Status -->
-    <div class="ready-section" v-if="hasPlayer2 && matchData?.status === 'waiting'">
-      <h3 class="section-title">Ready Status</h3>
-      <div class="ready-indicators">
-        <div class="ready-indicator player1-ready" :class="{ ready: isPlayerReady(1) }">
-          <span class="ready-icon">{{ isPlayerReady(1) ? '✅' : '⏳' }}</span>
-          <span class="ready-text">{{ getPlayerName(1) }}</span>
-        </div>
-        <div class="ready-indicator player2-ready" :class="{ ready: isPlayerReady(2) }">
-          <span class="ready-icon">{{ isPlayerReady(2) ? '✅' : '⏳' }}</span>
-          <span class="ready-text">{{ getPlayerName(2) }}</span>
-        </div>
-      </div>
-    </div>
+
 
     <!-- Lobby Actions -->
     <div class="lobby-actions" v-if="hasPlayer2">
@@ -123,24 +110,14 @@
 
       <!-- Player Actions -->
       <div v-else class="player-actions">
-        <button 
-          @click="toggleReady" 
-          :disabled="isUpdatingReady"
-          class="ready-btn"
-          :class="{ 'is-ready': isCurrentPlayerReady }"
-        >
-          <span v-if="isUpdatingReady" class="loading-spinner"></span>
-          {{ isCurrentPlayerReady ? 'Not Ready' : 'Ready' }}
-        </button>
-        
         <button @click="leaveMatch" class="leave-btn">
           Leave Match
         </button>
       </div>
     </div>
 
-          <!-- Share Section -->
-      <div class="share-section">
+          <!-- Share Section - Only show when waiting for second player -->
+      <div v-if="!hasPlayer2" class="share-section">
         <h3 class="section-title">🎮 Invite Friends to Play</h3>
         <div class="share-options">
           <button @click="nativeShare" class="share-btn primary">
