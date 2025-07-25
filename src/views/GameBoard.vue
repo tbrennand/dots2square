@@ -54,12 +54,13 @@
       <!-- Game Grid -->
       <div class="game-grid-container">
         <div class="grid-wrapper">
-          <DotGrid
-            :grid-size="gridSize"
-            :drawn-lines="lines"
-            :claimed-squares="squares"
-            @line-selected="handleLineSelected"
-          />
+                  <DotGrid
+          :grid-size="gridSize"
+          :drawn-lines="lines"
+          :claimed-squares="squares"
+          :can-make-move="canCurrentUserMove"
+          @line-selected="handleLineSelected"
+        />
         </div>
       </div>
 

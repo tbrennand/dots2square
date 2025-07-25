@@ -13,23 +13,26 @@
     <div
       v-for="line in potentialLines"
       :key="line.id"
-      class="line-container"
+      class="line-container potential"
       :style="getLineStyle(line)"
       @click="selectLine(line)"
       @mouseenter="hoverLine = line.id"
       @mouseleave="hoverLine = null"
+      :class="{ 'disabled': !canMakeMove }"
     >
-      <div class="line-visual" :class="{ 'line-hover': hoverLine === line.id }"></div>
+      <div class="line-visual potential-line" :class="{ 'line-hover': hoverLine === line.id && canMakeMove }"></div>
     </div>
 
     <!-- Drawn Lines -->
     <div v-for="line in drawnLines" :key="line.id" class="line-container drawn" :style="getLineStyle(line)">
-      <div class="line-visual line-drawn"></div>
+      <div class="line-visual line-drawn" :class="{ 'player1-line': line.player === 1, 'player2-line': line.player === 2 }"></div>
     </div>
     
     <!-- Claimed Squares -->
     <div v-for="square in claimedSquares" :key="square.id" class="square" :style="squareStyle(square)">
-      <span class="text-4xl">{{ square.player === 1 ? '✏️' : (square.player === 2 ? '🎨' : '') }}</span>
+      <div class="square-content" :class="{ 'player1-square': square.player === 1, 'player2-square': square.player === 2 }">
+        <span class="square-icon">{{ square.player === 1 ? '✏️' : (square.player === 2 ? '🎨' : '') }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -69,6 +72,7 @@ const props = defineProps<{
   gridSize?: number
   drawnLines?: Line[]
   claimedSquares?: Square[]
+  canMakeMove?: boolean
 }>()
 
 // Emits
@@ -297,6 +301,8 @@ const handleGridClick = (event: MouseEvent) => {
 
 // Select a line and emit the event
 const selectLine = (line: PossibleLine) => {
+  if (!props.canMakeMove) return
+  
   emit('line-selected', {
     startDot: line.startDot,
     endDot: line.endDot
@@ -343,13 +349,39 @@ const selectLine = (line: PossibleLine) => {
   transition: all 0.2s ease;
 }
 
-.line-visual.line-hover {
-  background-color: #6b7280;
-  transform: scale(1.1);
+.potential-line {
+  background-color: #e5e7eb;
+  opacity: 0.3;
 }
 
-.line-visual.line-drawn {
+.potential-line.line-hover {
+  background-color: #f97316;
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+.line-container.disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.line-container.disabled .potential-line {
+  opacity: 0.1;
+}
+
+.line-drawn {
   background-color: #374151;
+  opacity: 1;
+}
+
+.player1-line {
+  background-color: #3b82f6;
+  box-shadow: 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+.player2-line {
+  background-color: #f97316;
+  box-shadow: 0 0 4px rgba(249, 115, 22, 0.4);
 }
 
 .square {
@@ -358,7 +390,33 @@ const selectLine = (line: PossibleLine) => {
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+}
+
+.square-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid transparent;
+}
+
+.player1-square {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+.player2-square {
+  background: rgba(249, 115, 22, 0.1);
+  border-color: #f97316;
+}
+
+.square-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 .square:hover {
