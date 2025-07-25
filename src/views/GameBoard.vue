@@ -61,8 +61,6 @@
         />
       </div>
 
-
-
       <!-- Chat -->
       <div class="chat-container">
         <Chat 
@@ -288,12 +286,16 @@ watch(gameOver, (isOver) => {
   align-items: center;
   width: 100%;
   max-width: 1200px;
+  position: relative;
 }
 
 .header-logo {
-  width: 256px;
+  width: 179px; /* 70% of 256px */
   height: auto;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .forfeit-btn {
@@ -377,7 +379,7 @@ watch(gameOver, (isOver) => {
 .player-name {
   font-weight: 600;
   color: #1f2937;
-  font-size: 0.875rem;
+  font-size: 1.125rem;
 }
 
 .player-score {
@@ -457,7 +459,7 @@ watch(gameOver, (isOver) => {
   }
   
   .header-logo {
-    width: 288px;
+    width: 202px; /* 70% of 288px */
   }
   
   .forfeit-btn {
@@ -508,13 +510,13 @@ watch(gameOver, (isOver) => {
   }
   
   .header-logo {
-    width: 320px;
+    width: 224px; /* 70% of 320px */
   }
 }
 
 @media (min-width: 1024px) {
   .header-logo {
-    width: 384px;
+    width: 269px; /* 70% of 384px */
   }
   
   .forfeit-btn {
