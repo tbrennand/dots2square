@@ -18,8 +18,13 @@
               type="text" 
               placeholder="Enter your name..." 
               class="input-field w-full"
+              :class="{ 'border-red-500': showNameError }"
               @keyup.enter="createMatch"
+              @input="clearNameError"
             />
+            <div v-if="showNameError" class="text-red-500 text-sm mt-1">
+              ⚠️ Please enter your name to continue
+            </div>
           </div>
 
           <!-- Grid Size Selection -->
@@ -39,10 +44,15 @@
             </div>
           </div>
 
+          <!-- Error Message -->
+          <div v-if="errorMessage" class="text-red-500 text-center p-3 bg-red-50 border border-red-200 rounded-lg">
+            {{ errorMessage }}
+          </div>
+
           <!-- Create Button -->
           <button 
             @click="createMatch" 
-            :disabled="!canCreate"
+            :disabled="isCreating"
             class="btn btn-primary w-full text-lg py-4"
           >
             <span v-if="isCreating" class="loading-spinner mr-2"></span>
@@ -68,6 +78,8 @@ const router = useRouter()
 const playerName = ref('')
 const selectedGridSize = ref(8)
 const isCreating = ref(false)
+const errorMessage = ref('')
+const showNameError = ref(false)
 
 const gridSizes = [4, 6, 8, 10, 12, 15]
 
@@ -87,8 +99,22 @@ const getGridDescription = (size: number): string => {
   }
 }
 
+const clearNameError = () => {
+  showNameError.value = false
+  errorMessage.value = ''
+}
+
 const createMatch = async () => {
-  if (!canCreate.value || isCreating.value) return
+  // Clear previous errors
+  clearNameError()
+  
+  // Validate name
+  if (!playerName.value.trim()) {
+    showNameError.value = true
+    return
+  }
+  
+  if (isCreating.value) return
 
   isCreating.value = true
 
@@ -105,7 +131,7 @@ const createMatch = async () => {
     router.push(`/lobby/${matchId}?playerId=${player1Id}`)
   } catch (error) {
     console.error('Failed to create match:', error)
-    // TODO: Show error message to user
+    errorMessage.value = '❌ Failed to create game. Please try again.'
   } finally {
     isCreating.value = false
   }
