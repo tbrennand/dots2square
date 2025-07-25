@@ -90,7 +90,11 @@ let unsubscribe: Unsubscribe | null = null
 // Computed sorted messages (oldest to newest)
 const sortedMessages = computed(() => {
   const messages = Array.isArray(chatMessages.value) ? chatMessages.value : [];
-  return messages.sort((a, b) => (a.timestamp?.getTime() || 0) - (b.timestamp?.getTime() || 0));
+  console.log('sortedMessages computed - chatMessages.value:', chatMessages.value)
+  console.log('sortedMessages computed - messages array:', messages)
+  const sorted = messages.sort((a, b) => (a.timestamp?.getTime() || 0) - (b.timestamp?.getTime() || 0));
+  console.log('sortedMessages computed - sorted result:', sorted)
+  return sorted;
 })
 
 // Format timestamp
@@ -219,6 +223,9 @@ onMounted(() => {
       timestamp: msg.timestamp
     })))
     
+    // Log the actual chatMessages array that gets displayed
+    console.log('chatMessages.value before filtering:', chatMessages.value)
+    
     // Filter messages based on chat type
     console.log('Filtering logic - props.isHostChat:', props.isHostChat, 'type:', typeof props.isHostChat)
     
@@ -230,11 +237,13 @@ onMounted(() => {
       });
       chatMessages.value = hostMessages;
       console.log('Host chat messages:', hostMessages)
+      console.log('chatMessages.value after host filtering:', chatMessages.value)
     } else {
       // For regular chat, only show messages NOT marked as host chat
       const regularMessages = allMessages.filter(msg => msg.isHostChat !== true);
       chatMessages.value = regularMessages;
       console.log('Regular chat messages:', regularMessages)
+      console.log('chatMessages.value after regular filtering:', chatMessages.value)
     }
     
     // Update unread count
