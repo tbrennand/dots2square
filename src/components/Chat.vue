@@ -223,6 +223,9 @@ onMounted(() => {
       timestamp: msg.timestamp
     })))
     
+    // Log the actual message content for debugging
+    console.log('Raw message data:', allMessages)
+    
     // Log the actual chatMessages array that gets displayed
     console.log('chatMessages.value before filtering:', chatMessages.value)
     
