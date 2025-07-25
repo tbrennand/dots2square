@@ -17,6 +17,11 @@
             <div class="turn-status">
               <div v-if="currentPlayer === 1" class="active-turn">
                 <span class="turn-text">{{ currentUserPlayerNumber === 1 ? 'Your Turn' : `${getPlayerName(1)}'s Turn` }}</span>
+                <div v-if="isTimerActive && currentPlayer === 1" class="timer-display">
+                  <div class="timer-countdown" :class="{ 'timer-warning': timeRemaining <= 10, 'timer-critical': timeRemaining <= 5 }">
+                    {{ Math.ceil(timeRemaining) }}s
+                  </div>
+                </div>
               </div>
               <div v-else class="waiting-turn">
                 <span class="waiting-text">{{ currentUserPlayerNumber === 1 ? 'Waiting...' : 'Waiting for turn' }}</span>
@@ -38,6 +43,11 @@
             <div class="turn-status">
               <div v-if="currentPlayer === 2" class="active-turn">
                 <span class="turn-text">{{ currentUserPlayerNumber === 2 ? 'Your Turn' : `${getPlayerName(2)}'s Turn` }}</span>
+                <div v-if="isTimerActive && currentPlayer === 2" class="timer-display">
+                  <div class="timer-countdown" :class="{ 'timer-warning': timeRemaining <= 10, 'timer-critical': timeRemaining <= 5 }">
+                    {{ Math.ceil(timeRemaining) }}s
+                  </div>
+                </div>
               </div>
               <div v-else class="waiting-turn">
                 <span class="waiting-text">{{ currentUserPlayerNumber === 2 ? 'Waiting...' : 'Waiting for turn' }}</span>
@@ -103,12 +113,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useMatchStore } from '../stores/matchStore'
-import { playMove } from '../firebase/matchHelpers'
 import { storeToRefs } from 'pinia'
-import DotGrid from '../components/DotGrid.vue'
+import { useMatchStore } from '@/stores/matchStore'
+import { playMove } from '@/firebase/matchHelpers'
+import DotGrid from '@/components/DotGrid.vue'
+import { useTurnTimer } from '@/composables/useTurnTimer'
 
 const route = useRoute()
 const router = useRouter()
@@ -267,6 +278,19 @@ const winner = computed(() => {
   if (scores.value[2] > scores.value[1]) return 2
   return 'tie'
 })
+
+// Turn timer
+const {
+  timeRemaining,
+  timeRemainingPercentage,
+  isTimerActive,
+  isExpired: timerIsExpired,
+  startTimer,
+  stopTimer
+} = useTurnTimer(
+  currentMatchId.value || '',
+  currentUserId.value
+)
 
 // Sync Firebase state to local state
 const syncFromFirebase = () => {
@@ -461,6 +485,30 @@ const resetGame = () => {
 watch([firebaseLines, firebaseSquares, firebaseCurrentPlayer, firebaseScores], () => {
   syncFromFirebase()
 }, { deep: true })
+
+// Watch for turn changes to start/stop timer
+watch(currentPlayer, (newPlayer) => {
+  if (matchData.value?.status === 'active' && isTimerActive) {
+    startTimer(newPlayer === 1 ? matchData.value.player1.id : matchData.value.player2?.id || '', 30)
+  }
+}, { immediate: true })
+
+// Watch for game status changes
+watch(() => matchData.value?.status, (newStatus) => {
+  if (newStatus === 'active' && currentPlayer.value) {
+    startTimer(currentPlayer.value === 1 ? matchData.value?.player1.id || '' : matchData.value?.player2?.id || '', 30)
+  } else {
+    stopTimer()
+  }
+})
+
+// Watch for timer warnings and play sound
+watch(timeRemaining, (newTime) => {
+  if (newTime <= 5 && newTime > 0 && Math.ceil(newTime) !== Math.ceil(newTime + 0.1)) {
+    // Play sound every second for last 5 seconds
+    playCountdownSound()
+  }
+}, { immediate: false })
 
 // Initialize game on mount
 onMounted(() => {
@@ -679,37 +727,37 @@ watch(gameOver, (isOver) => {
   letter-spacing: 0.05em;
 }
 
-.timer-container {
-  display: flex;
-  align-items: center;
+.timer-display {
+  margin-top: 0.25rem;
 }
 
-.timer {
+.timer-countdown {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background: #10b981;
+  color: white;
+  border-radius: 0.375rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #1f2937;
-  background: #ffffff;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  border: 1px solid #e5e7eb;
-  min-width: 35px;
-  text-align: center;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.timer.timer-warning {
-  color: #dc2626;
-  background: #fef2f2;
-  border-color: #fecaca;
-  animation: pulse 1s ease-in-out infinite alternate;
+.timer-countdown.timer-warning {
+  background: #f59e0b;
+  transform: scale(1.05);
 }
 
-@keyframes pulse {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.05);
-  }
+.timer-countdown.timer-critical {
+  background: #ef4444;
+  animation: pulse-critical 1s infinite;
+  transform: scale(1.1);
+}
+
+@keyframes pulse-critical {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 .game-controls {

@@ -25,7 +25,7 @@
 
     <!-- Drawn Lines -->
     <div v-for="line in drawnLines" :key="line.id" :id="line.id" class="line-container drawn" :style="getLineStyle(line, false)">
-      <div class="line-visual line-drawn" :class="{ 'player1-line': line.player === 1, 'player2-line': line.player === 2 }"></div>
+      <div class="line-visual line-drawn" :class="getLineClass(line)"></div>
     </div>
     
     <!-- Claimed Squares -->
@@ -241,6 +241,48 @@ const selectLine = (line: PossibleLine) => {
     startDot: line.startDot,
     endDot: line.endDot
   })
+}
+
+// Get line class for coloring
+const getLineClass = (line: Line) => {
+  if (!line.player) return '' // No player assigned yet
+
+  // Check if the line is part of a completed square
+  const isPartOfCompletedSquare = claimedSquares.value.some(square => {
+    const topLeftX = square.topLeftX ?? square.x ?? 0
+    const topLeftY = square.topLeftY ?? square.y ?? 0
+    
+    const squareDots = [
+      `${topLeftY}-${topLeftX}`,
+      `${topLeftY}-${topLeftX + 1}`,
+      `${topLeftY + 1}-${topLeftX}`,
+      `${topLeftY + 1}-${topLeftX + 1}`
+    ]
+    return squareDots.includes(line.startDot) && squareDots.includes(line.endDot)
+  })
+
+  if (isPartOfCompletedSquare) {
+    // If line is part of a completed square, use the square owner's color
+    const relevantSquare = claimedSquares.value.find(square => {
+      const topLeftX = square.topLeftX ?? square.x ?? 0
+      const topLeftY = square.topLeftY ?? square.y ?? 0
+      
+      const squareDots = [
+        `${topLeftY}-${topLeftX}`,
+        `${topLeftY}-${topLeftX + 1}`,
+        `${topLeftY + 1}-${topLeftX}`,
+        `${topLeftY + 1}-${topLeftX + 1}`
+      ]
+      return squareDots.includes(line.startDot) && squareDots.includes(line.endDot)
+    })
+    
+    if (relevantSquare?.player) {
+      return `player${relevantSquare.player}-line`
+    }
+  }
+  
+  // Default to line player color
+  return `player${line.player}-line`
 }
 </script>
 
