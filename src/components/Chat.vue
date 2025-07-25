@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-section">
+  <div v-if="props.matchId" class="chat-section">
     <h3 class="section-title">Chat</h3>
     <div class="chat-messages" ref="chatMessages">
       <div v-for="message in sortedMessages" :key="message.id" class="chat-message">
@@ -49,7 +49,7 @@ let unsubscribe: Unsubscribe | null = null
 // Computed sorted messages (oldest to newest)
 const sortedMessages = computed(() => {
   const messages = Array.isArray(chatMessages.value) ? chatMessages.value : [];
-  return messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  return messages.sort((a, b) => (a.timestamp?.getTime() || 0) - (b.timestamp?.getTime() || 0));
 })
 
 // Format timestamp
