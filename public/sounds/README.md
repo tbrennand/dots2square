@@ -1,26 +1,34 @@
-# Audio Files
+# Audio Files for Dots2Squares
 
-## Countdown Sound
+## Required Files
 
-Place your countdown sound file here as `countdown.mp3`.
+### countdown.mp3
+- **Purpose**: 5-second countdown sound for turn timer
+- **Duration**: Exactly 5 seconds
+- **Format**: MP3, 44.1kHz, stereo
+- **Volume**: Normalized to prevent audio spikes on mobile
+- **Requirements**: 
+  - Must be optimized for mobile playback
+  - Should work without autoplay (user interaction required)
+  - Compressed for fast loading on mobile networks
 
-### Requirements:
-- **Filename**: Must be exactly `countdown.mp3`
-- **Duration**: Should be 5 seconds long (to match the timer countdown)
-- **Format**: MP3 format for best browser compatibility
-- **Volume**: The app will automatically set volume to 60%
+## Mobile Audio Notes
 
-### Suggested Sound:
-You can use:
-- A simple beep that repeats every second for 5 seconds
-- A ticking clock sound
-- A gentle chime or bell countdown
-- Any 5-second audio clip you prefer
+- Audio is disabled by default for mobile compatibility
+- Users must tap the sound toggle to enable audio
+- This follows mobile browser autoplay policies
+- Audio files should be small and compressed for mobile performance
 
-### Example Sources:
-- Generate a countdown sound using online audio generators
-- Record your own 5-second countdown
-- Use free sound effects from sites like Freesound.org
-- Create a simple beep sequence using audio editing software
+## Implementation
 
-The sound will automatically play when the timer reaches 5 seconds remaining on any player's turn. 
+The audio system is designed to work across all devices including:
+- iOS Safari (with audio restrictions)
+- Android Chrome/Firefox  
+- Desktop browsers
+- Progressive Web Apps
+
+To add the countdown.mp3 file:
+1. Create a 5-second countdown sound effect
+2. Export as MP3 (128kbps recommended)
+3. Place in this `/public/sounds/` directory
+4. Test on mobile devices to ensure compatibility 
