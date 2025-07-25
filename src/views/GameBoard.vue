@@ -328,7 +328,7 @@ const syncFromFirebase = () => {
   
   // Sync squares - only claimed ones
   if (firebaseSquares.value) {
-    console.log('🔍 RAW Firebase Squares:', firebaseSquares.value.map(s => ({ 
+    console.log('🔍 RAW Firebase Squares:', firebaseSquares.value.slice(0, 5).map(s => ({ 
       id: s.id, 
       player: s.player, 
       playerType: typeof s.player,
@@ -336,6 +336,14 @@ const syncFromFirebase = () => {
       isUndefined: s.player === undefined,
       isNull: s.player === null,
       isNumber: typeof s.player === 'number'
+    })))
+    
+    // Show first few squares that have players
+    const squaresWithPlayers = firebaseSquares.value.filter(s => s.player !== undefined && s.player !== null)
+    console.log('🔍 Squares with players:', squaresWithPlayers.map(s => ({ 
+      id: s.id, 
+      player: s.player, 
+      playerType: typeof s.player 
     })))
     
     const claimedFirebaseSquares = firebaseSquares.value.filter(square => 
