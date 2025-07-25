@@ -1,25 +1,20 @@
 <template>
   <div class="dot-grid-container" :style="gridStyle">
-    <!-- Loading State -->
-    <div v-if="!dots.length" class="grid-loading">
-      <div class="loading-spinner"></div>
-      <p>Loading grid...</p>
-    </div>
-    
     <!-- Dots -->
-    <div v-for="dot in dots" :key="dot.id" class="dot" :style="{ top: `${dot.y * spacing}px`, left: `${dot.x * spacing}px` }"></div>
+    <div v-for="dot in dots" :key="dot.id" class="dot" :style="{ top: `${dot.y * 100}px`, left: `${dot.x * 100}px` }"></div>
     
     <!-- Potential Lines (for hover effect) -->
     <div
       v-for="line in potentialLines"
       :key="line.id"
-      class="line-container potential"
-      :style="getLineStyle(line)"
+      class="line-container"
       @click="selectLine(line)"
       @mouseenter="hoverLine = line.id"
       @mouseleave="hoverLine = null"
       :class="{ 'disabled': !canMakeMove }"
+      :style="getLineStyle(line)"
     >
+      <div class="line-hitbox"></div>
       <div class="line-visual potential-line" :class="{ 'line-hover': hoverLine === line.id && canMakeMove }"></div>
     </div>
 
@@ -82,30 +77,10 @@ const emit = defineEmits<{
 
 // Component state
 const gridSize = props.gridSize || 5
-const spacing = ref(60) // Default spacing
-const gridWidth = computed(() => gridSize * spacing.value)
-const gridHeight = computed(() => gridSize * spacing.value)
+const spacing = 100
+const gridWidth = gridSize * spacing
+const gridHeight = gridSize * spacing
 const hoverLine = ref<string | null>(null)
-
-// Update spacing based on screen size
-const updateSpacing = () => {
-  if (typeof window !== 'undefined') {
-    const width = window.innerWidth
-    if (width <= 480) spacing.value = 40 // Mobile
-    else if (width <= 768) spacing.value = 50 // Tablet
-    else spacing.value = 60 // Desktop
-  }
-}
-
-// Initialize and watch for window resize
-onMounted(() => {
-  updateSpacing()
-  window.addEventListener('resize', updateSpacing)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updateSpacing)
-})
 
 // Generate dots based on grid size
 const dots = computed(() => {
@@ -124,8 +99,8 @@ const dots = computed(() => {
 
 // Grid style computed property
 const gridStyle = computed(() => ({
-  width: `${gridWidth.value}px`,
-  height: `${gridHeight.value}px`,
+  width: `${gridWidth}px`,
+  height: `${gridHeight}px`,
   position: 'relative' as const,
   border: '2px solid #e5e7eb',
   borderRadius: '12px',
@@ -198,9 +173,9 @@ const potentialLines = computed(() => possibleLines.value)
 
 // Square style method
 const squareStyle = (square: Square) => {
-  const x = square.topLeftX * spacing.value
-  const y = square.topLeftY * spacing.value
-  const size = spacing.value - 4 // Slightly smaller than spacing
+  const x = square.topLeftX * spacing
+  const y = square.topLeftY * spacing
+  const size = spacing - 4 // Slightly smaller than spacing
   
   return {
     position: 'absolute' as const,
@@ -232,7 +207,7 @@ const getPlayerColor = (player?: number): string => {
 // Get dot position for coordinates
 const getDotPosition = (dotId: string) => {
   const [y, x] = dotId.split('-').map(Number)
-  return { x: x * spacing.value, y: y * spacing.value }
+  return { x: x * spacing, y: y * spacing }
 }
 
 // Calculate line position and style
@@ -281,8 +256,8 @@ const handleGridClick = (event: MouseEvent) => {
   
   // Find closest dot
   const clickedDot = dots.value.find(dot => {
-    const dotX = dot.x * spacing.value
-    const dotY = dot.y * spacing.value
+    const dotX = dot.x * spacing
+    const dotY = dot.y * spacing
     const distance = Math.sqrt((x - dotX) ** 2 + (y - dotY) ** 2)
     return distance < 20
   })
@@ -339,6 +314,18 @@ const selectLine = (line: PossibleLine) => {
   position: absolute;
   cursor: pointer;
   pointer-events: auto;
+}
+
+.line-hitbox {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  z-index: 1;
+}
+
+.line-container.drawn {
+  pointer-events: none;
 }
 
 .line-visual {
