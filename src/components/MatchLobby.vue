@@ -157,7 +157,7 @@
       :matchId="matchId" 
       :currentPlayerName="getPlayerName(getCurrentPlayerNumber())"
       :hasSecondPlayer="hasPlayer2"
-      :isHostChat="isHost"
+      :isHostChat="false"
     />
 
     <!-- Error/Success Messages -->
