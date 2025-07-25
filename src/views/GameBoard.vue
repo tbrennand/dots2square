@@ -142,17 +142,30 @@ const currentUserPlayerNumber = computed(() => {
 
 // Check if current user can make moves
 const canCurrentPlayerMove = computed(() => {
-  return currentPlayer.value === currentUserPlayerNumber.value
+  // Must be active game, correct turn, and current user's turn
+  return matchData.value?.status === 'active' && 
+         currentPlayer.value === currentUserPlayerNumber.value
 })
 
-// Game status
+// Game status - only show game over if Firebase says so OR local calculation AND Firebase game is active
 const gameOver = computed(() => {
+  // If Firebase explicitly says game is over, respect that
+  if (firebaseGameOver.value) return true
+  
+  // If Firebase game isn't active, don't show local game over
+  if (matchData.value?.status !== 'active') return false
+  
+  // Only calculate local game over for active games
   const totalSquares = (gridSize.value - 1) * (gridSize.value - 1)
   const claimedCount = claimedSquares.value.length
   return claimedCount >= totalSquares
 })
 
 const winner = computed(() => {
+  // Use Firebase winner if available
+  if (matchData.value?.winner) return matchData.value.winner
+  
+  // Otherwise calculate locally if game is over
   if (!gameOver.value) return null
   if (scores.value[1] > scores.value[2]) return 1
   if (scores.value[2] > scores.value[1]) return 2
@@ -163,7 +176,19 @@ const winner = computed(() => {
 const syncFromFirebase = () => {
   if (!matchData.value) return
   
-  // Update local state from Firebase
+  // Only sync game state for active games
+  if (matchData.value.status !== 'active') {
+    // For non-active games, reset to initial state
+    if (matchData.value.status === 'waiting') {
+      drawnLines.value = []
+      claimedSquares.value = []
+      scores.value = { 1: 0, 2: 0 }
+      currentPlayer.value = 1
+    }
+    return
+  }
+  
+  // Update local state from Firebase for active games
   gridSize.value = firebaseGridSize.value || 5
   currentPlayer.value = firebaseCurrentPlayer.value || 1
   scores.value = { 
