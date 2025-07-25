@@ -1,7 +1,7 @@
 <template>
   <div class="dot-grid-container" :style="gridStyle">
     <!-- Dots -->
-    <div v-for="dot in dots" :key="dot.id" class="dot" :style="{ top: `${dot.y * 100}px`, left: `${dot.x * 100}px` }"></div>
+    <div v-for="dot in dots" :key="dot.id" class="dot" :style="{ top: `${dot.y * spacing}px`, left: `${dot.x * spacing}px` }"></div>
     
     <!-- Potential Lines (for hover effect) -->
     <div
@@ -77,10 +77,30 @@ const emit = defineEmits<{
 
 // Component state
 const gridSize = props.gridSize || 5
-const spacing = 100
-const gridWidth = gridSize * spacing
-const gridHeight = gridSize * spacing
+const spacing = ref(60) // Default spacing
+const gridWidth = computed(() => gridSize * spacing.value)
+const gridHeight = computed(() => gridSize * spacing.value)
 const hoverLine = ref<string | null>(null)
+
+// Update spacing based on screen size
+const updateSpacing = () => {
+  if (typeof window !== 'undefined') {
+    const width = window.innerWidth
+    if (width <= 480) spacing.value = 40 // Mobile
+    else if (width <= 768) spacing.value = 50 // Tablet
+    else spacing.value = 60 // Desktop
+  }
+}
+
+// Initialize and watch for window resize
+onMounted(() => {
+  updateSpacing()
+  window.addEventListener('resize', updateSpacing)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateSpacing)
+})
 
 // Generate dots based on grid size
 const dots = computed(() => {
@@ -99,8 +119,8 @@ const dots = computed(() => {
 
 // Grid style computed property
 const gridStyle = computed(() => ({
-  width: `${gridWidth}px`,
-  height: `${gridHeight}px`,
+  width: `${gridWidth.value}px`,
+  height: `${gridHeight.value}px`,
   position: 'relative' as const,
   border: '2px solid #e5e7eb',
   borderRadius: '12px',
@@ -115,9 +135,7 @@ const drawnLines = computed(() => props.drawnLines || [])
 
 // Get claimed squares from props
 const claimedSquares = computed(() => {
-  console.log('DotGrid - All squares:', props.claimedSquares)
   const filtered = (props.claimedSquares || []).filter(square => square.player !== undefined && square.player !== null)
-  console.log('DotGrid - Claimed squares:', filtered)
   return filtered
 })
 
@@ -171,43 +189,10 @@ const possibleLines = computed(() => {
 // Alias for potentialLines (same as possibleLines)
 const potentialLines = computed(() => possibleLines.value)
 
-// Square style method
-const squareStyle = (square: Square) => {
-  const x = square.topLeftX * spacing
-  const y = square.topLeftY * spacing
-  const size = spacing - 4 // Slightly smaller than spacing
-  
-  return {
-    position: 'absolute' as const,
-    left: `${x + 2}px`,
-    top: `${y + 2}px`,
-    width: `${size}px`,
-    height: `${size}px`,
-    backgroundColor: getPlayerColor(square.player),
-    borderRadius: '4px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '24px'
-  }
-}
-
-// Get player color
-const getPlayerColor = (player?: number): string => {
-  switch (player) {
-    case 1:
-      return '#3b82f6' // Blue
-    case 2:
-      return '#f97316' // Orange
-    default:
-      return '#9ca3af' // Gray
-  }
-}
-
 // Get dot position for coordinates
 const getDotPosition = (dotId: string) => {
   const [y, x] = dotId.split('-').map(Number)
-  return { x: x * spacing, y: y * spacing }
+  return { x: x * spacing.value, y: y * spacing.value }
 }
 
 // Calculate line position and style
@@ -248,29 +233,17 @@ const getLineStyle = (line: PossibleLine | Line) => {
   return {}
 }
 
-// Handle grid clicks
-const handleGridClick = (event: MouseEvent) => {
-  const rect = (event.target as SVGElement).getBoundingClientRect()
-  const x = event.clientX - rect.left
-  const y = event.clientY - rect.top
+// Square style method
+const squareStyle = (square: Square) => {
+  const x = square.topLeftX * spacing.value
+  const y = square.topLeftY * spacing.value
+  const size = spacing.value - 4 // Slightly smaller than spacing
   
-  // Find closest dot
-  const clickedDot = dots.value.find(dot => {
-    const dotX = dot.x * spacing
-    const dotY = dot.y * spacing
-    const distance = Math.sqrt((x - dotX) ** 2 + (y - dotY) ** 2)
-    return distance < 20
-  })
-  
-  if (clickedDot) {
-    // Find if there's a possible line from this dot
-    const possibleLine = possibleLines.value.find(line => 
-      line.startDot === clickedDot.id || line.endDot === clickedDot.id
-    )
-    
-    if (possibleLine) {
-      selectLine(possibleLine)
-    }
+  return {
+    left: `${x}px`,
+    top: `${y}px`,
+    width: `${size}px`,
+    height: `${size}px`
   }
 }
 
@@ -411,28 +384,24 @@ const selectLine = (line: PossibleLine) => {
   opacity: 0.8;
 }
 
-/* Loading State */
-.grid-loading {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: #6b7280;
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .dot-grid-container {
+    padding: 0.5rem;
+  }
+  
+  .square-icon {
+    font-size: 1.25rem;
+  }
 }
 
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #e5e7eb;
-  border-top: 3px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@media (max-width: 768px) {
+  .dot-grid-container {
+    padding: 0.75rem;
+  }
+  
+  .square-icon {
+    font-size: 1.375rem;
+  }
 }
 </style> 
