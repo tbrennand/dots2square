@@ -1,39 +1,37 @@
 <template>
   <div class="dot-grid-container" :style="gridStyle">
     <!-- Dots -->
-    <div v-for="dot in dots" :key="dot.id" class="dot" :style="{ top: `${dot.y * spacing}px`, left: `${dot.x * spacing}px` }"></div>
+    <div v-for="dot in dots" :key="dot.id" class="dot" :style="{ top: `${dot.y * 100}px`, left: `${dot.x * 100}px` }"></div>
     
     <!-- Potential Lines (for hover effect) -->
     <div
       v-for="line in potentialLines"
       :key="line.id"
-      class="line-container"
+      :id="line.id"
+      class="line-container potential"
       @click="selectLine(line)"
       @mouseenter="hoverLine = line.id"
       @mouseleave="hoverLine = null"
       :class="{ 'disabled': !canMakeMove }"
-      :style="getLineStyle(line)"
     >
       <div class="line-hitbox"></div>
-      <div class="line-visual potential-line" :class="{ 'line-hover': hoverLine === line.id && canMakeMove }"></div>
+      <div class="line-visual" :class="{ 'line-hover': hoverLine === line.id && canMakeMove }"></div>
     </div>
 
     <!-- Drawn Lines -->
-    <div v-for="line in drawnLines" :key="line.id" class="line-container drawn" :style="getLineStyle(line)">
+    <div v-for="line in drawnLines" :key="line.id" :id="line.id" class="line-container drawn">
       <div class="line-visual line-drawn" :class="{ 'player1-line': line.player === 1, 'player2-line': line.player === 2 }"></div>
     </div>
     
     <!-- Claimed Squares -->
     <div v-for="square in claimedSquares" :key="square.id" class="square" :style="squareStyle(square)">
-      <div class="square-content" :class="{ 'player1-square': square.player === 1, 'player2-square': square.player === 2 }">
-        <span class="square-icon">{{ square.player === 1 ? '✏️' : (square.player === 2 ? '🎨' : '') }}</span>
-      </div>
+      <span class="text-4xl">{{ square.player === 1 ? '✏️' : '🎨' }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref } from 'vue'
 
 // Define interfaces for the component
 interface Dot {
@@ -77,30 +75,10 @@ const emit = defineEmits<{
 
 // Component state
 const gridSize = props.gridSize || 5
-const spacing = ref(60) // Default spacing
-const gridWidth = computed(() => gridSize * spacing.value)
-const gridHeight = computed(() => gridSize * spacing.value)
+const spacing = 100 // Use 100px to match template
+const gridWidth = gridSize * spacing
+const gridHeight = gridSize * spacing
 const hoverLine = ref<string | null>(null)
-
-// Update spacing based on screen size
-const updateSpacing = () => {
-  if (typeof window !== 'undefined') {
-    const width = window.innerWidth
-    if (width <= 480) spacing.value = 40 // Mobile
-    else if (width <= 768) spacing.value = 50 // Tablet
-    else spacing.value = 60 // Desktop
-  }
-}
-
-// Initialize and watch for window resize
-onMounted(() => {
-  updateSpacing()
-  window.addEventListener('resize', updateSpacing)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updateSpacing)
-})
 
 // Generate dots based on grid size
 const dots = computed(() => {
@@ -119,8 +97,8 @@ const dots = computed(() => {
 
 // Grid style computed property
 const gridStyle = computed(() => ({
-  width: `${gridWidth.value}px`,
-  height: `${gridHeight.value}px`,
+  width: `${gridWidth}px`,
+  height: `${gridHeight}px`,
   position: 'relative' as const,
   border: '2px solid #e5e7eb',
   borderRadius: '12px',
@@ -134,10 +112,7 @@ const gridStyle = computed(() => ({
 const drawnLines = computed(() => props.drawnLines || [])
 
 // Get claimed squares from props
-const claimedSquares = computed(() => {
-  const filtered = (props.claimedSquares || []).filter(square => square.player !== undefined && square.player !== null)
-  return filtered
-})
+const claimedSquares = computed(() => props.claimedSquares || [])
 
 // Generate possible lines (all valid connections between adjacent dots)
 const possibleLines = computed(() => {
@@ -189,55 +164,11 @@ const possibleLines = computed(() => {
 // Alias for potentialLines (same as possibleLines)
 const potentialLines = computed(() => possibleLines.value)
 
-// Get dot position for coordinates
-const getDotPosition = (dotId: string) => {
-  const [y, x] = dotId.split('-').map(Number)
-  return { x: x * spacing.value, y: y * spacing.value }
-}
-
-// Calculate line position and style
-const getLineStyle = (line: PossibleLine | Line) => {
-  const startPos = getDotPosition(line.startDot)
-  const endPos = getDotPosition(line.endDot)
-  
-  // Calculate line properties
-  const isHorizontal = startPos.y === endPos.y
-  const isVertical = startPos.x === endPos.x
-  
-  if (isHorizontal) {
-    const width = Math.abs(endPos.x - startPos.x)
-    const left = Math.min(startPos.x, endPos.x)
-    const top = startPos.y - 2 // Center vertically
-    
-    return {
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${width}px`,
-      height: '4px',
-      transform: 'none'
-    }
-  } else if (isVertical) {
-    const height = Math.abs(endPos.y - startPos.y)
-    const left = startPos.x - 2 // Center horizontally
-    const top = Math.min(startPos.y, endPos.y)
-    
-    return {
-      left: `${left}px`,
-      top: `${top}px`,
-      width: '4px',
-      height: `${height}px`,
-      transform: 'none'
-    }
-  }
-  
-  return {}
-}
-
 // Square style method
 const squareStyle = (square: Square) => {
-  const x = square.topLeftX * spacing.value
-  const y = square.topLeftY * spacing.value
-  const size = spacing.value - 4 // Slightly smaller than spacing
+  const x = square.topLeftX * spacing
+  const y = square.topLeftY * spacing
+  const size = spacing - 4 // Slightly smaller than spacing
   
   return {
     left: `${x}px`,
@@ -289,6 +220,15 @@ const selectLine = (line: PossibleLine) => {
   pointer-events: auto;
 }
 
+.line-container.drawn {
+  pointer-events: none;
+}
+
+.line-container.disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .line-hitbox {
   position: absolute;
   width: 100%;
@@ -297,36 +237,19 @@ const selectLine = (line: PossibleLine) => {
   z-index: 1;
 }
 
-.line-container.drawn {
-  pointer-events: none;
-}
-
 .line-visual {
   width: 100%;
   height: 100%;
-  background-color: #d1d5db;
+  background-color: #e5e7eb;
   border-radius: 2px;
   transition: all 0.2s ease;
-}
-
-.potential-line {
-  background-color: #e5e7eb;
   opacity: 0.3;
 }
 
-.potential-line.line-hover {
+.line-visual.line-hover {
   background-color: #f97316;
   opacity: 0.8;
   transform: scale(1.05);
-}
-
-.line-container.disabled {
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.line-container.disabled .potential-line {
-  opacity: 0.1;
 }
 
 .line-drawn {
@@ -351,32 +274,8 @@ const selectLine = (line: PossibleLine) => {
   justify-content: center;
   border-radius: 4px;
   transition: all 0.3s ease;
-}
-
-.square-content {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
   background: rgba(255, 255, 255, 0.9);
   border: 2px solid transparent;
-}
-
-.player1-square {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: #3b82f6;
-}
-
-.player2-square {
-  background: rgba(249, 115, 22, 0.1);
-  border-color: #f97316;
-}
-
-.square-icon {
-  font-size: 1.5rem;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 .square:hover {
@@ -384,24 +283,69 @@ const selectLine = (line: PossibleLine) => {
   opacity: 0.8;
 }
 
+/* Line positioning for 5x5 grid */
+/* Horizontal lines */
+[id*="0-0-0-1"] { left: 100px; top: 0px; width: 100px; height: 4px; }
+[id*="0-1-0-2"] { left: 200px; top: 0px; width: 100px; height: 4px; }
+[id*="0-2-0-3"] { left: 300px; top: 0px; width: 100px; height: 4px; }
+[id*="0-3-0-4"] { left: 400px; top: 0px; width: 100px; height: 4px; }
+
+[id*="1-0-1-1"] { left: 100px; top: 100px; width: 100px; height: 4px; }
+[id*="1-1-1-2"] { left: 200px; top: 100px; width: 100px; height: 4px; }
+[id*="1-2-1-3"] { left: 300px; top: 100px; width: 100px; height: 4px; }
+[id*="1-3-1-4"] { left: 400px; top: 100px; width: 100px; height: 4px; }
+
+[id*="2-0-2-1"] { left: 100px; top: 200px; width: 100px; height: 4px; }
+[id*="2-1-2-2"] { left: 200px; top: 200px; width: 100px; height: 4px; }
+[id*="2-2-2-3"] { left: 300px; top: 200px; width: 100px; height: 4px; }
+[id*="2-3-2-4"] { left: 400px; top: 200px; width: 100px; height: 4px; }
+
+[id*="3-0-3-1"] { left: 100px; top: 300px; width: 100px; height: 4px; }
+[id*="3-1-3-2"] { left: 200px; top: 300px; width: 100px; height: 4px; }
+[id*="3-2-3-3"] { left: 300px; top: 300px; width: 100px; height: 4px; }
+[id*="3-3-3-4"] { left: 400px; top: 300px; width: 100px; height: 4px; }
+
+[id*="4-0-4-1"] { left: 100px; top: 400px; width: 100px; height: 4px; }
+[id*="4-1-4-2"] { left: 200px; top: 400px; width: 100px; height: 4px; }
+[id*="4-2-4-3"] { left: 300px; top: 400px; width: 100px; height: 4px; }
+[id*="4-3-4-4"] { left: 400px; top: 400px; width: 100px; height: 4px; }
+
+/* Vertical lines */
+[id*="0-0-1-0"] { left: 0px; top: 100px; width: 4px; height: 100px; }
+[id*="1-0-2-0"] { left: 0px; top: 200px; width: 4px; height: 100px; }
+[id*="2-0-3-0"] { left: 0px; top: 300px; width: 4px; height: 100px; }
+[id*="3-0-4-0"] { left: 0px; top: 400px; width: 4px; height: 100px; }
+
+[id*="0-1-1-1"] { left: 100px; top: 100px; width: 4px; height: 100px; }
+[id*="1-1-2-1"] { left: 100px; top: 200px; width: 4px; height: 100px; }
+[id*="2-1-3-1"] { left: 100px; top: 300px; width: 4px; height: 100px; }
+[id*="3-1-4-1"] { left: 100px; top: 400px; width: 4px; height: 100px; }
+
+[id*="0-2-1-2"] { left: 200px; top: 100px; width: 4px; height: 100px; }
+[id*="1-2-2-2"] { left: 200px; top: 200px; width: 4px; height: 100px; }
+[id*="2-2-3-2"] { left: 200px; top: 300px; width: 4px; height: 100px; }
+[id*="3-2-4-2"] { left: 200px; top: 400px; width: 4px; height: 100px; }
+
+[id*="0-3-1-3"] { left: 300px; top: 100px; width: 4px; height: 100px; }
+[id*="1-3-2-3"] { left: 300px; top: 200px; width: 4px; height: 100px; }
+[id*="2-3-3-3"] { left: 300px; top: 300px; width: 4px; height: 100px; }
+[id*="3-3-4-3"] { left: 300px; top: 400px; width: 4px; height: 100px; }
+
+[id*="0-4-1-4"] { left: 400px; top: 100px; width: 4px; height: 100px; }
+[id*="1-4-2-4"] { left: 400px; top: 200px; width: 4px; height: 100px; }
+[id*="2-4-3-4"] { left: 400px; top: 300px; width: 4px; height: 100px; }
+[id*="3-4-4-4"] { left: 400px; top: 400px; width: 4px; height: 100px; }
+
 /* Mobile responsiveness */
 @media (max-width: 480px) {
   .dot-grid-container {
     padding: 0.5rem;
-  }
-  
-  .square-icon {
-    font-size: 1.25rem;
   }
 }
 
 @media (max-width: 768px) {
   .dot-grid-container {
     padding: 0.75rem;
-  }
-  
-  .square-icon {
-    font-size: 1.375rem;
   }
 }
 </style> 
