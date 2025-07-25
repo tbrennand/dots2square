@@ -18,22 +18,10 @@
       <!-- Header -->
       <header class="game-header">
         <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="header-logo" />
-        <button @click="goHome" class="end-game-btn">
-          🏠 End Game
+        <button @click="handleForfeit" class="forfeit-btn" :disabled="!canCurrentUserMove">
+          🏳️ Forfeit Game
         </button>
       </header>
-
-      <!-- Game Info Bar -->
-      <div class="game-info-bar">
-        <div class="turn-info">
-          <div class="turn-indicator" :class="{ 'active': timerState.isActive }"></div>
-          <span class="turn-text">{{ getCurrentPlayerName() }}'s Turn</span>
-          <span v-if="timerState.isActive" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
-        </div>
-        <div class="game-status">
-          <span class="status-text">{{ matchData.status === 'active' ? 'Game in Progress' : 'Game Ended' }}</span>
-        </div>
-      </div>
 
       <!-- Scoreboard -->
       <div class="scoreboard">
@@ -63,16 +51,7 @@
         />
       </div>
 
-      <!-- Game Controls -->
-      <div class="game-controls">
-        <button 
-          @click="handleForfeit" 
-          class="forfeit-btn"
-          :disabled="!canCurrentUserMove"
-        >
-          🏳️ Forfeit Game
-        </button>
-      </div>
+
 
       <!-- Chat -->
       <div class="chat-container">
@@ -289,17 +268,18 @@ watch(gameOver, (isOver) => {
 }
 
 .header-logo {
-  height: 3rem;
+  height: 4rem;
   width: auto;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
 }
 
-.end-game-btn {
+.forfeit-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: #f97316;
-  color: white;
+  background: #fee2e2;
+  color: #dc2626;
   border: none;
   border-radius: 0.5rem;
   font-weight: 600;
@@ -308,70 +288,17 @@ watch(gameOver, (isOver) => {
   transition: all 0.2s ease;
 }
 
-.end-game-btn:hover {
-  background: #ea580c;
+.forfeit-btn:hover:not(:disabled) {
+  background: #fecaca;
   transform: translateY(-1px);
 }
 
-/* Game Info Bar */
-.game-info-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  padding: 1rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1rem;
+.forfeit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.turn-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
 
-.turn-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #9ca3af;
-  transition: all 0.3s ease;
-}
-
-.turn-indicator.active {
-  background: #f97316;
-  box-shadow: 0 0 8px rgba(249, 115, 22, 0.4);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.turn-text {
-  font-weight: 600;
-  color: #1f2937;
-  font-size: 1rem;
-}
-
-.timer-text {
-  font-weight: 700;
-  color: #f97316;
-  font-size: 1rem;
-}
-
-.game-status {
-  display: flex;
-  align-items: center;
-}
-
-.status-text {
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 500;
-}
 
 /* Scoreboard */
 .scoreboard {
@@ -450,34 +377,7 @@ watch(gameOver, (isOver) => {
   min-height: 300px;
 }
 
-/* Game Controls */
-.game-controls {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1rem;
-}
 
-.forfeit-btn {
-  padding: 0.75rem 1.5rem;
-  background: #fee2e2;
-  color: #dc2626;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.forfeit-btn:hover:not(:disabled) {
-  background: #fecaca;
-  transform: translateY(-1px);
-}
-
-.forfeit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 
 /* Chat Container */
 .chat-container {
@@ -513,31 +413,12 @@ watch(gameOver, (isOver) => {
   }
   
   .header-logo {
-    height: 2.5rem;
+    height: 3.5rem;
   }
   
-  .end-game-btn {
+  .forfeit-btn {
     padding: 0.5rem 1rem;
     font-size: 0.8rem;
-  }
-  
-  .game-info-bar {
-    padding: 0.75rem;
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: flex-start;
-  }
-  
-  .turn-info {
-    gap: 0.5rem;
-  }
-  
-  .turn-text {
-    font-size: 0.9rem;
-  }
-  
-  .timer-text {
-    font-size: 0.9rem;
   }
   
   .scoreboard {
@@ -583,24 +464,12 @@ watch(gameOver, (isOver) => {
   }
   
   .header-logo {
-    height: 2rem;
+    height: 3rem;
   }
   
-  .end-game-btn {
+  .forfeit-btn {
     padding: 0.5rem 0.75rem;
     font-size: 0.75rem;
-  }
-  
-  .game-info-bar {
-    padding: 0.5rem;
-  }
-  
-  .turn-text {
-    font-size: 0.8rem;
-  }
-  
-  .timer-text {
-    font-size: 0.8rem;
   }
   
   .score-item {
