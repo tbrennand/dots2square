@@ -225,7 +225,9 @@ const squareStyle = (square: Square) => {
 
 // Get player initial
 const getPlayerInitial = (player?: number) => {
-  return player === 1 ? 'P1' : 'P2'
+  if (player === 1) return 'A'
+  if (player === 2) return 'B'
+  return ''
 }
 
 // Select a line and emit the event
@@ -338,8 +340,8 @@ const selectLine = (line: PossibleLine) => {
 }
 
 .player2-line {
-  background: linear-gradient(90deg, #f97316, #ea580c);
-  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
 .square {
@@ -347,10 +349,10 @@ const selectLine = (line: PossibleLine) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 12px;
   transition: all 0.3s ease;
-  border: 2px solid transparent;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 3px solid transparent;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 .square-content {
@@ -359,26 +361,28 @@ const selectLine = (line: PossibleLine) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 9px;
   transition: all 0.3s ease;
 }
 
 .player1-square {
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  border-color: #3b82f6;
+  border-color: #1d4ed8;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
 .player2-square {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  border-color: #f97316;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-color: #d97706;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
 }
 
 .square-initial {
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .square:hover {
