@@ -15,54 +15,51 @@
 
     <!-- Game Content -->
     <div v-else-if="matchData" class="game-container">
-      <!-- Header -->
+      <!-- Header Row: Logo, Player Panels, Forfeit -->
       <header class="game-header">
-        <div class="header-content">
-          <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="header-logo" />
-          <button @click="handleForfeit" class="forfeit-btn" :disabled="!canCurrentUserMove">
-            🏳️ Forfeit Game
-          </button>
+        <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="header-logo" />
+        
+        <div class="player-panels">
+          <div class="player-panel" :class="{ 'current': currentPlayer === 1 }">
+            <div class="player-avatar player1">{{ matchData.player1?.name?.charAt(0).toUpperCase() || 'P' }}</div>
+            <div class="player-info">
+              <span class="player-name">{{ matchData.player1?.name || 'Player 1' }}</span>
+              <span class="player-score">{{ scores[1] || 0 }} squares</span>
+              <span v-if="currentPlayer === 1" class="turn-status">
+                <span class="turn-text">Your Turn</span>
+                <span v-if="timerState.isActive && timerState.timeRemaining > 0" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
+              </span>
+            </div>
+          </div>
+          
+          <div class="vs-divider">VS</div>
+          
+          <div class="player-panel" :class="{ 'current': currentPlayer === 2 }">
+            <div class="player-avatar player2">{{ matchData.player2?.name?.charAt(0).toUpperCase() || 'P' }}</div>
+            <div class="player-info">
+              <span class="player-name">{{ matchData.player2?.name || 'Player 2' }}</span>
+              <span class="player-score">{{ scores[2] || 0 }} squares</span>
+              <span v-if="currentPlayer === 2" class="turn-status">
+                <span class="turn-text">Your Turn</span>
+                <span v-if="timerState.isActive && timerState.timeRemaining > 0" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
+              </span>
+            </div>
+          </div>
         </div>
+        
+        <button @click="handleForfeit" class="forfeit-btn" :disabled="!canCurrentUserMove">
+          🏳️ Forfeit
+        </button>
       </header>
 
-      <!-- Scoreboard -->
-      <div class="scoreboard">
-        <div class="score-item" :class="{ 'current': currentPlayer === 1 }">
-          <div class="player-avatar player1">{{ matchData.player1?.name?.charAt(0).toUpperCase() || 'P' }}</div>
-          <div class="player-info">
-            <span class="player-name">{{ matchData.player1?.name || 'Player 1' }}</span>
-            <span class="player-score">{{ scores[1] || 0 }} squares</span>
-            <span v-if="currentPlayer === 1" class="turn-status">
-              <span class="turn-text">Your Turn</span>
-              <span v-if="timerState.isActive && timerState.timeRemaining > 0" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
-            </span>
-          </div>
-        </div>
-        <div class="score-item" :class="{ 'current': currentPlayer === 2 }">
-          <div class="player-avatar player2">{{ matchData.player2?.name?.charAt(0).toUpperCase() || 'P' }}</div>
-          <div class="player-info">
-            <span class="player-name">{{ matchData.player2?.name || 'Player 2' }}</span>
-            <span class="player-score">{{ scores[2] || 0 }} squares</span>
-            <span v-if="currentPlayer === 2" class="turn-status">
-              <span class="turn-text">Your Turn</span>
-              <span v-if="timerState.isActive && timerState.timeRemaining > 0" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Game Grid -->
-      <div class="game-grid-container">
-        <div class="grid-wrapper">
-                  <DotGrid
-          :grid-size="gridSize"
-          :drawn-lines="lines"
-          :claimed-squares="squares"
-          :can-make-move="canCurrentUserMove"
-          @line-selected="handleLineSelected"
-        />
-        </div>
-      </div>
+      <!-- Game Grid - No Container -->
+      <DotGrid
+        :grid-size="6"
+        :drawn-lines="lines"
+        :claimed-squares="squares"
+        :can-make-move="canCurrentUserMove"
+        @line-selected="handleLineSelected"
+      />
 
       <!-- Chat -->
       <div class="chat-container">
@@ -77,11 +74,10 @@
 
       <!-- Debug Info (Development Only) -->
       <div v-if="isDev" class="debug-info">
-        <div>Grid: {{ gridSize }}x{{ gridSize }} | Lines: {{ lines.length }} | Squares: {{ squares.length }}</div>
+        <div>Grid: 6x6 | Lines: {{ lines.length }} | Squares: {{ squares.length }}</div>
         <div>Turn: {{ currentPlayer }} | Can Move: {{ canCurrentUserMove }}</div>
         <div>Timer: Active={{ timerState.isActive }} | Time={{ timerState.timeRemaining }}</div>
         <div>Current User: {{ currentUserId }} | Player Number: {{ currentUserPlayerNumber }}</div>
-        <div>Match Data Grid Size: {{ matchData?.gridSize }} | Store Grid Size: {{ gridSize }}</div>
       </div>
     </div>
   </div>
@@ -269,37 +265,61 @@ watch(gameOver, (isOver) => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
-  padding: 1rem;
+  padding: 1.5rem;
+  gap: 2rem;
 }
 
 /* Header */
 .game-header {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 1rem 0;
-  margin-bottom: 1.5rem;
-}
-
-.header-content {
-  display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  max-width: 1200px;
-  position: relative;
+  padding: 1.5rem 2rem;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  margin-bottom: 2rem;
 }
 
 .header-logo {
-  width: 179px; /* 70% of 256px */
+  width: 200px;
   height: auto;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+}
+
+/* Player Panels */
+.player-panels {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.player-panel {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  min-width: 200px;
+}
+
+.player-panel.current {
+  border-color: #f97316;
+  background: #fef3c7;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+}
+
+.vs-divider {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: #6b7280;
+  padding: 0 1rem;
 }
 
 .forfeit-btn {
@@ -310,68 +330,45 @@ watch(gameOver, (isOver) => {
   background: #fee2e2;
   color: #dc2626;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
 }
 
 .forfeit-btn:hover:not(:disabled) {
   background: #fecaca;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.2);
 }
 
 .forfeit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-
-
-/* Scoreboard */
-.scoreboard {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.score-item {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: white;
-  padding: 1rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-  border: 2px solid transparent;
-}
-
-.score-item.current {
-  border-color: #f97316;
-  background: #fef3c7;
+  transform: none;
 }
 
 .player-avatar {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.125rem;
   color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .player-avatar.player1 {
-  background: #3b82f6;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
 }
 
 .player-avatar.player2 {
-  background: #f97316;
+  background: linear-gradient(135deg, #f97316, #ea580c);
 }
 
 .player-info {
@@ -383,13 +380,13 @@ watch(gameOver, (isOver) => {
 .player-name {
   font-weight: 600;
   color: #1f2937;
-  font-size: 1.125rem;
+  font-size: 1rem;
 }
 
 .player-score {
   font-weight: 700;
   color: #f97316;
-  font-size: 1rem;
+  font-size: 0.875rem;
 }
 
 .turn-status {

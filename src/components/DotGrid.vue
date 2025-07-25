@@ -1,7 +1,7 @@
 <template>
   <div class="dot-grid-container" :style="gridStyle">
     <!-- Dots -->
-    <div v-for="dot in dots" :key="dot.id" class="dot" :style="{ top: `${dot.y * 100}px`, left: `${dot.x * 100}px` }"></div>
+    <div v-for="dot in dots" :key="dot.id" class="dot" :style="{ top: `${dot.y * 80}px`, left: `${dot.x * 80}px` }"></div>
     
     <!-- Potential Lines (for hover effect) -->
     <div
@@ -25,7 +25,7 @@
     
     <!-- Claimed Squares -->
     <div v-for="square in claimedSquares" :key="square.id" class="square" :style="squareStyle(square)">
-      <span class="text-4xl">{{ square.player === 1 ? '✏️' : '🎨' }}</span>
+      <span class="square-icon">{{ square.player === 1 ? '✏️' : '🎨' }}</span>
     </div>
   </div>
 </template>
@@ -74,17 +74,17 @@ const emit = defineEmits<{
 }>()
 
 // Component state
-const gridSize = props.gridSize || 5
-const spacing = 100 // Use 100px to match template
+const gridSize = props.gridSize || 6
+const spacing = 80 // Use 80px for 6x6 grid
 const gridWidth = gridSize * spacing
 const gridHeight = gridSize * spacing
 const hoverLine = ref<string | null>(null)
 
-// Generate dots based on grid size
+// Generate dots based on grid size (7x7 dots for 6x6 grid)
 const dots = computed(() => {
   const dotsArray: Dot[] = []
-  for (let row = 0; row < gridSize; row++) {
-    for (let col = 0; col < gridSize; col++) {
+  for (let row = 0; row < gridSize + 1; row++) {
+    for (let col = 0; col < gridSize + 1; col++) {
       dotsArray.push({
         id: `${row}-${col}`,
         x: col,
@@ -100,10 +100,10 @@ const gridStyle = computed(() => ({
   width: `${gridWidth}px`,
   height: `${gridHeight}px`,
   position: 'relative' as const,
-  border: '2px solid #e5e7eb',
-  borderRadius: '12px',
-  backgroundColor: '#ffffff',
-  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+  background: 'white',
+  borderRadius: '1rem',
+  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+  border: '2px solid #f1f5f9',
   maxWidth: '100%',
   maxHeight: '100%'
 }))
@@ -127,8 +127,8 @@ const possibleLines = computed(() => {
   }
   
   // Generate horizontal lines
-  for (let row = 0; row < gridSize; row++) {
-    for (let col = 0; col < gridSize - 1; col++) {
+  for (let row = 0; row < gridSize + 1; row++) {
+    for (let col = 0; col < gridSize; col++) {
       const startDot = `${row}-${col}`
       const endDot = `${row}-${col + 1}`
       
@@ -143,8 +143,8 @@ const possibleLines = computed(() => {
   }
   
   // Generate vertical lines
-  for (let row = 0; row < gridSize - 1; row++) {
-    for (let col = 0; col < gridSize; col++) {
+  for (let row = 0; row < gridSize; row++) {
+    for (let col = 0; col < gridSize + 1; col++) {
       const startDot = `${row}-${col}`
       const endDot = `${row + 1}-${col}`
       
@@ -194,24 +194,28 @@ const selectLine = (line: PossibleLine) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 1rem;
+  padding: 2rem;
   position: relative;
+  margin: 0 auto;
 }
 
 .dot {
   position: absolute;
-  width: 8px;
-  height: 8px;
-  background-color: #374151;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, #374151, #1f2937);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 2px solid white;
 }
 
 .dot:hover {
-  background-color: #1f2937;
+  background: linear-gradient(135deg, #1f2937, #111827);
   cursor: pointer;
-  transform: translate(-50%, -50%) scale(1.2);
+  transform: translate(-50%, -50%) scale(1.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .line-container {
@@ -241,15 +245,16 @@ const selectLine = (line: PossibleLine) => {
   width: 100%;
   height: 100%;
   background-color: #e5e7eb;
-  border-radius: 2px;
-  transition: all 0.2s ease;
-  opacity: 0.3;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+  opacity: 0.2;
 }
 
 .line-visual.line-hover {
-  background-color: #f97316;
+  background: linear-gradient(90deg, #f97316, #ea580c);
   opacity: 0.8;
-  transform: scale(1.05);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
 }
 
 .line-drawn {
@@ -258,13 +263,13 @@ const selectLine = (line: PossibleLine) => {
 }
 
 .player1-line {
-  background-color: #3b82f6;
-  box-shadow: 0 0 4px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .player2-line {
-  background-color: #f97316;
-  box-shadow: 0 0 4px rgba(249, 115, 22, 0.4);
+  background: linear-gradient(90deg, #f97316, #ea580c);
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
 }
 
 .square {
@@ -272,80 +277,137 @@ const selectLine = (line: PossibleLine) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 8px;
   transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   border: 2px solid transparent;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .square:hover {
   transform: scale(1.05);
-  opacity: 0.8;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
-/* Line positioning for 5x5 grid */
+.square-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Line positioning for 6x6 grid (7x7 dots) */
 /* Horizontal lines */
-[id*="0-0-0-1"] { left: 100px; top: 0px; width: 100px; height: 4px; }
-[id*="0-1-0-2"] { left: 200px; top: 0px; width: 100px; height: 4px; }
-[id*="0-2-0-3"] { left: 300px; top: 0px; width: 100px; height: 4px; }
-[id*="0-3-0-4"] { left: 400px; top: 0px; width: 100px; height: 4px; }
+[id*="0-0-0-1"] { left: 80px; top: 0px; width: 80px; height: 4px; }
+[id*="0-1-0-2"] { left: 160px; top: 0px; width: 80px; height: 4px; }
+[id*="0-2-0-3"] { left: 240px; top: 0px; width: 80px; height: 4px; }
+[id*="0-3-0-4"] { left: 320px; top: 0px; width: 80px; height: 4px; }
+[id*="0-4-0-5"] { left: 400px; top: 0px; width: 80px; height: 4px; }
+[id*="0-5-0-6"] { left: 480px; top: 0px; width: 80px; height: 4px; }
 
-[id*="1-0-1-1"] { left: 100px; top: 100px; width: 100px; height: 4px; }
-[id*="1-1-1-2"] { left: 200px; top: 100px; width: 100px; height: 4px; }
-[id*="1-2-1-3"] { left: 300px; top: 100px; width: 100px; height: 4px; }
-[id*="1-3-1-4"] { left: 400px; top: 100px; width: 100px; height: 4px; }
+[id*="1-0-1-1"] { left: 80px; top: 80px; width: 80px; height: 4px; }
+[id*="1-1-1-2"] { left: 160px; top: 80px; width: 80px; height: 4px; }
+[id*="1-2-1-3"] { left: 240px; top: 80px; width: 80px; height: 4px; }
+[id*="1-3-1-4"] { left: 320px; top: 80px; width: 80px; height: 4px; }
+[id*="1-4-1-5"] { left: 400px; top: 80px; width: 80px; height: 4px; }
+[id*="1-5-1-6"] { left: 480px; top: 80px; width: 80px; height: 4px; }
 
-[id*="2-0-2-1"] { left: 100px; top: 200px; width: 100px; height: 4px; }
-[id*="2-1-2-2"] { left: 200px; top: 200px; width: 100px; height: 4px; }
-[id*="2-2-2-3"] { left: 300px; top: 200px; width: 100px; height: 4px; }
-[id*="2-3-2-4"] { left: 400px; top: 200px; width: 100px; height: 4px; }
+[id*="2-0-2-1"] { left: 80px; top: 160px; width: 80px; height: 4px; }
+[id*="2-1-2-2"] { left: 160px; top: 160px; width: 80px; height: 4px; }
+[id*="2-2-2-3"] { left: 240px; top: 160px; width: 80px; height: 4px; }
+[id*="2-3-2-4"] { left: 320px; top: 160px; width: 80px; height: 4px; }
+[id*="2-4-2-5"] { left: 400px; top: 160px; width: 80px; height: 4px; }
+[id*="2-5-2-6"] { left: 480px; top: 160px; width: 80px; height: 4px; }
 
-[id*="3-0-3-1"] { left: 100px; top: 300px; width: 100px; height: 4px; }
-[id*="3-1-3-2"] { left: 200px; top: 300px; width: 100px; height: 4px; }
-[id*="3-2-3-3"] { left: 300px; top: 300px; width: 100px; height: 4px; }
-[id*="3-3-3-4"] { left: 400px; top: 300px; width: 100px; height: 4px; }
+[id*="3-0-3-1"] { left: 80px; top: 240px; width: 80px; height: 4px; }
+[id*="3-1-3-2"] { left: 160px; top: 240px; width: 80px; height: 4px; }
+[id*="3-2-3-3"] { left: 240px; top: 240px; width: 80px; height: 4px; }
+[id*="3-3-3-4"] { left: 320px; top: 240px; width: 80px; height: 4px; }
+[id*="3-4-3-5"] { left: 400px; top: 240px; width: 80px; height: 4px; }
+[id*="3-5-3-6"] { left: 480px; top: 240px; width: 80px; height: 4px; }
 
-[id*="4-0-4-1"] { left: 100px; top: 400px; width: 100px; height: 4px; }
-[id*="4-1-4-2"] { left: 200px; top: 400px; width: 100px; height: 4px; }
-[id*="4-2-4-3"] { left: 300px; top: 400px; width: 100px; height: 4px; }
-[id*="4-3-4-4"] { left: 400px; top: 400px; width: 100px; height: 4px; }
+[id*="4-0-4-1"] { left: 80px; top: 320px; width: 80px; height: 4px; }
+[id*="4-1-4-2"] { left: 160px; top: 320px; width: 80px; height: 4px; }
+[id*="4-2-4-3"] { left: 240px; top: 320px; width: 80px; height: 4px; }
+[id*="4-3-4-4"] { left: 320px; top: 320px; width: 80px; height: 4px; }
+[id*="4-4-4-5"] { left: 400px; top: 320px; width: 80px; height: 4px; }
+[id*="4-5-4-6"] { left: 480px; top: 320px; width: 80px; height: 4px; }
+
+[id*="5-0-5-1"] { left: 80px; top: 400px; width: 80px; height: 4px; }
+[id*="5-1-5-2"] { left: 160px; top: 400px; width: 80px; height: 4px; }
+[id*="5-2-5-3"] { left: 240px; top: 400px; width: 80px; height: 4px; }
+[id*="5-3-5-4"] { left: 320px; top: 400px; width: 80px; height: 4px; }
+[id*="5-4-5-5"] { left: 400px; top: 400px; width: 80px; height: 4px; }
+[id*="5-5-5-6"] { left: 480px; top: 400px; width: 80px; height: 4px; }
+
+[id*="6-0-6-1"] { left: 80px; top: 480px; width: 80px; height: 4px; }
+[id*="6-1-6-2"] { left: 160px; top: 480px; width: 80px; height: 4px; }
+[id*="6-2-6-3"] { left: 240px; top: 480px; width: 80px; height: 4px; }
+[id*="6-3-6-4"] { left: 320px; top: 480px; width: 80px; height: 4px; }
+[id*="6-4-6-5"] { left: 400px; top: 480px; width: 80px; height: 4px; }
+[id*="6-5-6-6"] { left: 480px; top: 480px; width: 80px; height: 4px; }
 
 /* Vertical lines */
-[id*="0-0-1-0"] { left: 0px; top: 100px; width: 4px; height: 100px; }
-[id*="1-0-2-0"] { left: 0px; top: 200px; width: 4px; height: 100px; }
-[id*="2-0-3-0"] { left: 0px; top: 300px; width: 4px; height: 100px; }
-[id*="3-0-4-0"] { left: 0px; top: 400px; width: 4px; height: 100px; }
+[id*="0-0-1-0"] { left: 0px; top: 80px; width: 4px; height: 80px; }
+[id*="1-0-2-0"] { left: 0px; top: 160px; width: 4px; height: 80px; }
+[id*="2-0-3-0"] { left: 0px; top: 240px; width: 4px; height: 80px; }
+[id*="3-0-4-0"] { left: 0px; top: 320px; width: 4px; height: 80px; }
+[id*="4-0-5-0"] { left: 0px; top: 400px; width: 4px; height: 80px; }
+[id*="5-0-6-0"] { left: 0px; top: 480px; width: 4px; height: 80px; }
 
-[id*="0-1-1-1"] { left: 100px; top: 100px; width: 4px; height: 100px; }
-[id*="1-1-2-1"] { left: 100px; top: 200px; width: 4px; height: 100px; }
-[id*="2-1-3-1"] { left: 100px; top: 300px; width: 4px; height: 100px; }
-[id*="3-1-4-1"] { left: 100px; top: 400px; width: 4px; height: 100px; }
+[id*="0-1-1-1"] { left: 80px; top: 80px; width: 4px; height: 80px; }
+[id*="1-1-2-1"] { left: 80px; top: 160px; width: 4px; height: 80px; }
+[id*="2-1-3-1"] { left: 80px; top: 240px; width: 4px; height: 80px; }
+[id*="3-1-4-1"] { left: 80px; top: 320px; width: 4px; height: 80px; }
+[id*="4-1-5-1"] { left: 80px; top: 400px; width: 4px; height: 80px; }
+[id*="5-1-6-1"] { left: 80px; top: 480px; width: 4px; height: 80px; }
 
-[id*="0-2-1-2"] { left: 200px; top: 100px; width: 4px; height: 100px; }
-[id*="1-2-2-2"] { left: 200px; top: 200px; width: 4px; height: 100px; }
-[id*="2-2-3-2"] { left: 200px; top: 300px; width: 4px; height: 100px; }
-[id*="3-2-4-2"] { left: 200px; top: 400px; width: 4px; height: 100px; }
+[id*="0-2-1-2"] { left: 160px; top: 80px; width: 4px; height: 80px; }
+[id*="1-2-2-2"] { left: 160px; top: 160px; width: 4px; height: 80px; }
+[id*="2-2-3-2"] { left: 160px; top: 240px; width: 4px; height: 80px; }
+[id*="3-2-4-2"] { left: 160px; top: 320px; width: 4px; height: 80px; }
+[id*="4-2-5-2"] { left: 160px; top: 400px; width: 4px; height: 80px; }
+[id*="5-2-6-2"] { left: 160px; top: 480px; width: 4px; height: 80px; }
 
-[id*="0-3-1-3"] { left: 300px; top: 100px; width: 4px; height: 100px; }
-[id*="1-3-2-3"] { left: 300px; top: 200px; width: 4px; height: 100px; }
-[id*="2-3-3-3"] { left: 300px; top: 300px; width: 4px; height: 100px; }
-[id*="3-3-4-3"] { left: 300px; top: 400px; width: 4px; height: 100px; }
+[id*="0-3-1-3"] { left: 240px; top: 80px; width: 4px; height: 80px; }
+[id*="1-3-2-3"] { left: 240px; top: 160px; width: 4px; height: 80px; }
+[id*="2-3-3-3"] { left: 240px; top: 240px; width: 4px; height: 80px; }
+[id*="3-3-4-3"] { left: 240px; top: 320px; width: 4px; height: 80px; }
+[id*="4-3-5-3"] { left: 240px; top: 400px; width: 4px; height: 80px; }
+[id*="5-3-6-3"] { left: 240px; top: 480px; width: 4px; height: 80px; }
 
-[id*="0-4-1-4"] { left: 400px; top: 100px; width: 4px; height: 100px; }
-[id*="1-4-2-4"] { left: 400px; top: 200px; width: 4px; height: 100px; }
-[id*="2-4-3-4"] { left: 400px; top: 300px; width: 4px; height: 100px; }
-[id*="3-4-4-4"] { left: 400px; top: 400px; width: 4px; height: 100px; }
+[id*="0-4-1-4"] { left: 320px; top: 80px; width: 4px; height: 80px; }
+[id*="1-4-2-4"] { left: 320px; top: 160px; width: 4px; height: 80px; }
+[id*="2-4-3-4"] { left: 320px; top: 240px; width: 4px; height: 80px; }
+[id*="3-4-4-4"] { left: 320px; top: 320px; width: 4px; height: 80px; }
+[id*="4-4-5-4"] { left: 320px; top: 400px; width: 4px; height: 80px; }
+[id*="5-4-6-4"] { left: 320px; top: 480px; width: 4px; height: 80px; }
+
+[id*="0-5-1-5"] { left: 400px; top: 80px; width: 4px; height: 80px; }
+[id*="1-5-2-5"] { left: 400px; top: 160px; width: 4px; height: 80px; }
+[id*="2-5-3-5"] { left: 400px; top: 240px; width: 4px; height: 80px; }
+[id*="3-5-4-5"] { left: 400px; top: 320px; width: 4px; height: 80px; }
+[id*="4-5-5-5"] { left: 400px; top: 400px; width: 4px; height: 80px; }
+[id*="5-5-6-5"] { left: 400px; top: 480px; width: 4px; height: 80px; }
+
+[id*="0-6-1-6"] { left: 480px; top: 80px; width: 4px; height: 80px; }
+[id*="1-6-2-6"] { left: 480px; top: 160px; width: 4px; height: 80px; }
+[id*="2-6-3-6"] { left: 480px; top: 240px; width: 4px; height: 80px; }
+[id*="3-6-4-6"] { left: 480px; top: 320px; width: 4px; height: 80px; }
+[id*="4-6-5-6"] { left: 480px; top: 400px; width: 4px; height: 80px; }
+[id*="5-6-6-6"] { left: 480px; top: 480px; width: 4px; height: 80px; }
 
 /* Mobile responsiveness */
-@media (max-width: 480px) {
-  .dot-grid-container {
-    padding: 0.5rem;
-  }
-}
-
 @media (max-width: 768px) {
   .dot-grid-container {
-    padding: 0.75rem;
+    padding: 1rem;
+  }
+  
+  .dot {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .square-icon {
+    font-size: 1.25rem;
   }
 }
 </style> 
