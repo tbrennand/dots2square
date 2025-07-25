@@ -54,7 +54,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { doc, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore'
-import { db } from '@/firebase/index'
+import { db } from '../firebase/index'
 
 import type { Unsubscribe } from 'firebase/firestore'
 
