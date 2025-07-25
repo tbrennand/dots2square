@@ -304,9 +304,20 @@ const syncFromFirebase = () => {
   
   // Sync squares - only claimed ones
   if (firebaseSquares.value) {
+    console.log('🔍 RAW Firebase Squares:', firebaseSquares.value.map(s => ({ 
+      id: s.id, 
+      player: s.player, 
+      playerType: typeof s.player,
+      playerValue: JSON.stringify(s.player),
+      isUndefined: s.player === undefined,
+      isNull: s.player === null,
+      isNumber: typeof s.player === 'number'
+    })))
+    
     const claimedFirebaseSquares = firebaseSquares.value.filter(square => 
       square.player !== undefined && square.player !== null && typeof square.player === 'number'
     )
+    
     console.log('🔄 Firebase Squares Debug:', {
       totalFirebaseSquares: firebaseSquares.value.length,
       claimedFirebaseSquares: claimedFirebaseSquares.length,
