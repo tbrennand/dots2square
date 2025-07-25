@@ -48,6 +48,10 @@
       </div>
 
       <div class="game-controls">
+        <button @click="toggleAudio" :class="['audio-toggle', { 'audio-disabled': !audioEnabled }]">
+          <span class="audio-icon">{{ audioEnabled ? '🔊' : '🔇' }}</span>
+          <span class="audio-text">{{ audioEnabled ? 'Sound ON' : 'Sound OFF' }}</span>
+        </button>
         <button @click="switchPlayer" class="pass-button">
           Pass Turn
         </button>
@@ -131,6 +135,72 @@ const currentPlayer = ref(1)
 const drawnLines = ref<Array<{id: string, startDot: string, endDot: string, player: number}>>([])
 const claimedSquares = ref<Array<{id: string, topLeftX: number, topLeftY: number, player: number}>>([])
 const scores = ref({ 1: 0, 2: 0 })
+
+// Audio state for mobile-compatible sound
+const countdownAudio = ref<HTMLAudioElement | null>(null)
+const audioEnabled = ref(false) // Start disabled for mobile compatibility
+const audioInitialized = ref(false)
+
+// Initialize audio (mobile-friendly)
+const initializeAudio = () => {
+  try {
+    countdownAudio.value = new Audio('/sounds/countdown.mp3')
+    countdownAudio.value.volume = 0.7
+    countdownAudio.value.preload = 'none' // Don't preload on mobile
+    audioInitialized.value = true
+  } catch (error) {
+    console.log('Audio initialization failed:', error)
+  }
+}
+
+// Enable audio with user interaction (required for mobile)
+const enableAudio = async () => {
+  if (!audioInitialized.value) {
+    initializeAudio()
+  }
+  
+  if (countdownAudio.value) {
+    try {
+      // Test if audio can play (mobile requirement)
+      const playPromise = countdownAudio.value.play()
+      if (playPromise) {
+        await playPromise
+        countdownAudio.value.pause()
+        countdownAudio.value.currentTime = 0
+      }
+      audioEnabled.value = true
+    } catch (error) {
+      console.log('Audio enable failed:', error)
+      audioEnabled.value = false
+    }
+  }
+}
+
+// Toggle audio with mobile compatibility
+const toggleAudio = async () => {
+  if (!audioEnabled.value && !audioInitialized.value) {
+    await enableAudio()
+  } else {
+    audioEnabled.value = !audioEnabled.value
+  }
+}
+
+// Play countdown sound (mobile-compatible)
+const playCountdownSound = () => {
+  if (countdownAudio.value && audioEnabled.value) {
+    try {
+      countdownAudio.value.currentTime = 0
+      const playPromise = countdownAudio.value.play()
+      if (playPromise) {
+        playPromise.catch(error => {
+          console.log('Audio play failed:', error)
+        })
+      }
+    } catch (error) {
+      console.log('Audio play error:', error)
+    }
+  }
+}
 
 // Get current user's player number
 const currentUserPlayerNumber = computed(() => {
@@ -345,6 +415,9 @@ watch([firebaseLines, firebaseSquares, firebaseCurrentPlayer, firebaseScores], (
 
 // Initialize game on mount
 onMounted(() => {
+  // Initialize audio for mobile compatibility
+  initializeAudio()
+  
   const matchId = route.params.id as string
   if (matchId) {
     matchStore.subscribeToMatchById(matchId)
@@ -355,6 +428,10 @@ onMounted(() => {
 
 // Cleanup on unmount
 onUnmounted(() => {
+  if (countdownAudio.value) {
+    countdownAudio.value.pause()
+    countdownAudio.value = null
+  }
   matchStore.unsubscribeFromMatch()
 })
 
@@ -770,8 +847,13 @@ watch(gameOver, (isOver) => {
   box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
 }
 
-/* Mobile responsiveness */
+/* Mobile and touch device optimizations */
 @media (max-width: 768px) {
+  .game-container {
+    padding: 0.5rem;
+    font-size: 14px;
+  }
+
   .game-header {
     flex-direction: column;
     gap: 0.75rem;
@@ -780,28 +862,194 @@ watch(gameOver, (isOver) => {
   }
   
   .logo {
-    height: 80px;
+    height: 60px;
+    max-width: 200px;
   }
   
   .player-panels {
     flex-direction: column;
-    align-items: center;
     gap: 0.5rem;
     width: 100%;
   }
   
   .player-panel {
-    min-width: 280px;
+    min-width: auto;
     width: 100%;
-    max-width: 320px;
-    max-height: none;
+    max-width: none;
+    padding: 0.5rem 0.75rem;
+    max-height: 50px;
+  }
+  
+  .player-info {
+    gap: 0.5rem;
+  }
+  
+  .player-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.875rem;
+  }
+  
+  .player-name {
+    font-size: 0.875rem;
+  }
+  
+  .player-score {
+    font-size: 0.75rem;
+  }
+  
+  .turn-text, .waiting-text {
+    font-size: 0.625rem;
   }
   
   .game-controls {
-    width: 100%;
-    max-width: 160px;
     flex-direction: row;
+    gap: 0.5rem;
     justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .audio-toggle, .pass-button, .quit-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    min-height: 44px; /* iOS recommended touch target */
+    flex: 1;
+    min-width: 120px;
+  }
+  
+  .audio-text {
+    display: none; /* Hide text on very small screens */
+  }
+  
+  .game-main {
+    padding: 0.5rem;
+  }
+  
+  .game-over-overlay {
+    padding: 1rem;
+  }
+  
+  .game-over-content {
+    padding: 1.5rem;
+    max-width: 90vw;
+  }
+  
+  .winner-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+  
+  .game-over-content h2 {
+    font-size: 1.25rem;
+  }
+  
+  .score-text {
+    font-size: 0.875rem;
+  }
+  
+  .play-again-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.875rem;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-container {
+    padding: 0.25rem;
+  }
+  
+  .game-header {
+    padding: 0.5rem;
+  }
+  
+  .logo {
+    height: 50px;
+  }
+  
+  .player-panel {
+    max-height: 45px;
+    padding: 0.375rem 0.5rem;
+  }
+  
+  .player-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+  }
+  
+  .audio-toggle {
+    min-width: 60px;
+  }
+  
+  .audio-text {
+    display: none;
+  }
+  
+  .pass-button, .quit-button {
+    min-width: 80px;
+    font-size: 0.75rem;
+  }
+}
+
+/* Touch-specific optimizations */
+@media (hover: none) {
+  .player-panel:hover {
+    transform: none;
+  }
+  
+  .audio-toggle:hover,
+  .pass-button:hover,
+  .quit-button:hover,
+  .play-again-button:hover {
+    transform: none;
+  }
+  
+  /* Add touch feedback instead */
+  .audio-toggle:active,
+  .pass-button:active,
+  .quit-button:active,
+  .play-again-button:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .game-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+  }
+  
+  .player-panels {
+    flex-direction: row;
+    gap: 1rem;
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .player-panel {
+    width: auto;
+    min-width: 180px;
+  }
+  
+  .logo {
+    height: 40px;
+  }
+  
+  .game-controls {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .audio-toggle, .pass-button, .quit-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    min-width: 80px;
   }
 }
 </style>

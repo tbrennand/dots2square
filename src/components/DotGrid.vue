@@ -389,19 +389,103 @@ const selectLine = (line: PossibleLine) => {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
-/* Mobile responsiveness */
+/* Enhanced mobile responsiveness and touch optimization */
 @media (max-width: 768px) {
   .dot-grid-container {
-    padding: 1rem;
+    padding: 0;
+    max-width: 95vw;
+    max-height: 60vh;
   }
   
   .dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
+    border-width: 1px;
+  }
+  
+  .line-container {
+    /* Increase touch target size for mobile */
+    min-width: 24px;
+    min-height: 24px;
+  }
+  
+  .line-hitbox {
+    /* Larger touch area */
+    min-width: 30px;
+    min-height: 30px;
+    margin: -15px 0 0 -15px;
+  }
+  
+  .square {
+    border-width: 2px;
   }
   
   .square-initial {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
+  }
+  
+  .line-visual.line-hover {
+    transform: translate(-50%, -50%) scale(1.2);
+    background: #f97316;
+    opacity: 0.8;
+  }
+}
+
+@media (max-width: 480px) {
+  .dot-grid-container {
+    max-width: 98vw;
+    max-height: 55vh;
+  }
+  
+  .dot {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .line-hitbox {
+    min-width: 35px;
+    min-height: 35px;
+    margin: -17px 0 0 -17px;
+  }
+  
+  .square-initial {
+    font-size: 0.625rem;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) {
+  .dot:hover {
+    transform: translate(-50%, -50%);
+    background: #1f2937;
+  }
+  
+  .line-visual.line-hover {
+    background: #f97316;
+    opacity: 0.6;
+  }
+  
+  .square:hover {
+    transform: none;
+  }
+  
+  /* Add touch feedback */
+  .line-container:active .line-visual {
+    background: #f97316;
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1.1);
+    transition: all 0.1s ease;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .dot {
+    border-width: 0.5px;
+  }
+  
+  .line-visual {
+    border-radius: 2px;
   }
 }
 </style> 
