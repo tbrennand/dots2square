@@ -304,7 +304,9 @@ const syncFromFirebase = () => {
   
   // Sync squares - only claimed ones
   if (firebaseSquares.value) {
-    const claimedFirebaseSquares = firebaseSquares.value.filter(square => square.player !== undefined)
+    const claimedFirebaseSquares = firebaseSquares.value.filter(square => 
+      square.player !== undefined && square.player !== null && typeof square.player === 'number'
+    )
     console.log('🔄 Firebase Squares Debug:', {
       totalFirebaseSquares: firebaseSquares.value.length,
       claimedFirebaseSquares: claimedFirebaseSquares.length,
@@ -318,6 +320,8 @@ const syncFromFirebase = () => {
       topLeftY: square.topLeftY || 0,
       player: square.player as number
     }))
+    
+    console.log('🔄 Local claimed squares after sync:', claimedSquares.value.length)
   } else {
     console.log('🔄 No Firebase squares to sync')
   }
