@@ -1,356 +1,228 @@
 <template>
-  <div class="game-board-container">
-    <div class="game-layout">
-      <header class="game-header">
-        <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="logo" />
-        
-        <div class="player-panels">
-          <!-- Player 1 Panel -->
-          <div :class="['player-panel', { 'is-turn': currentPlayer === 1, 'is-you': currentUserPlayerNumber === 1 }]">
-            <div class="player-info">
-              <div class="player-avatar player1-avatar">
-                <span class="player-initial">{{ getPlayerInitial(1) }}</span>
-              </div>
-              <div class="player-details">
-                <div class="player-name">
-                  {{ getPlayerName(1) }}
-                  <span v-if="currentUserPlayerNumber === 1" class="you-badge">(You)</span>
-                </div>
-                <div class="player-score">{{ scores[1] }} squares</div>
-              </div>
-              <div class="turn-status">
-                <div v-if="currentPlayer === 1" class="active-turn">
-                  <span class="turn-text">{{ currentUserPlayerNumber === 1 ? 'Your Turn' : `${getPlayerName(1)}'s Turn` }}</span>
-                  <div class="timer-container">
-                    <span class="timer" :class="{ 'timer-warning': timeRemaining <= 10 }">
-                      {{ formatTime(timeRemaining) }}
-                    </span>
-                  </div>
-                </div>
-                <div v-else class="waiting-turn">
-                  <span class="waiting-text">{{ currentUserPlayerNumber === 1 ? 'Waiting...' : 'Waiting for turn' }}</span>
-                </div>
-              </div>
+  <div class="game-container">
+    <header class="game-header">
+      <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="logo" />
+      
+      <div class="player-panels">
+        <!-- Player A Panel -->
+        <div :class="['player-panel', { 'is-turn': currentPlayer === 1 }]">
+          <div class="player-info">
+            <div class="player-avatar player1-avatar">
+              <span class="player-initial">A</span>
             </div>
-          </div>
-
-          <!-- Player 2 Panel -->
-          <div :class="['player-panel', { 'is-turn': currentPlayer === 2, 'is-you': currentUserPlayerNumber === 2 }]">
-            <div class="player-info">
-              <div class="player-avatar player2-avatar">
-                <span class="player-initial">{{ getPlayerInitial(2) }}</span>
+            <div class="player-details">
+              <div class="player-name">Player A</div>
+              <div class="player-score">{{ scores[1] }} squares</div>
+            </div>
+            <div class="turn-status">
+              <div v-if="currentPlayer === 1" class="active-turn">
+                <span class="turn-text">Player A's Turn</span>
               </div>
-              <div class="player-details">
-                <div class="player-name">
-                  {{ getPlayerName(2) }}
-                  <span v-if="currentUserPlayerNumber === 2" class="you-badge">(You)</span>
-                </div>
-                <div class="player-score">{{ scores[2] }} squares</div>
-              </div>
-              <div class="turn-status">
-                <div v-if="currentPlayer === 2" class="active-turn">
-                  <span class="turn-text">{{ currentUserPlayerNumber === 2 ? 'Your Turn' : `${getPlayerName(2)}'s Turn` }}</span>
-                  <div class="timer-container">
-                    <span class="timer" :class="{ 'timer-warning': timeRemaining <= 10 }">
-                      {{ formatTime(timeRemaining) }}
-                    </span>
-                  </div>
-                </div>
-                <div v-else class="waiting-turn">
-                  <span class="waiting-text">{{ currentUserPlayerNumber === 2 ? 'Waiting...' : 'Waiting for turn' }}</span>
-                </div>
+              <div v-else class="waiting-turn">
+                <span class="waiting-text">Waiting...</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="game-controls">
-          <button @click="toggleAudio" :class="['audio-toggle', { 'audio-disabled': !audioEnabled }]">
-            <span class="audio-icon">{{ audioEnabled ? '🔊' : '🔇' }}</span>
-            <span class="audio-text">{{ audioEnabled ? 'Sound ON' : 'Sound OFF' }}</span>
-          </button>
-          <button @click="switchPlayer" class="pass-button">
-            Pass
-          </button>
-          <button @click="forfeitMatch" class="quit-button">
-            Quit
-          </button>
-        </div>
-      </header>
-
-      <main class="game-main">
-        <DotGrid
-          :grid-size="gameGridSize"
-          :drawn-lines="gameLines"
-          :claimed-squares="gameSquares"
-          :can-make-move="canCurrentPlayerMove"
-          @line-selected="handleLineSelected"
-        />
-        
-        <div v-if="gameOver" class="game-over-overlay">
-          <div class="game-over-content">
-            <div class="winner-avatar" :class="winner === 1 ? 'player1-avatar' : winner === 2 ? 'player2-avatar' : 'tie-avatar'">
-              <span v-if="winner !== 'tie' && winner !== null" class="winner-initial">{{ getPlayerInitial(winner) }}</span>
-              <span v-else class="tie-icon">🤝</span>
+        <!-- Player B Panel -->
+        <div :class="['player-panel', { 'is-turn': currentPlayer === 2 }]">
+          <div class="player-info">
+            <div class="player-avatar player2-avatar">
+              <span class="player-initial">B</span>
             </div>
-            <h2 v-if="winner">{{ winner === 'tie' ? "It's a Tie!" : `${getPlayerName(winner as number)} Wins!` }}</h2>
-            <div class="final-scores">
-              <div class="score-row">
-                <div class="player-avatar player1-avatar small">
-                  <span class="player-initial">{{ getPlayerInitial(1) }}</span>
-                </div>
-                <span class="score-text">{{ getPlayerName(1) }}: {{ scores[1] }} squares</span>
+            <div class="player-details">
+              <div class="player-name">Player B</div>
+              <div class="player-score">{{ scores[2] }} squares</div>
+            </div>
+            <div class="turn-status">
+              <div v-if="currentPlayer === 2" class="active-turn">
+                <span class="turn-text">Player B's Turn</span>
               </div>
-              <div class="score-row">
-                <div class="player-avatar player2-avatar small">
-                  <span class="player-initial">{{ getPlayerInitial(2) }}</span>
-                </div>
-                <span class="score-text">{{ getPlayerName(2) }}: {{ scores[2] }} squares</span>
+              <div v-else class="waiting-turn">
+                <span class="waiting-text">Waiting...</span>
               </div>
             </div>
-            <button @click="resetGame" class="play-again-button">Play Again</button>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+
+      <div class="game-controls">
+        <button @click="switchPlayer" class="pass-button">
+          Pass Turn
+        </button>
+        <button @click="resetGame" class="quit-button">
+          New Game
+        </button>
+      </div>
+    </header>
+
+    <main class="game-main">
+      <DotGrid
+        :grid-size="gridSize"
+        :drawn-lines="drawnLines"
+        :claimed-squares="claimedSquares"
+        :can-make-move="true"
+        @line-selected="handleLineSelected"
+      />
+      
+      <div v-if="gameOver" class="game-over-overlay">
+        <div class="game-over-content">
+          <div class="winner-avatar" :class="winner === 1 ? 'player1-avatar' : winner === 2 ? 'player2-avatar' : 'tie-avatar'">
+            <span v-if="winner !== 'tie' && winner !== null" class="winner-initial">{{ winner === 1 ? 'A' : 'B' }}</span>
+            <span v-else class="tie-icon">🤝</span>
+          </div>
+          <h2 v-if="winner === 1">Player A Wins!</h2>
+          <h2 v-else-if="winner === 2">Player B Wins!</h2>
+          <h2 v-else>It's a Tie!</h2>
+          
+          <div class="final-scores">
+            <div class="score-row">
+              <div class="player-avatar player1-avatar small">
+                <span class="player-initial">A</span>
+              </div>
+              <span class="score-text">Player A: {{ scores[1] }} squares</span>
+            </div>
+            <div class="score-row">
+              <div class="player-avatar player2-avatar small">
+                <span class="player-initial">B</span>
+              </div>
+              <span class="score-text">Player B: {{ scores[2] }} squares</span>
+            </div>
+          </div>
+          
+          <button @click="resetGame" class="play-again-button">Play Again</button>
+        </div>
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useMatchStore } from '../stores/matchStore'
-import { playMove } from '../firebase/matchHelpers'
-import { storeToRefs } from 'pinia'
+import { ref, computed } from 'vue'
 import DotGrid from '../components/DotGrid.vue'
 
-const route = useRoute()
-const router = useRouter()
-const matchStore = useMatchStore()
+// Simple local game state
+const gridSize = ref(5)
+const currentPlayer = ref(1)
+const drawnLines = ref<Array<{id: string, startDot: string, endDot: string, player: number}>>([])
+const claimedSquares = ref<Array<{id: string, topLeftX: number, topLeftY: number, player: number}>>([])
+const scores = ref({ 1: 0, 2: 0 })
 
-// Get current user ID from route query parameter - this is critical for multiplayer sync
-const currentUserId = ref((route.query.playerId as string) || (route.query.userId as string) || 'user-' + Date.now())
+// Game status
+const gameOver = computed(() => {
+  const totalSquares = (gridSize.value - 1) * (gridSize.value - 1)
+  const claimedCount = claimedSquares.value.length
+  return claimedCount >= totalSquares
+})
 
-const { 
-  currentMatchId, 
-  matchData, 
-  isLoading, 
-  error,
-  lines, 
-  squares, 
-  gridSize, 
-  currentPlayer,
-  scores,
-  gameOver
-} = storeToRefs(matchStore)
-
-// Timer state
-const timeRemaining = ref(30)
-const turnTimer = ref<number | null>(null)
-const TURN_DURATION = 30 // seconds
-
-// Audio state
-const countdownAudio = ref<HTMLAudioElement | null>(null)
-const audioPlaying = ref(false)
-const audioEnabled = ref(true)
-
-// Computed properties
 const winner = computed(() => {
   if (!gameOver.value) return null
-  if (!matchData.value?.winner) return null
-  return matchData.value.winner
+  if (scores.value[1] > scores.value[2]) return 1
+  if (scores.value[2] > scores.value[1]) return 2
+  return 'tie'
 })
 
-const canCurrentPlayerMove = computed(() => {
-  return matchStore.canPlayerMove(currentUserId.value) && timeRemaining.value > 0
-})
-
-const currentUserPlayerNumber = computed(() => {
-  return matchStore.getPlayerNumber(currentUserId.value)
-})
-
-// Computed data for DotGrid - ensure fresh reactive data
-const gameLines = computed(() => lines.value || [])
-const gameSquares = computed(() => squares.value || [])
-const gameGridSize = computed(() => gridSize.value || 5)
-
-// Helper functions
-const getPlayerName = (playerNumber: number) => {
-  if (playerNumber === 1) return matchData.value?.player1?.name || 'Alice'
-  if (playerNumber === 2) return matchData.value?.player2?.name || 'Bob'
-  return `Player ${playerNumber}`
-}
-
-const getPlayerInitial = (playerNumber: number) => {
-  const name = getPlayerName(playerNumber)
-  return name.charAt(0).toUpperCase()
-}
-
-// Initialize audio
-const initializeAudio = () => {
-  countdownAudio.value = new Audio('/sounds/countdown.mp3')
-  countdownAudio.value.volume = 0.6
-  countdownAudio.value.preload = 'auto'
-}
-
-// Play countdown sound
-const playCountdownSound = () => {
-  if (countdownAudio.value && !audioPlaying.value && audioEnabled.value) {
-    audioPlaying.value = true
-    countdownAudio.value.currentTime = 0
-    countdownAudio.value.play().catch(error => {
-      console.log('Audio play failed:', error)
-    })
-  }
-}
-
-// Toggle audio on/off
-const toggleAudio = () => {
-  audioEnabled.value = !audioEnabled.value
-  if (!audioEnabled.value) {
-    stopCountdownSound()
-  }
-}
-
-// Stop countdown sound
-const stopCountdownSound = () => {
-  if (countdownAudio.value && audioPlaying.value) {
-    countdownAudio.value.pause()
-    countdownAudio.value.currentTime = 0
-    audioPlaying.value = false
-  }
-}
-
-// Start turn timer
-const startTurnTimer = () => {
-  clearTurnTimer()
-  stopCountdownSound()
-  timeRemaining.value = TURN_DURATION
+// Handle line selection
+const handleLineSelected = (line: { startDot: string; endDot: string }) => {
+  // Check if line already exists
+  const lineExists = drawnLines.value.some(l => 
+    (l.startDot === line.startDot && l.endDot === line.endDot) ||
+    (l.startDot === line.endDot && l.endDot === line.startDot)
+  )
   
-  turnTimer.value = window.setInterval(() => {
-    timeRemaining.value--
-    
-    // Play countdown sound during last 5 seconds
-    if (timeRemaining.value === 5) {
-      playCountdownSound()
-    }
-    
-    if (timeRemaining.value <= 0) {
-      stopCountdownSound()
-      // Time's up - turn will be handled by server
-      clearTurnTimer()
-    }
-  }, 1000)
-}
-
-// Clear turn timer
-const clearTurnTimer = () => {
-  if (turnTimer.value) {
-    clearInterval(turnTimer.value)
-    turnTimer.value = null
-  }
-  stopCountdownSound()
-}
-
-// Removed periodic refresh - Firebase real-time updates are sufficient
-
-// Handle line selection from DotGrid
-const handleLineSelected = async (line: { startDot: string; endDot: string }) => {
-  if (!canCurrentPlayerMove.value || !currentMatchId.value) return
+  if (lineExists) return
   
-  try {
-    await playMove(currentMatchId.value, currentUserId.value, {
-      startDot: line.startDot,
-      endDot: line.endDot
-    })
-  } catch (error) {
-    console.error('Error playing move:', error)
+  // Add the line
+  const newLine = {
+    id: `${line.startDot}-${line.endDot}`,
+    startDot: line.startDot,
+    endDot: line.endDot,
+    player: currentPlayer.value
+  }
+  drawnLines.value.push(newLine)
+  
+  // Check for completed squares
+  const newSquares = checkForCompletedSquares()
+  let squaresClaimed = 0
+  
+  newSquares.forEach(square => {
+    if (!claimedSquares.value.some(s => s.id === square.id)) {
+      claimedSquares.value.push({
+        ...square,
+        player: currentPlayer.value
+      })
+      squaresClaimed++
+    }
+  })
+  
+  // Update scores
+  scores.value[currentPlayer.value as 1 | 2] += squaresClaimed
+  
+  // Switch turns (unless squares were claimed)
+  if (squaresClaimed === 0) {
+    currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
   }
 }
 
-// Switch active player (for testing - normally players join on different devices)
+// Check for completed squares
+const checkForCompletedSquares = () => {
+  const newSquares: Array<{id: string, topLeftX: number, topLeftY: number}> = []
+  
+  for (let x = 0; x < gridSize.value - 1; x++) {
+    for (let y = 0; y < gridSize.value - 1; y++) {
+      const squareId = `${x}-${y}`
+      
+      // Skip if square already claimed
+      if (claimedSquares.value.some(s => s.id === squareId)) continue
+      
+      // Check if all four lines exist
+      const topLine = lineExists(`${y}-${x}`, `${y}-${x + 1}`)
+      const bottomLine = lineExists(`${y + 1}-${x}`, `${y + 1}-${x + 1}`)
+      const leftLine = lineExists(`${y}-${x}`, `${y + 1}-${x}`)
+      const rightLine = lineExists(`${y}-${x + 1}`, `${y + 1}-${x + 1}`)
+      
+      if (topLine && bottomLine && leftLine && rightLine) {
+        newSquares.push({
+          id: squareId,
+          topLeftX: x,
+          topLeftY: y
+        })
+      }
+    }
+  }
+  
+  return newSquares
+}
+
+// Helper to check if line exists
+const lineExists = (dot1: string, dot2: string) => {
+  return drawnLines.value.some(line => 
+    (line.startDot === dot1 && line.endDot === dot2) ||
+    (line.startDot === dot2 && line.endDot === dot1)
+  )
+}
+
+// Switch player manually
 const switchPlayer = () => {
-  // This is for local testing - cycle between player IDs
-  if (currentUserId.value === matchData.value?.player1?.id) {
-    currentUserId.value = matchData.value?.player2?.id || 'user-456'
-  } else {
-    currentUserId.value = matchData.value?.player1?.id || 'user-123'
-  }
-}
-
-// Forfeit match
-const forfeitMatch = () => {
-  // TODO: Implement forfeit functionality
-  console.log('Forfeit match requested by', currentUserId.value)
-  router.push('/')
-}
-
-// Format time display
-const formatTime = (seconds: number) => {
-  return `${seconds}s`
+  currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
 }
 
 // Reset game
 const resetGame = () => {
-  // This function is not directly used in the current Firebase flow,
-  // but keeping it for consistency if a new game is initiated.
-  // For Firebase, a new match would be created.
-  console.log('Reset game requested')
+  currentPlayer.value = 1
+  drawnLines.value = []
+  claimedSquares.value = []
+  scores.value = { 1: 0, 2: 0 }
 }
-
-// Watch for turn changes and restart timer
-watch([currentPlayer, matchData], ([newPlayer, newMatchData]) => {
-  if (newMatchData?.status === 'active' && !gameOver.value) {
-    startTurnTimer()
-  } else {
-    clearTurnTimer()
-  }
-}, { immediate: true })
-
-// Initialize game on mount
-onMounted(() => {
-  initializeAudio()
-  
-  const matchId = route.params.id as string
-  if (matchId) {
-    matchStore.subscribeToMatchById(matchId)
-  } else {
-    router.push('/')
-  }
-})
-
-// Cleanup on unmount
-onUnmounted(() => {
-  clearTurnTimer()
-  matchStore.unsubscribeFromMatch()
-})
-
-// Watch for game over and redirect
-watch(gameOver, (isOver) => {
-  if (isOver && currentMatchId.value) {
-    clearTurnTimer()
-    setTimeout(() => {
-      router.push({ name: 'GameResult', query: { matchId: currentMatchId.value } })
-    }, 2000) // Delay to show final state
-  }
-})
 </script>
 
 <style scoped>
-.game-board-container {
+.game-container {
   min-height: 100vh;
   background: #ffffff;
   padding: 1rem;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
-
-.game-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  height: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 .game-header {
@@ -436,7 +308,7 @@ watch(gameOver, (isOver) => {
 }
 
 .player1-avatar {
-  background: #1f2937;
+  background: #3b82f6;
 }
 
 .player2-avatar {

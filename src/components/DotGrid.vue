@@ -334,8 +334,8 @@ const selectLine = (line: PossibleLine) => {
 }
 
 .player1-line {
-  background: #1f2937;
-  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.3);
+  background: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .player2-line {
@@ -365,9 +365,9 @@ const selectLine = (line: PossibleLine) => {
 }
 
 .player1-square {
-  background: #1f2937;
-  border-color: #1f2937;
-  box-shadow: 0 6px 20px rgba(31, 41, 55, 0.4);
+  background: #3b82f6;
+  border-color: #3b82f6;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
 .player2-square {
