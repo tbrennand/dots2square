@@ -21,7 +21,9 @@
         
         <div class="player-panels">
           <div class="player-panel" :class="{ 'current': currentPlayer === 1 }">
-            <div class="player-avatar player1">{{ matchData.player1?.name?.charAt(0).toUpperCase() || 'P' }}</div>
+            <div class="player-avatar player1">
+              <span class="player-icon">✏️</span>
+            </div>
             <div class="player-info">
               <span class="player-name">{{ matchData.player1?.name || 'Player 1' }}</span>
               <span class="player-score">{{ scores[1] || 0 }} squares</span>
@@ -35,7 +37,9 @@
           <div class="vs-divider">VS</div>
           
           <div class="player-panel" :class="{ 'current': currentPlayer === 2 }">
-            <div class="player-avatar player2">{{ matchData.player2?.name?.charAt(0).toUpperCase() || 'P' }}</div>
+            <div class="player-avatar player2">
+              <span class="player-icon">🎨</span>
+            </div>
             <div class="player-info">
               <span class="player-name">{{ matchData.player2?.name || 'Player 2' }}</span>
               <span class="player-score">{{ scores[2] || 0 }} squares</span>
@@ -54,7 +58,7 @@
 
       <!-- Game Grid - No Container -->
       <DotGrid
-        :grid-size="6"
+        :grid-size="gridSize"
         :drawn-lines="lines"
         :claimed-squares="squares"
         :can-make-move="canCurrentUserMove"
@@ -74,7 +78,7 @@
 
       <!-- Debug Info (Development Only) -->
       <div v-if="isDev" class="debug-info">
-        <div>Grid: 6x6 | Lines: {{ lines.length }} | Squares: {{ squares.length }}</div>
+        <div>Grid: {{ gridSize }}x{{ gridSize }} | Lines: {{ lines.length }} | Squares: {{ squares.length }}</div>
         <div>Turn: {{ currentPlayer }} | Can Move: {{ canCurrentUserMove }}</div>
         <div>Timer: Active={{ timerState.isActive }} | Time={{ timerState.timeRemaining }}</div>
         <div>Current User: {{ currentUserId }} | Player Number: {{ currentUserPlayerNumber }}</div>
@@ -369,6 +373,11 @@ watch(gameOver, (isOver) => {
 
 .player-avatar.player2 {
   background: linear-gradient(135deg, #f97316, #ea580c);
+}
+
+.player-icon {
+  font-size: 1.25rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .player-info {
