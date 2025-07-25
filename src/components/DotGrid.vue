@@ -176,7 +176,11 @@ const possibleLines = computed(() => {
 })
 
 // Alias for potentialLines (same as possibleLines)
-const potentialLines = computed(() => possibleLines.value)
+const potentialLines = computed(() => {
+  const lines = possibleLines.value
+  console.log('🎯 DotGrid: Generated potential lines:', lines.length, lines.slice(0, 3))
+  return lines
+})
 
 // Get line position and style dynamically
 const getLineStyle = (line: PossibleLine | Line, isHitbox = true) => {
@@ -235,8 +239,14 @@ const getPlayerInitial = (player?: number) => {
 
 // Select a line and emit the event
 const selectLine = (line: PossibleLine) => {
-  if (!props.canMakeMove) return
+  console.log('🎯 DotGrid: Line clicked!', line, 'canMakeMove:', props.canMakeMove)
   
+  if (!props.canMakeMove) {
+    console.log('🚫 DotGrid: Move blocked - canMakeMove is false')
+    return
+  }
+  
+  console.log('✅ DotGrid: Emitting line-selected event')
   emit('line-selected', {
     startDot: line.startDot,
     endDot: line.endDot

@@ -152,7 +152,17 @@ const winner = computed(() => {
 })
 
 const canCurrentPlayerMove = computed(() => {
-  return matchStore.canPlayerMove(currentUserId.value) && timeRemaining.value > 0
+  const canMove = matchStore.canPlayerMove(currentUserId.value) && timeRemaining.value > 0
+  console.log('🎮 Can current player move?', {
+    canMove,
+    userId: currentUserId.value,
+    canPlayerMove: matchStore.canPlayerMove(currentUserId.value),
+    timeRemaining: timeRemaining.value,
+    currentPlayer: currentPlayer.value,
+    matchStatus: matchData.value?.status,
+    gameOver: gameOver.value
+  })
+  return canMove
 })
 
 const currentUserPlayerNumber = computed(() => {
@@ -160,9 +170,21 @@ const currentUserPlayerNumber = computed(() => {
 })
 
 // Computed data for DotGrid - ensure fresh reactive data
-const gameLines = computed(() => lines.value || [])
-const gameSquares = computed(() => squares.value || [])
-const gameGridSize = computed(() => gridSize.value || 5)
+const gameLines = computed(() => {
+  const lines = lines.value || []
+  console.log('🎮 Game lines for DotGrid:', lines.length, lines)
+  return lines
+})
+const gameSquares = computed(() => {
+  const squares = squares.value || []
+  console.log('🎮 Game squares for DotGrid:', squares.length, squares)
+  return squares
+})
+const gameGridSize = computed(() => {
+  const size = gridSize.value || 5
+  console.log('🎮 Grid size for DotGrid:', size)
+  return size
+})
 
 // Helper functions
 const getPlayerName = (playerNumber: number) => {
