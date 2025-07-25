@@ -20,7 +20,7 @@
         </button>
       </div>
       
-      <div class="chat-messages" ref="chatMessages">
+      <div class="chat-messages" ref="messagesContainerRef">
         <div v-if="sortedMessages.length === 0" class="no-messages">
           <p>No messages yet. Start the conversation!</p>
         </div>
@@ -80,7 +80,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const chatMessages = ref<ChatMessage[]>([])
 const newMessage = ref('')
-const chatMessagesRef = ref<HTMLElement>()
+const messagesContainerRef = ref<HTMLElement>()
 const isLoading = ref(false)
 const isOpen = ref(false)
 const unreadCount = ref(0)
@@ -177,8 +177,8 @@ async function sendMessage() {
 
 // Scroll to bottom of chat
 function scrollToBottom() {
-  if (chatMessagesRef.value) {
-    chatMessagesRef.value.scrollTop = chatMessagesRef.value.scrollHeight
+  if (messagesContainerRef.value) {
+    messagesContainerRef.value.scrollTop = messagesContainerRef.value.scrollHeight
   }
 }
 
