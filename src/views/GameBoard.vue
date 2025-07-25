@@ -176,8 +176,8 @@ const gameSquares = computed(() => {
   // Ensure squares have the correct format for DotGrid
   return squaresData.map(square => ({
     ...square,
-    topLeftX: square.topLeftX ?? square.x ?? 0,
-    topLeftY: square.topLeftY ?? square.y ?? 0
+    topLeftX: square.topLeftX ?? 0,
+    topLeftY: square.topLeftY ?? 0
   }))
 })
 
