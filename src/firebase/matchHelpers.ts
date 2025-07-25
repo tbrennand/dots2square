@@ -285,6 +285,9 @@ export async function joinMatch(matchId: string, playerId: string, playerName: s
 export interface MoveLine {
   startDot: string
   endDot: string
+  forfeit?: boolean
+  pass?: boolean
+  winner?: number
 }
 
 export interface PlayMoveResult {
