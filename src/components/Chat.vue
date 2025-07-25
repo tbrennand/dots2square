@@ -48,7 +48,8 @@ let unsubscribe: Unsubscribe | null = null
 
 // Computed sorted messages (oldest to newest)
 const sortedMessages = computed(() => {
-  return [...chatMessages.value].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+  const messages = Array.isArray(chatMessages.value) ? chatMessages.value : [];
+  return messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 })
 
 // Format timestamp
