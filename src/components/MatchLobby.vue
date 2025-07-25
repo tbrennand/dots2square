@@ -308,8 +308,8 @@ const startGame = async () => {
       updatedAt: new Date()
     })
 
-    // Navigate to game
-    router.push(`/match/${matchId.value}`)
+    // Navigate to game with playerId
+    router.push(`/match/${matchId.value}?playerId=${currentPlayerId.value}`)
   } catch (error) {
     errorMessage.value = 'Failed to start game'
     console.error('Error starting game:', error)
@@ -546,7 +546,7 @@ watch(matchData, async (newMatchData) => {
   
   // Navigate to game when it becomes active
   if (newMatchData.status === 'active') {
-    router.push(`/match/${matchId.value}`)
+    router.push(`/match/${matchId.value}?playerId=${currentPlayerId.value}`)
   }
   } catch (error) {
     console.error('Error in MatchLobby watch:', error)
