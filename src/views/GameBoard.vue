@@ -1,9 +1,6 @@
 <template>
   <div class="game-board-container">
-    <div v-if="isLoading" class="loading-state">Loading Game...</div>
-    <div v-else-if="error" class="error-state">Error: {{ error }}</div>
-
-    <div v-else-if="matchData" class="game-layout">
+    <div class="game-layout">
       <header class="game-header">
         <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="logo" />
         
@@ -11,122 +8,176 @@
           <!-- Player 1 Panel -->
           <div :class="['player-panel', { 'is-turn': currentPlayer === 1 }]">
             <div class="panel-header">
-              <span class="player-name">{{ matchData.player1?.name || 'Player 1' }}</span>
-              <span class="player-score">Score: {{ scores[1] || 0 }}</span>
+              <span class="player-name">Player 1</span>
+              <span class="player-score">Score: {{ scores[1] }}</span>
             </div>
             <div v-if="currentPlayer === 1" class="turn-indicator">
               <span>Your Turn</span>
-              <span class="timer">{{ formatTime(timerState.timeRemaining) }}</span>
             </div>
           </div>
 
           <!-- Player 2 Panel -->
           <div :class="['player-panel', { 'is-turn': currentPlayer === 2 }]">
             <div class="panel-header">
-              <span class="player-name">{{ matchData.player2?.name || 'Player 2' }}</span>
-              <span class="player-score">Score: {{ scores[2] || 0 }}</span>
+              <span class="player-name">Player 2</span>
+              <span class="player-score">Score: {{ scores[2] }}</span>
             </div>
             <div v-if="currentPlayer === 2" class="turn-indicator">
               <span>Your Turn</span>
-              <span class="timer">{{ formatTime(timerState.timeRemaining) }}</span>
             </div>
           </div>
         </div>
 
-        <button @click="handleForfeit" class="forfeit-button">Forfeit Game</button>
+        <button @click="resetGame" class="reset-button">New Game</button>
       </header>
 
       <main class="game-main">
         <DotGrid
           :grid-size="gridSize"
-          :drawn-lines="lines"
-          :claimed-squares="squares"
-          :can-make-move="canCurrentUserMove"
+          :drawn-lines="drawnLines"
+          :claimed-squares="claimedSquares"
+          :can-make-move="!gameOver"
           @line-selected="handleLineSelected"
         />
+        
+        <div v-if="gameOver" class="game-over-overlay">
+          <div class="game-over-content">
+            <h2 v-if="winner">{{ winner === 'tie' ? "It's a Tie!" : `Player ${winner} Wins!` }}</h2>
+            <div class="final-scores">
+              <p>Player 1: {{ scores[1] }} squares</p>
+              <p>Player 2: {{ scores[2] }} squares</p>
+            </div>
+            <button @click="resetGame" class="play-again-button">Play Again</button>
+          </div>
+        </div>
       </main>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useMatchStore } from '../stores/matchStore'
-import { playMove } from '../firebase/matchHelpers'
-import { useTurnTimer } from '../composables/useTurnTimer'
+import { ref, computed, onMounted } from 'vue'
 import DotGrid from '../components/DotGrid.vue'
-import { storeToRefs } from 'pinia'
 
-const route = useRoute()
-const router = useRouter()
-const matchStore = useMatchStore()
+// Game state
+const gridSize = ref(5) // 5x5 grid of squares (6x6 dots)
+const drawnLines = ref<Array<{id: string, startDot: string, endDot: string, player: number}>>([])
+const claimedSquares = ref<Array<{id: string, topLeftX: number, topLeftY: number, player: number}>>([])
+const currentPlayer = ref(1)
+const scores = ref({ 1: 0, 2: 0 })
+const gameOver = ref(false)
 
-const currentUserId = ref('user-123') // TODO: Replace with actual user auth
-
-const { 
-  currentMatchId, 
-  matchData, 
-  isLoading, 
-  error,
-  lines, 
-  squares, 
-  gridSize, 
-  currentPlayer,
-  scores,
-  gameOver
-} = storeToRefs(matchStore)
-
-const turnTimer = useTurnTimer(currentMatchId.value || '', currentUserId.value)
-const timerState = computed(() => turnTimer.getTimerState())
-
-const canCurrentUserMove = computed(() => matchStore.canPlayerMove(currentUserId.value))
-const currentPlayerName = computed(() => {
-  const playerNum = matchStore.getPlayerNumber(currentUserId.value) ?? 1
-  return (playerNum === 1 ? matchData.value?.player1?.name : matchData.value?.player2?.name) || 'Player'
+// Computed properties
+const winner = computed(() => {
+  if (!gameOver.value) return null
+  if (scores.value[1] > scores.value[2]) return 1
+  if (scores.value[2] > scores.value[1]) return 2
+  return 'tie'
 })
 
-const handleLineSelected = async (line: { startDot: string; endDot: string }) => {
-  if (!currentMatchId.value || !canCurrentUserMove.value) return
-  await playMove(currentMatchId.value, currentUserId.value, line)
+// Check if a line already exists
+const lineExists = (startDot: string, endDot: string) => {
+  return drawnLines.value.some(line => 
+    (line.startDot === startDot && line.endDot === endDot) ||
+    (line.startDot === endDot && line.endDot === startDot)
+  )
 }
 
-const handleForfeit = () => {
-  console.log('Forfeit game requested by', currentUserId.value)
-  // TODO: Implement forfeit logic
+// Check if a square is completed by having all 4 sides drawn
+const checkSquareCompletion = (x: number, y: number) => {
+  const topLeft = `${y}-${x}`
+  const topRight = `${y}-${x + 1}`
+  const bottomLeft = `${y + 1}-${x}`
+  const bottomRight = `${y + 1}-${x + 1}`
+  
+  const sides = [
+    `${topLeft}-${topRight}`,      // top
+    `${topRight}-${bottomRight}`,  // right
+    `${bottomRight}-${bottomLeft}`, // bottom
+    `${bottomLeft}-${topLeft}`     // left
+  ]
+  
+  return sides.every(side => {
+    const [start, end] = side.split('-').map(dot => dot)
+    return lineExists(start, end)
+  })
 }
 
-const formatTime = (seconds: number) => {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
+// Find all newly completed squares after drawing a line
+const findCompletedSquares = () => {
+  const newSquares = []
+  
+  for (let y = 0; y < gridSize.value; y++) {
+    for (let x = 0; x < gridSize.value; x++) {
+      // Check if this square is already claimed
+      const existingSquare = claimedSquares.value.find(s => s.topLeftX === x && s.topLeftY === y)
+      if (existingSquare) continue
+      
+      // Check if this square is now complete
+      if (checkSquareCompletion(x, y)) {
+        newSquares.push({
+          id: `${x}-${y}`,
+          topLeftX: x,
+          topLeftY: y,
+          player: currentPlayer.value
+        })
+      }
+    }
+  }
+  
+  return newSquares
 }
 
-onMounted(() => {
-  const matchId = route.params.id as string
-  if (matchId) {
-    matchStore.subscribeToMatchById(matchId)
+// Handle line selection from DotGrid
+const handleLineSelected = (line: { startDot: string; endDot: string }) => {
+  if (gameOver.value || lineExists(line.startDot, line.endDot)) return
+  
+  // Add the new line
+  const newLine = {
+    id: `${line.startDot}-${line.endDot}`,
+    startDot: line.startDot,
+    endDot: line.endDot,
+    player: currentPlayer.value
+  }
+  drawnLines.value.push(newLine)
+  
+  // Check for completed squares
+  const newSquares = findCompletedSquares()
+  const squaresCompleted = newSquares.length
+  
+  if (squaresCompleted > 0) {
+    // Add completed squares
+    claimedSquares.value.push(...newSquares)
+    
+    // Update scores
+    scores.value[currentPlayer.value as 1 | 2] += squaresCompleted
+    
+    // Player gets another turn if they completed squares
+    // (currentPlayer stays the same)
   } else {
-    router.push('/')
+    // Switch to other player
+    currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
   }
-})
-
-watch(matchData, (newMatchData) => {
-  if (newMatchData?.status === 'active') {
-    const turnStartTime = newMatchData.turnStartedAt?.toDate() || null
-    const turnDuration = newMatchData.turnDuration || 30
-    turnTimer.syncTimerWithServer(turnStartTime, turnDuration)
+  
+  // Check if game is over (all squares claimed)
+  const totalSquares = gridSize.value * gridSize.value
+  if (claimedSquares.value.length >= totalSquares) {
+    gameOver.value = true
   }
-}, { immediate: true, deep: true })
+}
 
-onUnmounted(() => {
-  matchStore.unsubscribeFromMatch()
-})
+// Reset game
+const resetGame = () => {
+  drawnLines.value = []
+  claimedSquares.value = []
+  currentPlayer.value = 1
+  scores.value = { 1: 0, 2: 0 }
+  gameOver.value = false
+}
 
-watch(gameOver, (isOver) => {
-  if (isOver && currentMatchId.value) {
-    router.push({ name: 'GameResult', query: { matchId: currentMatchId.value } })
-  }
+// Initialize game on mount
+onMounted(() => {
+  resetGame()
 })
 </script>
 
@@ -139,15 +190,6 @@ watch(gameOver, (isOver) => {
   padding: 2rem;
 }
 
-.loading-state, .error-state {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  font-size: 1.5rem;
-  color: #4b5563;
-}
-
 .game-layout {
   display: flex;
   flex-direction: column;
@@ -156,7 +198,6 @@ watch(gameOver, (isOver) => {
 }
 
 .game-header {
-  grid-area: header;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -167,13 +208,16 @@ watch(gameOver, (isOver) => {
 }
 
 .logo {
-  height: 80px; /* Increased logo height */
+  height: 100px;
   width: auto;
+  flex-shrink: 0;
 }
 
 .player-panels {
   display: flex;
   gap: 2rem;
+  flex-grow: 1;
+  justify-content: center;
 }
 
 .player-panel {
@@ -205,23 +249,14 @@ watch(gameOver, (isOver) => {
 
 .turn-indicator {
   margin-top: 0.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   color: #16a34a;
   font-weight: 600;
 }
 
-.timer {
-  font-family: 'monospace';
-  font-size: 1.125rem;
-  color: #dc2626;
-}
-
-.forfeit-button {
+.reset-button {
   padding: 0.75rem 1.5rem;
-  background-color: #fee2e2;
-  color: #dc2626;
+  background-color: #3b82f6;
+  color: white;
   border: none;
   border-radius: 0.75rem;
   font-weight: 600;
@@ -229,8 +264,8 @@ watch(gameOver, (isOver) => {
   transition: background-color 0.3s ease;
 }
 
-.forfeit-button:hover {
-  background-color: #fecaca;
+.reset-button:hover {
+  background-color: #2563eb;
 }
 
 .game-main {
@@ -238,5 +273,60 @@ watch(gameOver, (isOver) => {
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
+}
+
+.game-over-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.game-over-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  text-align: center;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.game-over-content h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.final-scores {
+  margin: 1.5rem 0;
+}
+
+.final-scores p {
+  font-size: 1.125rem;
+  margin: 0.5rem 0;
+  color: #4b5563;
+}
+
+.play-again-button {
+  padding: 0.75rem 2rem;
+  background-color: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1.125rem;
+  transition: background-color 0.3s ease;
+}
+
+.play-again-button:hover {
+  background-color: #15803d;
 }
 </style> 
