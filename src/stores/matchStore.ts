@@ -28,6 +28,7 @@ export const useMatchStore = defineStore('match', () => {
   })
 
   const currentPlayer = computed(() => matchData.value?.currentTurn || 1)
+  const currentPlayerId = computed(() => matchData.value?.currentPlayerId || null)
   const scores = computed(() => matchData.value?.scores || { 1: 0, 2: 0 })
   const gameOver = computed(() => matchData.value?.gameOver || false)
   const winner = computed(() => matchData.value?.winner || null)

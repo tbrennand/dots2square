@@ -6,7 +6,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'primary': '#F9A826', // A vibrant, pencil-orange
+        'primary': '#f97316', // A vibrant orange
         'secondary': '#4A5568', // A dark, graphite-gray for text
         'accent': '#E53E3E', // A friendly red for leave/cancel actions
         'background': '#F7FAFC', // A very light gray for the page background

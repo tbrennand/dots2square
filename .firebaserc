@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "dots2squares-game"
-  }
-} 
+    "default": "dots2squares---v1",
+    "staging": "dots2squares---v1"
+  },
+  "targets": {},
+  "etags": {}
+}

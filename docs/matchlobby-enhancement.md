@@ -2,40 +2,57 @@
 
 ## Overview
 
-The `MatchLobby.vue` component has been significantly enhanced to provide a comprehensive lobby experience for multiplayer matches. It now shows joined players, handles Firebase presence, and enables "Start Game" functionality when both players are ready.
+The `MatchLobby.vue` component has been significantly enhanced to provide a comprehensive, modern lobby experience for multiplayer matches. It features responsive design, native sharing capabilities, real-time player status, and an intuitive user interface that works seamlessly across all devices.
 
 ## Features
 
-### ✅ Player Management
-- **Player List**: Shows all joined players with avatars and status
+### ✅ Enhanced Player Management
+- **Player List**: Shows all joined players with color-coded avatars and status
 - **Host Identification**: Crown icon for the match host
 - **Current Player Highlighting**: Visual indication of the current user
 - **Empty Slots**: Shows available slots for additional players
 - **Player Kicking**: Host can kick players from the match
+- **Color-coded Players**: Player 1 (blue) and Player 2 (orange) with consistent theming
 
 ### ✅ Ready System
 - **Ready Status**: Players can mark themselves as ready/not ready
-- **Ready Indicators**: Visual indicators showing who's ready
+- **Color-coded Ready Indicators**: Each player shows in their respective color when ready
 - **Start Game Logic**: Game can only start when all players are ready
-- **Real-time Updates**: Status updates in real-time
+- **Real-time Updates**: Status updates in real-time across all clients
 
-### ✅ Firebase Presence
-- **Online Status**: Shows if players are online/offline
-- **Ready Status**: Tracks player readiness in Firebase
-- **Real-time Sync**: All status changes sync across clients
-- **Presence Indicators**: Visual indicators for player presence
+### ✅ Native Sharing System
+- **Native Share API**: Uses device's native share sheet on mobile devices
+- **Platform-specific Buttons**: WhatsApp, Telegram, Email, SMS sharing options
+- **Copy Link**: Enhanced copy functionality with visual feedback
+- **Smart Detection**: Shows relevant sharing options based on device capabilities
+- **Responsive Grid**: Platform buttons adapt to screen size
 
-### ✅ Match Management
-- **Start Game**: Host can start the game when conditions are met
-- **Cancel Match**: Host can cancel the match
-- **Leave Match**: Players can leave the match
-- **Status Tracking**: Real-time match status updates
+### ✅ Responsive Design
+- **Desktop Optimized**: Expansive layout that uses screen real estate effectively
+- **Tablet Friendly**: Balanced spacing and touch-friendly interface
+- **Mobile Optimized**: Ultra-compact design for small screens
+- **Viewport Height**: Content fits within screen height without scrolling
+- **Progressive Enhancement**: Features scale appropriately across devices
+
+### ✅ Enhanced UX
+- **Orange Theme**: Consistent orange branding throughout
+- **Visual Feedback**: Button animations and success messages
+- **Loading States**: Spinner animations for async operations
+- **Error Handling**: Clear error messages with emoji indicators
+- **Accessibility**: Proper ARIA labels and keyboard navigation
 
 ### ✅ Chat System
-- **Lobby Chat**: Real-time chat between players
-- **Message History**: Scrollable chat history
-- **Timestamps**: Messages include timestamps
+- **Real-time Chat**: Live messaging between players
+- **Orange Styling**: Chat title styled in orange theme
+- **Compact Design**: Optimized chat height for different screen sizes
+- **Message History**: Scrollable chat with timestamps
 - **Auto-scroll**: Chat automatically scrolls to new messages
+
+### ✅ Firebase Integration
+- **Real-time Presence**: Shows if players are online/offline
+- **Ready Status Sync**: Tracks player readiness in Firebase
+- **Match State Management**: Real-time match status updates
+- **Presence Indicators**: Visual indicators for player presence
 
 ## Component Structure
 
@@ -44,36 +61,71 @@ The `MatchLobby.vue` component has been significantly enhanced to provide a comp
 ```vue
 <template>
   <div class="match-lobby">
-    <!-- Header -->
-    <div class="lobby-header">
-      <h2>{{ isHost ? 'Match Lobby' : 'Joining Match' }}</h2>
-      <p class="subtitle">{{ isHost ? 'Waiting for players to join' : 'Waiting for host to start' }}</p>
+    <!-- Header Section -->
+    <div class="lobby-header-section">
+      <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="lobby-logo" />
+      <div class="lobby-header">
+        <h2>{{ isHost ? 'Match Lobby' : 'Joining Match' }}</h2>
+        <p class="subtitle">{{ getSubtitleText() }}</p>
+      </div>
     </div>
 
     <!-- Match Info -->
     <div class="match-info-card">
-      <!-- Match details (ID, grid size, status) -->
+      <div class="match-details">
+        <div class="detail-row">
+          <span class="label">Match ID</span>
+          <span class="value">{{ matchId }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Grid Size</span>
+          <span class="value">{{ gridSize }}x{{ gridSize }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Status</span>
+          <span class="value status" :class="getStatusClass()">{{ getStatusText() }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Players List -->
     <div class="players-section">
-      <!-- Player cards with status indicators -->
+      <h3 class="section-title">Players ({{ joinedPlayers.length }}/{{ maxPlayers }})</h3>
+      <div class="players-list">
+        <!-- Player cards with color coding -->
+      </div>
     </div>
 
     <!-- Ready Status -->
-    <div class="ready-section">
-      <!-- Ready indicators for each player -->
+    <div class="ready-section" v-if="hasPlayer2 && matchData?.status === 'waiting'">
+      <h3 class="section-title">Ready Status</h3>
+      <div class="ready-indicators">
+        <!-- Color-coded ready indicators -->
+      </div>
     </div>
 
     <!-- Lobby Actions -->
-    <div class="lobby-actions">
+    <div class="lobby-actions" v-if="hasPlayer2">
       <!-- Host/Player specific actions -->
     </div>
 
-    <!-- Chat System -->
-    <div class="chat-section">
-      <!-- Chat messages and input -->
+    <!-- Share Section -->
+    <div class="share-section">
+      <h3 class="section-title">🎮 Invite Friends to Play</h3>
+      <div class="share-options">
+        <button @click="nativeShare" class="share-btn primary">📤 Share Game</button>
+        <button @click="copyMatchLink" class="share-btn secondary">📋 Copy Link</button>
+      </div>
+      <div class="platform-share-options" v-if="!nativeShareSupported">
+        <!-- Platform-specific share buttons -->
+      </div>
+      <div class="match-url-display">
+        <input :value="matchUrl" readonly class="url-input" />
+      </div>
     </div>
+
+    <!-- Chat System -->
+    <Chat v-if="matchId" :matchId="matchId" :currentPlayerName="getPlayerName(getCurrentPlayerNumber())" />
   </div>
 </template>
 ```
@@ -82,11 +134,12 @@ The `MatchLobby.vue` component has been significantly enhanced to provide a comp
 
 ```typescript
 // Core imports
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMatchStore } from '../stores/matchStore'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase/index'
+import Chat from './Chat.vue'
 
 // State management
 const matchId = ref('')
@@ -94,320 +147,326 @@ const isHost = ref(false)
 const currentPlayerId = ref('')
 const isStarting = ref(false)
 const isUpdatingReady = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+
+// Native sharing support
+const nativeShareSupported = ref('share' in navigator)
 
 // Computed properties
 const matchData = computed(() => matchStore.matchData)
-const joinedPlayers = computed(() => { /* ... */ })
-const canStartGame = computed(() => { /* ... */ })
-```
-
-## Key Features
-
-### Player Status Management
-
-```typescript
-const getPlayerStatusText = (playerNumber: number): string => {
-  if (isPlayerReady(playerNumber)) return 'Ready'
-  if (isPlayerOnline(playerNumber)) return 'Online'
-  return 'Offline'
-}
-
-const getPlayerStatusClass = (playerNumber: number): string => {
-  if (isPlayerReady(playerNumber)) return 'status-ready'
-  if (isPlayerOnline(playerNumber)) return 'status-online'
-  return 'status-offline'
-}
-
-const isPlayerReady = (playerNumber: number): boolean => {
-  // This would check against Firebase presence/ready status
-  return playerNumber <= joinedPlayers.value.length
-}
-```
-
-### Start Game Logic
-
-```typescript
-const canStartGame = computed(() => {
-  return isHost.value && 
-         hasPlayer2.value && 
-         isPlayerReady(1) && 
-         isPlayerReady(2) &&
-         matchData.value?.status === 'waiting'
+const matchUrl = computed(() => {
+  const baseUrl = import.meta.env.VITE_PUBLIC_URL || 
+    (import.meta.env.PROD ? 'https://dots2squarev2.vercel.app' : window.location.origin)
+  return `${baseUrl}/invite/${matchId.value}`
 })
 
-const startGame = async () => {
-  if (!canStartGame.value) return
-
-  isStarting.value = true
-  errorMessage.value = ''
-
-  try {
-    const matchRef = doc(db, 'matches', matchId.value)
-    await updateDoc(matchRef, {
-      status: 'active',
-      updatedAt: new Date()
-    })
-
-    // Navigate to game
-    router.push(`/match/${matchId.value}`)
-  } catch (error) {
-    errorMessage.value = 'Failed to start game'
-  } finally {
-    isStarting.value = false
-  }
-}
-```
-
-### Ready System
-
-```typescript
-const toggleReady = async () => {
-  isUpdatingReady.value = true
-  errorMessage.value = ''
-
-  try {
-    // This would update Firebase presence/ready status
-    successMessage.value = isCurrentPlayerReady.value ? 'Marked as not ready' : 'Marked as ready'
-    
-    setTimeout(() => {
-      successMessage.value = ''
-    }, 2000)
-  } catch (error) {
-    errorMessage.value = 'Failed to update ready status'
-  } finally {
-    isUpdatingReady.value = false
-  }
-}
-```
-
-### Chat System
-
-```typescript
-const sendMessage = () => {
-  if (!newMessage.value.trim()) return
-
-  const message = {
-    id: Date.now().toString(),
-    author: getPlayerName(getCurrentPlayerNumber()),
-    text: newMessage.value.trim(),
-    timestamp: new Date()
-  }
-
-  chatMessages.value.push(message)
-  newMessage.value = ''
-
-  // Scroll to bottom
-  nextTick(() => {
-    if (chatMessagesRef.value) {
-      chatMessagesRef.value.scrollTop = chatMessagesRef.value.scrollHeight
+// Sharing functions
+const nativeShare = async () => {
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'Dots 2 Squares Game',
+        text: 'Join my Dots 2 Squares game!',
+        url: matchUrl.value
+      })
+      successMessage.value = '✅ Shared successfully!'
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        errorMessage.value = '❌ Failed to share'
+      }
     }
-  })
+  }
+}
+
+const copyMatchLink = async () => {
+  try {
+    await navigator.clipboard.writeText(matchUrl.value)
+    successMessage.value = '✅ Match link copied to clipboard!'
+    
+    // Visual feedback
+    const copyBtn = document.querySelector('.share-btn.primary') as HTMLElement
+    if (copyBtn) {
+      copyBtn.style.transform = 'scale(0.95)'
+      copyBtn.style.background = '#059669'
+      setTimeout(() => {
+        copyBtn.style.transform = ''
+        copyBtn.style.background = ''
+      }, 200)
+    }
+  } catch (error) {
+    errorMessage.value = '❌ Failed to copy link'
+  }
+}
+
+// Platform-specific sharing
+const shareViaWhatsApp = () => {
+  const text = `Join my Dots 2 Squares game! ${matchUrl.value}`
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
+  window.open(whatsappUrl, '_blank')
+}
+
+const shareViaTelegram = () => {
+  const text = `Join my Dots 2 Squares game! ${matchUrl.value}`
+  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(matchUrl.value)}&text=${encodeURIComponent('Join my Dots 2 Squares game!')}`
+  window.open(telegramUrl, '_blank')
+}
+
+const shareViaEmail = () => {
+  const subject = 'Join my Dots 2 Squares game!'
+  const body = `Hey! I'm playing Dots 2 Squares and want you to join me!\n\nClick this link to join: ${matchUrl.value}\n\nSee you in the game!`
+  const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  window.open(mailtoUrl, '_blank')
+}
+
+const shareViaSMS = () => {
+  const text = `Join my Dots 2 Squares game! ${matchUrl.value}`
+  const smsUrl = `sms:?body=${encodeURIComponent(text)}`
+  window.open(smsUrl, '_blank')
 }
 ```
 
-## Visual States
+## Styling & Responsive Design
 
-### Player Cards
-- **Current Player**: Blue border and background highlighting
-- **Host**: Crown icon in avatar
-- **Ready**: Green status indicator
-- **Online**: Green status indicator
-- **Offline**: Gray status indicator
-- **Empty Slot**: Dashed border with waiting icon
+### CSS Architecture
 
-### Ready Indicators
-- **Ready**: Green background with checkmark icon
-- **Not Ready**: Gray background with waiting icon
-- **Host Ready**: Special styling for host
+```css
+/* Base container with viewport height constraint */
+.match-lobby {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  max-height: 100vh;
+  overflow-y: auto;
+}
 
-### Action Buttons
-- **Start Game**: Blue gradient (enabled) or gray (disabled)
-- **Ready/Not Ready**: Toggle between green and gray
-- **Cancel/Leave**: Red background
-- **Copy Link**: Gray background
+/* Color-coded player cards */
+.player-card.player1 {
+  border-left: 4px solid #3b82f6;
+}
 
-## Integration Points
+.player-card.player2 {
+  border-left: 4px solid #f97316;
+}
 
-### Router Integration
-The component integrates with Vue Router for navigation:
+.player-avatar.player1-avatar {
+  background: #3b82f6;
+  color: white;
+}
 
-```typescript
-// Navigate to game when started
-router.push(`/match/${matchId.value}`)
+.player-avatar.player2-avatar {
+  background: #f97316;
+  color: white;
+}
 
-// Leave match
-router.push('/')
-```
+/* Orange theme throughout */
+.start-btn {
+  background: #f97316;
+  color: white;
+}
 
-### Firebase Integration
-Uses Firestore for real-time updates:
+.chat-section .section-title {
+  color: #f97316 !important;
+}
 
-```typescript
-// Update match status
-const matchRef = doc(db, 'matches', matchId.value)
-await updateDoc(matchRef, {
-  status: 'active',
-  updatedAt: new Date()
-})
+/* Platform share buttons */
+.platform-btn.whatsapp {
+  background: #25d366;
+  color: white;
+}
 
-// Kick player
-await updateDoc(matchRef, {
-  player2: null,
-  updatedAt: new Date()
-})
-```
+.platform-btn.telegram {
+  background: #0088cc;
+  color: white;
+}
 
-### Store Integration
-Leverages the match store for data management:
+.platform-btn.email {
+  background: #ea4335;
+  color: white;
+}
 
-```typescript
-const matchStore = useMatchStore()
-
-// Subscribe to match updates
-matchStore.subscribeToMatchById(matchId.value)
-
-// Access match data
-const matchData = computed(() => matchStore.matchData)
-```
-
-## Firebase Presence Implementation
-
-### Presence Structure
-```typescript
-interface PlayerPresence {
-  playerId: string
-  playerNumber: number
-  isOnline: boolean
-  isReady: boolean
-  lastSeen: Date
-  joinedAt: Date
+.platform-btn.sms {
+  background: #34a853;
+  color: white;
 }
 ```
 
-### Presence Updates
-```typescript
-// Update player presence
-const updatePresence = async (playerId: string, isOnline: boolean, isReady: boolean) => {
-  const presenceRef = doc(db, 'matches', matchId.value, 'presence', playerId)
-  await setDoc(presenceRef, {
-    playerId,
-    isOnline,
-    isReady,
-    lastSeen: new Date()
-  })
+### Responsive Breakpoints
+
+```css
+/* Desktop (default) */
+.match-lobby {
+  max-width: 1000px;
+  padding: 1.5rem;
 }
 
-// Listen to presence changes
-const subscribeToPresence = (matchId: string) => {
-  const presenceRef = collection(db, 'matches', matchId, 'presence')
-  return onSnapshot(presenceRef, (snapshot) => {
-    // Handle presence updates
-  })
+/* Tablet (≤768px) */
+@media (max-width: 768px) {
+  .match-lobby {
+    padding: 0.75rem;
+    margin: 0.25rem;
+  }
+  
+  .players-list {
+    flex-direction: column;
+  }
+  
+  .platform-share-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile (≤480px) */
+@media (max-width: 480px) {
+  .match-lobby {
+    padding: 0.5rem;
+    margin: 0.125rem;
+  }
+  
+  .platform-share-options {
+    grid-template-columns: 1fr;
+  }
+  
+  .chat-messages {
+    height: 80px;
+  }
 }
 ```
+
+## Key Features Implementation
+
+### Native Sharing
+
+The component implements a smart sharing system that:
+
+1. **Detects native sharing support** using `'share' in navigator`
+2. **Uses native share sheet** on supported devices (mobile)
+3. **Falls back to platform buttons** on desktop/older devices
+4. **Provides multiple sharing options**:
+   - Native share (mobile)
+   - Copy link (all devices)
+   - WhatsApp (web/mobile)
+   - Telegram (web/mobile)
+   - Email (desktop/mobile)
+   - SMS (mobile)
+
+### Responsive Design
+
+The lobby is designed to work optimally across all devices:
+
+1. **Desktop**: Expansive layout with generous spacing
+2. **Tablet**: Balanced design with touch-friendly elements
+3. **Mobile**: Ultra-compact with optimized touch targets
+
+### Real-time Updates
+
+The component maintains real-time synchronization through:
+
+1. **Firebase Firestore** for match state
+2. **Vue 3 reactivity** for UI updates
+3. **WebSocket-like behavior** via Firestore listeners
+4. **Optimistic updates** for better UX
 
 ## Usage Examples
 
-### Basic Lobby Usage
-```typescript
-// Navigate to lobby
-router.push(`/lobby/${matchId}`)
+### Basic Usage
 
-// Start game (host only)
-const startGame = async () => {
-  await updateDoc(matchRef, { status: 'active' })
-  router.push(`/match/${matchId}`)
-}
+```vue
+<template>
+  <MatchLobby />
+</template>
 
-// Toggle ready status
-const toggleReady = async () => {
-  await updatePresence(currentPlayerId, true, !isReady)
-}
+<script setup>
+import MatchLobby from '@/components/MatchLobby.vue'
+</script>
 ```
 
-### Player Management
-```typescript
-// Kick player (host only)
-const kickPlayer = async (playerNumber: number) => {
-  const updateData: any = { updatedAt: new Date() }
-  if (playerNumber === 2) {
-    updateData.player2 = null
-  }
-  await updateDoc(matchRef, updateData)
-}
+### With Custom Props
 
-// Leave match
-const leaveMatch = async () => {
-  await updatePresence(currentPlayerId, false, false)
-  router.push('/')
-}
+```vue
+<template>
+  <MatchLobby 
+    :matchId="matchId"
+    :isHost="isHost"
+    @game-started="handleGameStart"
+  />
+</template>
 ```
 
-## Error Handling
+## Testing
 
-### Common Error Scenarios
-- **Network Issues**: Graceful fallback and retry logic
-- **Permission Errors**: User-friendly error messages
-- **Invalid Match**: Redirect to home screen
-- **Player Disconnection**: Update presence and notify others
+### Unit Tests
 
-### Error Recovery
 ```typescript
-const handleError = (error: any, context: string) => {
-  console.error(`Error in ${context}:`, error)
+import { mount } from '@vue/test-utils'
+import MatchLobby from '@/components/MatchLobby.vue'
+
+describe('MatchLobby', () => {
+  it('displays match information correctly', () => {
+    const wrapper = mount(MatchLobby, {
+      props: {
+        matchId: 'test-match-123'
+      }
+    })
+    
+    expect(wrapper.text()).toContain('test-match-123')
+  })
   
-  switch (error.code) {
-    case 'permission-denied':
-      errorMessage.value = 'You don\'t have permission to perform this action'
-      break
-    case 'not-found':
-      errorMessage.value = 'Match not found'
-      router.push('/')
-      break
-    default:
-      errorMessage.value = 'An unexpected error occurred'
-  }
-}
+  it('shows native share button on supported devices', () => {
+    // Mock navigator.share
+    Object.defineProperty(navigator, 'share', {
+      value: jest.fn(),
+      writable: true
+    })
+    
+    const wrapper = mount(MatchLobby)
+    expect(wrapper.find('.share-btn.primary').text()).toContain('Share Game')
+  })
+})
+```
+
+### E2E Tests
+
+```typescript
+describe('Match Lobby E2E', () => {
+  it('allows players to join and start game', () => {
+    cy.visit('/lobby/test-match-123')
+    cy.get('[data-testid="player-card"]').should('have.length', 1)
+    cy.get('[data-testid="ready-btn"]').click()
+    cy.get('[data-testid="start-btn"]').should('be.enabled')
+  })
+  
+  it('shows sharing options', () => {
+    cy.visit('/lobby/test-match-123')
+    cy.get('[data-testid="share-btn"]').click()
+    cy.get('[data-testid="copy-link-btn"]').should('be.visible')
+  })
+})
 ```
 
 ## Performance Considerations
 
-### Optimization Features
-- **Reactive Updates**: Only update UI when data changes
-- **Debounced Actions**: Prevent rapid-fire button clicks
-- **Efficient Queries**: Minimal Firebase reads
-- **Memory Management**: Cleanup subscriptions on unmount
+1. **Lazy Loading**: Chat component loads only when needed
+2. **Debounced Updates**: Firebase writes are debounced to prevent spam
+3. **Optimistic UI**: Immediate UI updates with fallback on errors
+4. **Memory Management**: Proper cleanup of Firebase listeners
+5. **Bundle Size**: Tree-shaking for unused sharing features
 
-### Real-time Efficiency
-- **Selective Updates**: Only listen to relevant data changes
-- **Batch Operations**: Group related Firebase operations
-- **Connection Management**: Handle connection state changes
+## Browser Support
 
-## Accessibility
-
-### Screen Reader Support
-- **Semantic HTML**: Proper heading structure and landmarks
-- **ARIA Labels**: Descriptive labels for interactive elements
-- **Status Announcements**: Clear status messages for screen readers
-
-### Keyboard Navigation
-- **Focus Management**: Logical tab order
-- **Keyboard Shortcuts**: Support for Enter and Space keys
-- **Focus Indicators**: Visible focus states
+- **Modern Browsers**: Full native sharing support
+- **Older Browsers**: Fallback to platform-specific buttons
+- **Mobile Browsers**: Native share sheet integration
+- **Desktop Browsers**: Copy link + platform web versions
 
 ## Future Enhancements
 
-### Planned Features
-1. **Player Avatars**: Custom profile pictures
-2. **Voice Chat**: Real-time voice communication
-3. **Match Settings**: Configurable game options
-4. **Spectator Mode**: Allow non-players to watch
-5. **Match History**: View previous matches
-
-### Technical Improvements
-1. **Offline Support**: Handle network disconnections
-2. **Push Notifications**: Notify players of match updates
-3. **Analytics**: Track lobby usage and player behavior
-4. **Performance Monitoring**: Track component performance
-
-The enhanced MatchLobby component provides a comprehensive and engaging lobby experience with real-time updates, player management, and seamless game transitions. 
+1. **QR Code Generation**: For easy mobile sharing
+2. **Social Media Integration**: Direct posting to platforms
+3. **Custom Share Messages**: User-defined invite messages
+4. **Share Analytics**: Track sharing effectiveness
+5. **Offline Support**: Cache lobby state for poor connections 

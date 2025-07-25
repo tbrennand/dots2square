@@ -1,27 +1,22 @@
 <template>
-  <div class="home-screen min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="w-full max-w-md mx-auto">
+  <div class="home-screen min-h-screen flex flex-col items-center justify-center p-2">
+    <div class="w-full max-w-lg mx-auto">
       <div class="text-center">
-        <img src="@/assets/dots2squares-logo.png" alt="Dots 2 Squares Logo" class="mx-auto mb-6 w-64" />
-        <h1 class="text-5xl font-extrabold text-secondary tracking-tight">Welcome to</h1>
-        <h2 class="text-6xl font-extrabold text-primary">Dots 2 Squares</h2>
-        <p class="mt-4 text-lg text-muted">The classic pencil-and-paper game, reimagined.</p>
+        <h1 class="text-3xl font-extrabold text-secondary tracking-tight mb-1">Welcome to</h1>
+        <img src="/src/assets/dots2squares-logo.png" alt="Dots 2 Squares Logo" class="mx-auto mb-2 w-64 sm:w-72 md:w-80 lg:w-96 h-auto" />
+        <p class="text-base text-muted mb-4">The classic pencil-and-paper game, reimagined.</p>
       </div>
 
-      <div class="card mt-10">
+      <div class="card mt-4">
         <div class="space-y-4">
-          <div>
-            <label for="playerName" class="block text-sm font-bold text-secondary">Enter your name</label>
-            <input id="playerName" v-model="playerName" type="text" placeholder="Pencil Warrior" class="input-field mt-1" />
-          </div>
-          <button @click="createMatch" class="btn btn-primary w-full">
-            Create a New Game
+          <button @click="goToCreateGame" class="btn btn-primary w-full text-lg py-3">
+            🎮 Create a New Game
           </button>
         </div>
         
-        <div class="mt-6 text-center">
+        <div class="mt-4 text-center">
           <span class="text-muted">or</span>
-          <button @click="joinMatch" class="text-primary font-bold hover:underline ml-2">join an existing game</button>
+          <button @click="joinMatch" class="text-primary font-bold hover:underline ml-2">Join an Existing Game</button>
         </div>
       </div>
     </div>
@@ -52,18 +47,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { createMatch as createMatchHelper } from '@/firebase/matchHelpers'
 
 const router = useRouter()
 const showJoinModal = ref(false)
 const matchCode = ref('')
-const playerName = ref('')
 
-const createMatch = async () => {
-  const player1Id = 'player1-' + Math.random().toString(36).substring(2, 8)
-  const player1Name = playerName.value.trim() || 'Pencil Warrior' // Fun default name
-  const matchId = await createMatchHelper({ player1Id, player1Name })
-  router.push(`/lobby/${matchId}`)
+const goToCreateGame = () => {
+  router.push('/create')
 }
 
 const joinMatch = () => {

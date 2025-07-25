@@ -1,24 +1,31 @@
 <template>
-  <div class="match-lobby card">
-    <img src="@/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="lobby-logo" />
-    <div class="lobby-header">
-      <h2>{{ isHost ? 'Match Lobby' : 'Joining Match' }}</h2>
-      <p class="subtitle">{{ isHost ? 'Waiting for players to join' : 'Waiting for host to start' }}</p>
+  <div class="match-lobby">
+    <div class="lobby-header-section">
+      <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="lobby-logo" />
+      <div class="lobby-header">
+        <h2>{{ isHost ? 'Match Lobby' : 'Joining Match' }}</h2>
+        <p class="subtitle">
+          {{ isHost 
+            ? (hasPlayer2 ? 'Both players joined! Ready to start.' : 'Waiting for second player to join...') 
+            : 'Waiting for host to start' 
+          }}
+        </p>
+      </div>
     </div>
 
     <!-- Match Info -->
     <div class="match-info-card">
       <div class="match-details">
-        <div class="detail-item">
-          <span class="label">Match ID:</span>
+        <div class="detail-row">
+          <span class="label">Match ID</span>
           <span class="value">{{ matchId }}</span>
         </div>
-        <div class="detail-item">
-          <span class="label">Grid Size:</span>
+        <div class="detail-row">
+          <span class="label">Grid Size</span>
           <span class="value">{{ gridSize }}x{{ gridSize }}</span>
         </div>
-        <div class="detail-item">
-          <span class="label">Status:</span>
+        <div class="detail-row">
+          <span class="label">Status</span>
           <span class="value status" :class="getStatusClass()">{{ getStatusText() }}</span>
         </div>
       </div>
@@ -30,8 +37,8 @@
       
       <div class="players-list">
         <!-- Player 1 (Host) -->
-        <div class="player-card" :class="{ 'current-player': isCurrentPlayer(1) }">
-          <div class="player-avatar">
+        <div class="player-card player1" :class="{ 'current-player': isCurrentPlayer(1) }">
+          <div class="player-avatar player1-avatar">
             <span v-if="isHost">👑</span>
             <span v-else>👤</span>
           </div>
@@ -51,8 +58,8 @@
         </div>
 
         <!-- Player 2 -->
-        <div v-if="hasPlayer2" class="player-card" :class="{ 'current-player': isCurrentPlayer(2) }">
-          <div class="player-avatar">👤</div>
+        <div v-if="hasPlayer2" class="player-card player2" :class="{ 'current-player': isCurrentPlayer(2) }">
+          <div class="player-avatar player2-avatar">👤</div>
           <div class="player-details">
             <div class="player-name">{{ getPlayerName(2) }}</div>
             <div class="player-status">
@@ -72,8 +79,8 @@
         <div v-for="slot in emptySlots" :key="`empty-${slot}`" class="player-card empty-slot">
           <div class="player-avatar">⏳</div>
           <div class="player-details">
-            <div class="player-name">Waiting for player...</div>
-            <div class="player-status">Not joined</div>
+            <div class="player-name">Waiting for player to join...</div>
+            <div class="player-status">Share the link below to invite friends!</div>
             <div class="player-role">Empty</div>
           </div>
         </div>
@@ -81,14 +88,14 @@
     </div>
 
     <!-- Ready Status -->
-    <div class="ready-section" v-if="hasPlayer2">
+    <div class="ready-section" v-if="hasPlayer2 && matchData?.status === 'waiting'">
       <h3 class="section-title">Ready Status</h3>
       <div class="ready-indicators">
-        <div class="ready-indicator" :class="{ ready: isPlayerReady(1) }">
+        <div class="ready-indicator player1-ready" :class="{ ready: isPlayerReady(1) }">
           <span class="ready-icon">{{ isPlayerReady(1) ? '✅' : '⏳' }}</span>
           <span class="ready-text">{{ getPlayerName(1) }}</span>
         </div>
-        <div class="ready-indicator" :class="{ ready: isPlayerReady(2) }">
+        <div class="ready-indicator player2-ready" :class="{ ready: isPlayerReady(2) }">
           <span class="ready-icon">{{ isPlayerReady(2) ? '✅' : '⏳' }}</span>
           <span class="ready-text">{{ getPlayerName(2) }}</span>
         </div>
@@ -96,7 +103,7 @@
     </div>
 
     <!-- Lobby Actions -->
-    <div class="lobby-actions">
+    <div class="lobby-actions" v-if="hasPlayer2">
       <!-- Host Actions -->
       <div v-if="isHost" class="host-actions">
         <button 
@@ -130,12 +137,42 @@
           Leave Match
         </button>
       </div>
-
-      <!-- Copy Link Button -->
-      <button @click="copyMatchLink" class="copy-btn">
-        📋 Copy Match Link
-      </button>
     </div>
+
+          <!-- Share Section -->
+      <div class="share-section">
+        <h3 class="section-title">🎮 Invite Friends to Play</h3>
+        <div class="share-options">
+          <button @click="nativeShare" class="share-btn primary">
+            📤 Share Game
+          </button>
+          <button @click="copyMatchLink" class="share-btn secondary">
+            📋 Copy Link
+          </button>
+        </div>
+        <div class="platform-share-options" v-if="!nativeShareSupported">
+          <button @click="shareViaWhatsApp" class="platform-btn whatsapp">
+            📱 WhatsApp
+          </button>
+          <button @click="shareViaTelegram" class="platform-btn telegram">
+            💬 Telegram
+          </button>
+          <button @click="shareViaEmail" class="platform-btn email">
+            📧 Email
+          </button>
+          <button @click="shareViaSMS" class="platform-btn sms">
+            💬 SMS
+          </button>
+        </div>
+        <div class="match-url-display">
+          <input 
+            :value="matchUrl" 
+            readonly 
+            class="url-input"
+            @click="(event) => (event.target as HTMLInputElement)?.select()"
+          />
+        </div>
+      </div>
 
     <!-- Chat/Message Area -->
     <Chat v-if="matchId" :matchId="matchId" :currentPlayerName="getPlayerName(getCurrentPlayerNumber())" />
@@ -152,11 +189,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMatchStore } from '../stores/matchStore'
-import { doc, updateDoc, Unsubscribe } from 'firebase/firestore'
+import { doc, updateDoc, serverTimestamp, Unsubscribe } from 'firebase/firestore'
 import { db } from '../firebase/index'
+import { joinMatch } from '../firebase/matchHelpers'
 import Chat from './Chat.vue'
 
 // Router and route
@@ -195,8 +233,6 @@ const emptySlots = computed(() => {
 const canStartGame = computed(() => {
   return isHost.value && 
          hasPlayer2.value && 
-         isPlayerReady(1) && 
-         isPlayerReady(2) &&
          matchData.value?.status === 'waiting'
 })
 
@@ -241,13 +277,17 @@ const getPlayerStatusClass = (playerNumber: number): string => {
 const isPlayerReady = (playerNumber: number): boolean => {
   // This would check against Firebase presence/ready status
   // For now, we'll assume all joined players are ready
-  return playerNumber <= joinedPlayers.value.length
+  if (playerNumber === 1 && matchData.value?.player1) return true
+  if (playerNumber === 2 && matchData.value?.player2) return true
+  return false
 }
 
 const isPlayerOnline = (playerNumber: number): boolean => {
   // This would check Firebase presence
   // For now, we'll assume all joined players are online
-  return playerNumber <= joinedPlayers.value.length
+  if (playerNumber === 1 && matchData.value?.player1) return true
+  if (playerNumber === 2 && matchData.value?.player2) return true
+  return false
 }
 
 const getStatusClass = (): string => {
@@ -281,6 +321,7 @@ const startGame = async () => {
     const matchRef = doc(db, 'matches', matchId.value)
     await updateDoc(matchRef, {
       status: 'active',
+      turnStartedAt: serverTimestamp(),
       updatedAt: new Date()
     })
 
@@ -358,40 +399,171 @@ const kickPlayer = async (playerNumber: number) => {
   }
 }
 
+const matchUrl = computed(() => {
+  // Use deployed URL in production, localhost in development
+  const baseUrl = import.meta.env.VITE_PUBLIC_URL || 
+    (import.meta.env.PROD ? 'https://dots2squarev2.vercel.app' : window.location.origin)
+  return `${baseUrl}/invite/${matchId.value}`
+})
+
 const copyMatchLink = async () => {
-  const matchUrl = `${window.location.origin}/lobby/${matchId.value}`
-  
   try {
-    await navigator.clipboard.writeText(matchUrl)
-    successMessage.value = 'Match link copied to clipboard!'
+    await navigator.clipboard.writeText(matchUrl.value)
+    successMessage.value = '✅ Match link copied to clipboard!'
+    
+    // Add visual feedback to the button
+    const copyBtn = document.querySelector('.share-btn.primary') as HTMLElement
+    if (copyBtn) {
+      copyBtn.style.transform = 'scale(0.95)'
+      copyBtn.style.background = '#059669'
+      setTimeout(() => {
+        copyBtn.style.transform = ''
+        copyBtn.style.background = ''
+      }, 200)
+    }
+    
     setTimeout(() => {
       successMessage.value = ''
-    }, 2000)
+    }, 3000)
   } catch (error) {
-    errorMessage.value = 'Failed to copy link'
+    errorMessage.value = '❌ Failed to copy link'
   }
 }
 
+// Check if native sharing is supported
+const nativeShareSupported = ref('share' in navigator)
+
+const nativeShare = async () => {
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'Dots 2 Squares Game',
+        text: 'Join my Dots 2 Squares game!',
+        url: matchUrl.value
+      })
+      successMessage.value = '✅ Shared successfully!'
+      setTimeout(() => {
+        successMessage.value = ''
+      }, 2000)
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        errorMessage.value = '❌ Failed to share'
+      }
+    }
+  }
+}
+
+const shareViaWhatsApp = () => {
+  const text = `Join my Dots 2 Squares game! ${matchUrl.value}`
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
+  window.open(whatsappUrl, '_blank')
+}
+
+const shareViaTelegram = () => {
+  const text = `Join my Dots 2 Squares game! ${matchUrl.value}`
+  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(matchUrl.value)}&text=${encodeURIComponent('Join my Dots 2 Squares game!')}`
+  window.open(telegramUrl, '_blank')
+}
+
+const shareViaEmail = () => {
+  const subject = 'Join my Dots 2 Squares game!'
+  const body = `Hey! I'm playing Dots 2 Squares and want you to join me!\n\nClick this link to join: ${matchUrl.value}\n\nSee you in the game!`
+  const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  window.open(mailtoUrl, '_blank')
+}
+
+const shareViaSMS = () => {
+  const text = `Join my Dots 2 Squares game! ${matchUrl.value}`
+  const smsUrl = `sms:?body=${encodeURIComponent(text)}`
+  window.open(smsUrl, '_blank')
+}
+
 // Initialize
-onMounted(() => {
-  matchId.value = route.params.id as string
-  currentPlayerId.value = 'user-123' // TODO: Get from auth
-  
-  // Determine if current user is host
-  if (matchData.value?.player1?.id === currentPlayerId.value) {
-    isHost.value = true
-  }
-
-  // Subscribe to match updates
-  if (matchId.value) {
-    matchStore.subscribeToMatchById(matchId.value)
-  }
-
-  // Watch for status changes
-  if (matchData.value?.status === 'active') {
-    router.push(`/match/${matchId.value}`)
+onMounted(async () => {
+  try {
+    console.log('MatchLobby onMounted called')
+    matchId.value = route.params.id as string
+    console.log('MatchId from route:', matchId.value)
+    
+    // Get player ID from query parameter (if coming from create game)
+    const queryPlayerId = route.query.playerId as string
+    console.log('Query playerId:', queryPlayerId)
+    if (queryPlayerId) {
+      currentPlayerId.value = queryPlayerId
+      console.log('Set currentPlayerId from query:', currentPlayerId.value)
+    }
+    
+    // Subscribe to match updates first
+    if (matchId.value) {
+      console.log('Subscribing to match:', matchId.value)
+      matchStore.subscribeToMatchById(matchId.value)
+    }
+  } catch (error) {
+    console.error('Error in MatchLobby onMounted:', error)
   }
 })
+
+// Watch for match data changes to handle joining
+watch(matchData, async (newMatchData) => {
+  try {
+    console.log('MatchLobby watch triggered with:', newMatchData ? 'data' : 'no data')
+    
+    if (!newMatchData || !matchId.value) {
+      console.log('No match data or matchId, returning')
+      return
+    }
+  
+  // If we don't have a currentPlayerId yet, generate one (for people joining via link)
+  if (!currentPlayerId.value) {
+    currentPlayerId.value = 'user-' + Math.random().toString(36).substring(2, 8)
+    console.log('Generated new currentPlayerId:', currentPlayerId.value)
+  }
+  
+  // Determine if current user is host
+  if (newMatchData.player1?.id === currentPlayerId.value) {
+    isHost.value = true
+    console.log('Identified as host')
+  }
+  
+  console.log('MatchLobby Debug:', {
+    currentPlayerId: currentPlayerId.value,
+    isHost: isHost.value,
+    player1Id: newMatchData.player1?.id,
+    player2Id: newMatchData.player2?.id,
+    status: newMatchData.status,
+    hasPlayer2: !!newMatchData.player2
+  })
+  
+  // Auto-join logic: if we're not the host, not already player2, and there's no player2 yet
+  if (!isHost.value && 
+      newMatchData.status === 'waiting' && 
+      !newMatchData.player2) {
+    
+    console.log('Attempting to auto-join as player 2...')
+    
+    try {
+      const playerName = `Player ${Math.floor(Math.random() * 1000)}`
+      await joinMatch(matchId.value, currentPlayerId.value, playerName)
+      console.log('Successfully auto-joined match as player 2')
+    } catch (error) {
+      console.error('Failed to auto-join match:', error)
+    }
+  } else {
+    console.log('Auto-join conditions not met:', {
+      isHost: isHost.value,
+      status: newMatchData.status,
+      hasPlayer2: !!newMatchData.player2
+    })
+  }
+  
+  // Navigate to game when it becomes active
+  if (newMatchData.status === 'active') {
+    router.push(`/match/${matchId.value}`)
+  }
+  } catch (error) {
+    console.error('Error in MatchLobby watch:', error)
+  }
+}, { immediate: true })
 
 onUnmounted(() => {
   matchStore.unsubscribeFromMatch()
@@ -400,17 +572,20 @@ onUnmounted(() => {
 
 <style scoped>
 .match-lobby {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem;
   background: white;
-  border-radius: 1rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .lobby-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .lobby-header h2 {
@@ -421,7 +596,7 @@ onUnmounted(() => {
 
 .subtitle {
   color: #6b7280;
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   margin: 0;
 }
 
@@ -430,20 +605,26 @@ onUnmounted(() => {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
 }
 
 .match-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.detail-item {
+.detail-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
 }
 
 .label {
@@ -485,31 +666,42 @@ onUnmounted(() => {
 
 /* Players Section */
 .players-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .section-title {
   font-size: 1.25rem;
   font-weight: 600;
   color: #374151;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .players-list {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .player-card {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.75rem;
+  padding: 0.75rem;
   background: #f8fafc;
   border: 2px solid #e2e8f0;
   border-radius: 0.75rem;
   transition: all 0.2s ease;
+  flex: 1;
+  min-width: 220px;
+}
+
+.player-card.player1 {
+  border-left: 4px solid #3b82f6;
+}
+
+.player-card.player2 {
+  border-left: 4px solid #f97316;
 }
 
 .player-card.current-player {
@@ -523,14 +715,24 @@ onUnmounted(() => {
 }
 
 .player-avatar {
-  font-size: 1.5rem;
-  width: 3rem;
-  height: 3rem;
+  font-size: 1.25rem;
+  width: 2.5rem;
+  height: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #e5e7eb;
   border-radius: 50%;
+}
+
+.player-avatar.player1-avatar {
+  background: #3b82f6;
+  color: white;
+}
+
+.player-avatar.player2-avatar {
+  background: #f97316;
+  color: white;
 }
 
 .player-details {
@@ -540,16 +742,17 @@ onUnmounted(() => {
 .player-name {
   font-weight: 600;
   color: #1f2937;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.125rem;
+  font-size: 0.875rem;
 }
 
 .player-status {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #6b7280;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.125rem;
 }
 
 .status-indicator {
@@ -599,12 +802,12 @@ onUnmounted(() => {
 
 /* Ready Section */
 .ready-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .ready-indicators {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   justify-content: center;
 }
 
@@ -612,7 +815,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   background: #f3f4f6;
   border: 2px solid #d1d5db;
   border-radius: 0.5rem;
@@ -624,13 +827,32 @@ onUnmounted(() => {
   border-color: #22c55e;
 }
 
+.ready-indicator.player1-ready {
+  border-left: 4px solid #3b82f6;
+}
+
+.ready-indicator.player2-ready {
+  border-left: 4px solid #f97316;
+}
+
+.ready-indicator.player1-ready.ready {
+  background: #eff6ff;
+  border-color: #3b82f6;
+}
+
+.ready-indicator.player2-ready.ready {
+  background: #fef3c7;
+  border-color: #f97316;
+}
+
 .ready-icon {
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .ready-text {
   font-weight: 500;
   color: #374151;
+  font-size: 0.875rem;
 }
 
 /* Lobby Actions */
@@ -638,7 +860,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .host-actions, .player-actions {
@@ -657,16 +879,18 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: 1rem;
 }
 
 .start-btn {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: #f97316;
   color: white;
 }
 
 .start-btn:hover:not(:disabled) {
+  background: #ea580c;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
 }
 
 .start-btn:disabled {
@@ -675,7 +899,7 @@ onUnmounted(() => {
 }
 
 .start-btn.can-start {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: #f97316;
 }
 
 .ready-btn {
@@ -731,21 +955,31 @@ onUnmounted(() => {
 
 /* Chat Section */
 .chat-section {
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
   border-radius: 0.75rem;
   overflow: hidden;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chat-section .section-title {
+  text-align: center;
+  color: #f97316 !important;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
 }
 
 .chat-messages {
-  height: 200px;
+  height: 150px;
   overflow-y: auto;
-  padding: 1rem;
+  padding: 0.75rem;
   background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .chat-message {
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
+  margin-bottom: 0.375rem;
+  font-size: 0.8rem;
 }
 
 .message-time {
@@ -766,7 +1000,7 @@ onUnmounted(() => {
 
 .chat-input {
   display: flex;
-  padding: 1rem;
+  padding: 0.75rem;
   background: white;
   border-top: 1px solid #e2e8f0;
 }
@@ -781,12 +1015,17 @@ onUnmounted(() => {
 
 .send-btn {
   padding: 0.5rem 1rem;
-  background: #3b82f6;
+  background: #f97316;
   color: white;
   border: none;
   border-radius: 0.375rem;
   font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.send-btn:hover {
+  background: #ea580c;
 }
 
 .send-btn:disabled {
@@ -812,40 +1051,308 @@ onUnmounted(() => {
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
   color: #16a34a;
+  text-align: center;
+  font-weight: 600;
+  animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-10px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
 }
 
 /* Responsive Design */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .match-lobby {
-    padding: 1rem;
-    margin: 1rem;
+    padding: 0.75rem;
+    margin: 0.25rem;
+    max-width: 100%;
   }
-  
-  .match-details {
-    grid-template-columns: 1fr;
+
+  .lobby-header h2 {
+    font-size: 1.25rem;
   }
-  
-  .host-actions, .player-actions {
-    flex-direction: column;
+
+  .subtitle {
+    font-size: 0.875rem;
   }
-  
-  .ready-indicators {
-    flex-direction: column;
-  }
-  
-  .chat-input {
+
+  .players-list {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
-  .message-input {
-    margin-right: 0;
+
+  .player-card {
+    min-width: auto;
+    padding: 0.375rem;
+  }
+
+  .player-avatar {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.875rem;
+  }
+
+  .ready-indicators {
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .host-actions, .player-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .share-options {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .platform-share-options {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.375rem;
+  }
+
+  .platform-btn {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .share-section {
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .chat-messages {
+    height: 100px;
+  }
+
+  .section-title {
+    font-size: 0.875rem;
   }
 }
 
+@media (max-width: 480px) {
+  .match-lobby {
+    padding: 0.5rem;
+    margin: 0.125rem;
+  }
+
+  .lobby-header h2 {
+    font-size: 1.125rem;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+  }
+
+  .player-name {
+    font-size: 0.75rem;
+  }
+
+  .player-status {
+    font-size: 0.65rem;
+  }
+
+  .chat-messages {
+    height: 80px;
+    padding: 0.375rem;
+  }
+
+  .chat-input {
+    padding: 0.375rem;
+  }
+
+  .message-input {
+    padding: 0.25rem;
+  }
+
+  .send-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .share-btn {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .platform-share-options {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .platform-btn {
+    padding: 0.25rem 0.375rem;
+    font-size: 0.75rem;
+  }
+
+  .url-input {
+    padding: 0.375rem;
+    font-size: 0.7rem;
+  }
+}
+
+.lobby-header-section {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
 .lobby-logo {
-  max-width: 200px;
+  width: 256px;
+  height: auto;
   margin: 0 auto 1rem auto;
   display: block;
+}
+
+@media (min-width: 640px) {
+  .lobby-logo {
+    width: 288px;
+  }
+}
+
+@media (min-width: 768px) {
+  .lobby-logo {
+    width: 320px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lobby-logo {
+    width: 384px;
+  }
+}
+
+/* Share Section */
+.share-section {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+}
+
+.share-options {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.share-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.share-btn.primary {
+  background: #f97316;
+  color: white;
+}
+
+.share-btn.primary:hover {
+  background: #ea580c;
+  transform: translateY(-1px);
+}
+
+.share-btn.secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.share-btn.secondary:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+.platform-share-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.platform-btn {
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.platform-btn.whatsapp {
+  background: #25d366;
+  color: white;
+}
+
+.platform-btn.whatsapp:hover {
+  background: #128c7e;
+  transform: translateY(-1px);
+}
+
+.platform-btn.telegram {
+  background: #0088cc;
+  color: white;
+}
+
+.platform-btn.telegram:hover {
+  background: #006699;
+  transform: translateY(-1px);
+}
+
+.platform-btn.email {
+  background: #ea4335;
+  color: white;
+}
+
+.platform-btn.email:hover {
+  background: #d32f2f;
+  transform: translateY(-1px);
+}
+
+.platform-btn.sms {
+  background: #34a853;
+  color: white;
+}
+
+.platform-btn.sms:hover {
+  background: #2e7d32;
+  transform: translateY(-1px);
+}
+
+.match-url-display {
+  margin-top: 1rem;
+}
+
+.url-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: white;
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: text;
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 </style> 

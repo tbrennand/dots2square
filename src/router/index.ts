@@ -7,9 +7,19 @@ const routes = [
     component: () => import('../components/HomeScreen.vue'),
   },
   {
+    path: '/create',
+    name: 'GameCreation',
+    component: () => import('../components/GameCreation.vue'),
+  },
+  {
     path: '/lobby/:id',
     name: 'MatchLobby',
     component: () => import('../components/MatchLobby.vue'),
+  },
+  {
+    path: '/invite/:id',
+    name: 'GameInvite',
+    component: () => import('../components/GameInvite.vue'),
   },
   {
     path: '/game',

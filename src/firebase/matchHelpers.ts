@@ -17,6 +17,7 @@ export interface MatchData {
   createdAt: Date
   updatedAt: Date
   currentTurn?: number
+  currentPlayerId?: string
   scores?: Record<number, number>
   gameOver?: boolean
   winner?: number | 'tie' | null
@@ -51,6 +52,11 @@ export interface MatchData {
     autoStart: boolean
     timeLimit: number | null
   }
+  turnStartedAt?: any; // For Firebase serverTimestamp
+  turnDuration?: number; // In seconds
+  consecutiveMissedTurns?: { [key: string]: number };
+  winnerId?: string | null;
+  gameEndReason?: string | null;
 }
 
 export interface CreateMatchOptions {
@@ -139,6 +145,7 @@ export async function createMatch(options: CreateMatchOptions): Promise<string> 
       createdAt: new Date(),
       updatedAt: new Date(),
       currentTurn: 1,
+      currentPlayerId: player1Id,
       scores: { 1: 0, 2: 0 },
       gameOver: false,
       winner: null,
@@ -155,7 +162,15 @@ export async function createMatch(options: CreateMatchOptions): Promise<string> 
         allowSpectators: isPublic,
         autoStart: false,
         timeLimit: null // No time limit by default
-      }
+      },
+      // New fields for timer and forfeits
+      turnStartedAt: serverTimestamp(),
+      turnDuration: 30, // Default 30 seconds
+      consecutiveMissedTurns: {
+        [player1Id]: 0,
+      },
+      winnerId: null,
+      gameEndReason: null,
     }
 
     // Add to Firestore
@@ -211,6 +226,58 @@ export function subscribeToMatch(
     callback(null)
     // Return a no-op unsubscribe function
     return () => {}
+  }
+}
+
+export async function joinMatch(matchId: string, playerId: string, playerName: string): Promise<void> {
+  try {
+    console.log('Joining match:', { matchId, playerId, playerName })
+    
+    const matchRef = doc(db, 'matches', matchId)
+    
+    await runTransaction(db, async (transaction) => {
+      const matchDoc = await transaction.get(matchRef)
+      if (!matchDoc.exists()) {
+        throw new Error('Match not found')
+      }
+      
+      const matchData = matchDoc.data() as MatchData
+      
+      // Check if match is waiting for players
+      if (matchData.status !== 'waiting') {
+        throw new Error('Match is not waiting for players')
+      }
+      
+      // Check if player is already in the match
+      if (matchData.player1.id === playerId || matchData.player2?.id === playerId) {
+        throw new Error('Player is already in the match')
+      }
+      
+      // Check if match is full
+      if (matchData.player2) {
+        throw new Error('Match is full')
+      }
+      
+      // Add player2 (keep status as 'waiting' for manual start)
+      const updatedMatchData = {
+        ...matchData,
+        player2: {
+          id: playerId,
+          name: playerName,
+          joinedAt: new Date()
+        },
+        status: 'waiting', // Keep waiting until host starts
+        currentPlayerId: matchData.player1.id, // Set current player but don't start yet
+        updatedAt: new Date()
+      }
+      
+      transaction.update(matchRef, updatedMatchData)
+    })
+    
+    console.log('Successfully joined match')
+  } catch (error) {
+    console.error('Error joining match:', error)
+    throw new Error(`Failed to join match: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }
 
@@ -347,11 +414,14 @@ export async function playMove(
       
       // Determine next turn
       let nextTurn = matchData.currentTurn || 1
+      let nextPlayerId = matchData.currentPlayerId || matchData.player1.id
+      
       if (squaresClaimed === 0) {
         // No squares claimed, switch turns
         nextTurn = nextTurn === 1 ? 2 : 1
+        nextPlayerId = nextTurn === 1 ? matchData.player1.id : (matchData.player2?.id || matchData.player1.id)
       }
-      // If squares were claimed, player gets another turn
+      // If squares were claimed, player gets another turn (keep same playerId)
       
       // Update match data
       const updatedMatchData = {
@@ -360,6 +430,8 @@ export async function playMove(
         squares: updatedSquares,
         scores: updatedScores,
         currentTurn: nextTurn,
+        currentPlayerId: nextPlayerId,
+        turnStartedAt: serverTimestamp(), // Reset turn timer
         gameOver: gameCompleted,
         winner: winner,
         status: gameCompleted ? 'completed' : 'active',

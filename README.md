@@ -11,33 +11,36 @@ A production-grade multiplayer web game built with Vue 3, Firebase, and real-tim
 - **Real-time Updates**: Live game state synchronization across all players
 
 ### Social Features
+- **Enhanced Match Lobby**: Modern, responsive lobby with real-time player status
+- **Native Sharing**: Share games via native device sharing or platform-specific buttons
 - **Leaderboard System**: Track player statistics and rankings
 - **Emoji Reactions**: Send reactions during gameplay
-- **Match Lobby**: Join games with friends via shareable links
 - **Rematch System**: Quick rematch functionality with same opponents
 
 ### Technical Features
 - **Real-time Firebase Integration**: Live game state with Firestore
 - **Vue 3 Composition API**: Modern reactive state management
 - **TypeScript**: Full type safety throughout the application
-- **Responsive Design**: Works perfectly on desktop and mobile
+- **Responsive Design**: Optimized for desktop, tablet, and mobile
 - **Comprehensive Testing**: Unit tests, integration tests, and E2E tests
+- **Dual Deployment**: Firebase Hosting and Vercel support
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: Vue 3 + TypeScript + Vite
 - **State Management**: Pinia
 - **Styling**: Tailwind CSS
-- **Backend**: Firebase (Firestore, Authentication, Hosting)
+- **Backend**: Firebase (Firestore, Authentication)
 - **Testing**: Vitest + Cypress
-- **Deployment**: GitHub Actions + Firebase Hosting
+- **Deployment**: Vercel (primary) + Firebase Hosting
 
 ## 📦 Installation
 
 ### Prerequisites
 - Node.js 18+ 
 - npm or yarn
-- Firebase CLI (for deployment)
+- Firebase CLI (for Firebase deployment)
+- Vercel CLI (for Vercel deployment)
 
 ### Setup
 
@@ -64,7 +67,16 @@ A production-grade multiplayer web game built with Vue 3, Firebase, and real-tim
    firebase init
    ```
 
-4. **Configure environment variables**
+4. **Set up Vercel (Recommended)**
+   ```bash
+   # Install Vercel CLI globally
+   npm install -g vercel
+   
+   # Login to Vercel
+   vercel login
+   ```
+
+5. **Configure environment variables**
    Create a `.env.local` file in the root directory:
    ```env
    VITE_FIREBASE_API_KEY=your_api_key
@@ -73,9 +85,10 @@ A production-grade multiplayer web game built with Vue 3, Firebase, and real-tim
    VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
    VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
    VITE_FIREBASE_APP_ID=your_app_id
+   VITE_PUBLIC_URL=https://your-vercel-domain.vercel.app
    ```
 
-5. **Start development server**
+6. **Start development server**
    ```bash
    npm run dev
    ```
@@ -89,10 +102,10 @@ A production-grade multiplayer web game built with Vue 3, Firebase, and real-tim
 npm run dev
 
 # Run unit tests
-npm run test:unit
+npm run test:run
 
 # Run E2E tests
-npm run test:e2e
+npm run cypress:run
 
 # Start Firebase emulators
 npm run emulator:start
@@ -101,7 +114,7 @@ npm run emulator:start
 npm run emulator:test
 ```
 
-### Building
+### Building & Deployment
 
 ```bash
 # Build for production
@@ -110,8 +123,11 @@ npm run build
 # Preview production build
 npm run preview
 
+# Deploy to Vercel (Recommended)
+npm run vercel:deploy
+
 # Deploy to Firebase Hosting
-npm run deploy
+npm run firebase:deploy
 ```
 
 ## 🏗️ Project Structure
@@ -120,12 +136,15 @@ npm run deploy
 src/
 ├── components/          # Vue components
 │   ├── DotGrid.vue     # Game grid component
+│   ├── MatchLobby.vue  # Enhanced match lobby
 │   ├── Leaderboard.vue # Leaderboard display
 │   ├── ScoreCard.vue   # Score tracking
+│   ├── Chat.vue        # Real-time chat
 │   └── ...
 ├── composables/         # Vue 3 composables
 │   ├── useGameBoard.ts # Game logic
 │   ├── useLeaderboard.ts # Leaderboard management
+│   ├── useMatchSubscription.ts # Real-time match updates
 │   └── ...
 ├── firebase/           # Firebase configuration
 │   ├── index.ts        # Firebase setup
@@ -180,40 +199,50 @@ Required Firestore indexes for optimal performance:
 
 ### Unit Tests
 ```bash
-npm run test:unit
+npm run test:run
 ```
 
 ### E2E Tests
 ```bash
-npm run test:e2e
+npm run cypress:run
 ```
 
 ### Firebase Emulator Tests
 ```bash
-npm run emulator:full
+npm run emulator:test
 ```
 
 ## 🚀 Deployment
 
-### Manual Deployment
+### Vercel Deployment (Recommended)
 ```bash
-npm run build
-firebase deploy
+npm run vercel:deploy
+```
+
+### Firebase Hosting Deployment
+```bash
+npm run firebase:deploy
 ```
 
 ### Automated Deployment
 The project includes GitHub Actions workflows for:
 - Automatic testing on pull requests
-- Deployment to Firebase Hosting on main branch
+- Deployment to Vercel on main branch
 - Preview deployments for pull requests
 
 ## 📚 Documentation
 
-- [Game Logic Documentation](docs/GAME_LOGIC.md)
-- [Firebase Integration](docs/FIREBASE_INTEGRATION.md)
-- [Leaderboard System](docs/LEADERBOARD.md)
-- [Reaction System](docs/REACTION_PANEL.md)
-- [Testing Guide](docs/TESTING.md)
+- [Features Overview](docs/FEATURES_OVERVIEW.md) - Complete feature list and capabilities
+- [Match Lobby Enhancement](docs/matchlobby-enhancement.md) - Enhanced lobby with native sharing
+- [Game Board Implementation](docs/gameboard-implementation.md) - Core game mechanics
+- [Game Result Implementation](docs/gameresult-implementation.md) - Game results and statistics
+- [Leaderboard System](docs/LEADERBOARD.md) - Player rankings and statistics
+- [Reaction System](docs/REACTION_PANEL.md) - Emoji reactions during gameplay
+- [Rematch System](docs/USE_REMATCH.md) - Quick rematch functionality
+- [Firebase Security Rules](docs/firestore-security-rules.md) - Security configuration
+- [Error Handling](docs/ERROR_HANDLING.md) - Error management and recovery
+- [Emulator Testing](docs/EMULATOR_TESTING.md) - Local development testing
+- [Deployment Guide](docs/DEPLOYMENT.md) - Vercel and Firebase deployment
 
 ## 🤝 Contributing
 
@@ -233,6 +262,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Powered by [Firebase](https://firebase.google.com/)
 - Styled with [Tailwind CSS](https://tailwindcss.com/)
 - Tested with [Vitest](https://vitest.dev/) and [Cypress](https://cypress.io/)
+- Deployed on [Vercel](https://vercel.com/)
 
 ## 📞 Support
 
