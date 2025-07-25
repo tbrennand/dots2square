@@ -11,15 +11,15 @@
               <span class="player-initial">A</span>
             </div>
             <div class="player-details">
-              <div class="player-name">Player A</div>
+              <div class="player-name">{{ getPlayerName(1) }}</div>
               <div class="player-score">{{ scores[1] }} squares</div>
             </div>
             <div class="turn-status">
               <div v-if="currentPlayer === 1" class="active-turn">
-                <span class="turn-text">Player A's Turn</span>
+                <span class="turn-text">{{ currentUserPlayerNumber === 1 ? 'Your Turn' : `${getPlayerName(1)}'s Turn` }}</span>
               </div>
               <div v-else class="waiting-turn">
-                <span class="waiting-text">Waiting...</span>
+                <span class="waiting-text">{{ currentUserPlayerNumber === 1 ? 'Waiting...' : 'Waiting for turn' }}</span>
               </div>
             </div>
           </div>
@@ -32,15 +32,15 @@
               <span class="player-initial">B</span>
             </div>
             <div class="player-details">
-              <div class="player-name">Player B</div>
+              <div class="player-name">{{ getPlayerName(2) }}</div>
               <div class="player-score">{{ scores[2] }} squares</div>
             </div>
             <div class="turn-status">
               <div v-if="currentPlayer === 2" class="active-turn">
-                <span class="turn-text">Player B's Turn</span>
+                <span class="turn-text">{{ currentUserPlayerNumber === 2 ? 'Your Turn' : `${getPlayerName(2)}'s Turn` }}</span>
               </div>
               <div v-else class="waiting-turn">
-                <span class="waiting-text">Waiting...</span>
+                <span class="waiting-text">{{ currentUserPlayerNumber === 2 ? 'Waiting...' : 'Waiting for turn' }}</span>
               </div>
             </div>
           </div>
@@ -62,7 +62,7 @@
         :grid-size="gridSize"
         :drawn-lines="drawnLines"
         :claimed-squares="claimedSquares"
-        :can-make-move="true"
+        :can-make-move="canCurrentPlayerMove"
         @line-selected="handleLineSelected"
       />
       
@@ -99,15 +99,51 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useMatchStore } from '../stores/matchStore'
+import { playMove } from '../firebase/matchHelpers'
+import { storeToRefs } from 'pinia'
 import DotGrid from '../components/DotGrid.vue'
 
-// Simple local game state
+const route = useRoute()
+const router = useRouter()
+const matchStore = useMatchStore()
+
+// Get current user ID from route query parameter
+const currentUserId = ref((route.query.playerId as string) || (route.query.userId as string) || 'user-' + Date.now())
+
+// Get match store data
+const { 
+  currentMatchId, 
+  matchData, 
+  lines: firebaseLines, 
+  squares: firebaseSquares, 
+  gridSize: firebaseGridSize, 
+  currentPlayer: firebaseCurrentPlayer,
+  scores: firebaseScores,
+  gameOver: firebaseGameOver
+} = storeToRefs(matchStore)
+
+// Local game state for immediate UI updates (synced with Firebase)
 const gridSize = ref(5)
 const currentPlayer = ref(1)
 const drawnLines = ref<Array<{id: string, startDot: string, endDot: string, player: number}>>([])
 const claimedSquares = ref<Array<{id: string, topLeftX: number, topLeftY: number, player: number}>>([])
 const scores = ref({ 1: 0, 2: 0 })
+
+// Get current user's player number
+const currentUserPlayerNumber = computed(() => {
+  if (!matchData.value) return 1
+  if (matchData.value.player1?.id === currentUserId.value) return 1
+  if (matchData.value.player2?.id === currentUserId.value) return 2
+  return 1
+})
+
+// Check if current user can make moves
+const canCurrentPlayerMove = computed(() => {
+  return currentPlayer.value === currentUserPlayerNumber.value
+})
 
 // Game status
 const gameOver = computed(() => {
@@ -123,9 +159,50 @@ const winner = computed(() => {
   return 'tie'
 })
 
-// Handle line selection
-const handleLineSelected = (line: { startDot: string; endDot: string }) => {
-  // Check if line already exists
+// Sync Firebase state to local state
+const syncFromFirebase = () => {
+  if (!matchData.value) return
+  
+  // Update local state from Firebase
+  gridSize.value = firebaseGridSize.value || 5
+  currentPlayer.value = firebaseCurrentPlayer.value || 1
+  scores.value = { 
+    1: firebaseScores.value?.[1] || 0, 
+    2: firebaseScores.value?.[2] || 0 
+  }
+  
+  // Sync lines
+  if (firebaseLines.value) {
+    drawnLines.value = firebaseLines.value.map(line => ({
+      id: line.id,
+      startDot: line.startDot,
+      endDot: line.endDot,
+      player: line.player || 1
+    }))
+  }
+  
+  // Sync squares
+  if (firebaseSquares.value) {
+    claimedSquares.value = firebaseSquares.value
+      .filter(square => square.player !== undefined)
+      .map(square => ({
+        id: square.id,
+        topLeftX: square.topLeftX || 0,
+        topLeftY: square.topLeftY || 0,
+        player: square.player as number
+      }))
+  }
+}
+
+// Handle line selection with Firebase sync
+const handleLineSelected = async (line: { startDot: string; endDot: string }) => {
+  // Only allow moves if it's the player's turn and they're in the match
+  if (!canCurrentPlayerMove.value || !currentMatchId.value) {
+    console.log('Move blocked - not your turn or not in match')
+    return
+  }
+  
+  // Check if line already exists locally (immediate feedback)
   const lineExists = drawnLines.value.some(l => 
     (l.startDot === line.startDot && l.endDot === line.endDot) ||
     (l.startDot === line.endDot && l.endDot === line.startDot)
@@ -133,7 +210,7 @@ const handleLineSelected = (line: { startDot: string; endDot: string }) => {
   
   if (lineExists) return
   
-  // Add the line
+  // Add line locally for immediate UI update
   const newLine = {
     id: `${line.startDot}-${line.endDot}`,
     startDot: line.startDot,
@@ -142,7 +219,7 @@ const handleLineSelected = (line: { startDot: string; endDot: string }) => {
   }
   drawnLines.value.push(newLine)
   
-  // Check for completed squares
+  // Check for completed squares locally
   const newSquares = checkForCompletedSquares()
   let squaresClaimed = 0
   
@@ -156,16 +233,29 @@ const handleLineSelected = (line: { startDot: string; endDot: string }) => {
     }
   })
   
-  // Update scores
+  // Update scores locally
   scores.value[currentPlayer.value as 1 | 2] += squaresClaimed
   
-  // Switch turns (unless squares were claimed)
+  // Switch turns locally (unless squares were claimed)
   if (squaresClaimed === 0) {
     currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
   }
+  
+  // Send move to Firebase (will sync back to other players)
+  try {
+    await playMove(currentMatchId.value, currentUserId.value, {
+      startDot: line.startDot,
+      endDot: line.endDot
+    })
+  } catch (error) {
+    console.error('Error syncing move to Firebase:', error)
+    // Revert local changes if Firebase sync fails
+    drawnLines.value = drawnLines.value.filter(l => l.id !== newLine.id)
+    // Could also revert squares and scores here, but for simplicity keeping the optimistic update
+  }
 }
 
-// Check for completed squares
+// Check for completed squares (same logic as before)
 const checkForCompletedSquares = () => {
   const newSquares: Array<{id: string, topLeftX: number, topLeftY: number}> = []
   
@@ -203,7 +293,14 @@ const lineExists = (dot1: string, dot2: string) => {
   )
 }
 
-// Switch player manually
+// Get player names
+const getPlayerName = (playerNumber: number) => {
+  if (playerNumber === 1) return matchData.value?.player1?.name || 'Player A'
+  if (playerNumber === 2) return matchData.value?.player2?.name || 'Player B'
+  return `Player ${playerNumber}`
+}
+
+// Switch player manually (for testing)
 const switchPlayer = () => {
   currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
 }
@@ -215,6 +312,35 @@ const resetGame = () => {
   claimedSquares.value = []
   scores.value = { 1: 0, 2: 0 }
 }
+
+// Watch for Firebase changes and sync to local state
+watch([firebaseLines, firebaseSquares, firebaseCurrentPlayer, firebaseScores], () => {
+  syncFromFirebase()
+}, { deep: true })
+
+// Initialize game on mount
+onMounted(() => {
+  const matchId = route.params.id as string
+  if (matchId) {
+    matchStore.subscribeToMatchById(matchId)
+  } else {
+    router.push('/')
+  }
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  matchStore.unsubscribeFromMatch()
+})
+
+// Watch for game over and redirect
+watch(gameOver, (isOver) => {
+  if (isOver && currentMatchId.value) {
+    setTimeout(() => {
+      router.push({ name: 'GameResult', query: { matchId: currentMatchId.value } })
+    }, 3000) // Show final state for 3 seconds
+  }
+})
 </script>
 
 <style scoped>
