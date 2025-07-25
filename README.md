@@ -233,6 +233,7 @@ The project includes GitHub Actions workflows for:
 ## 📚 Documentation
 
 - [Features Overview](docs/FEATURES_OVERVIEW.md) - Complete feature list and capabilities
+- [User Account & Analytics](docs/USER_ACCOUNT_ANALYTICS.md) - Comprehensive user system specification
 - [Match Lobby Enhancement](docs/matchlobby-enhancement.md) - Enhanced lobby with native sharing
 - [Game Board Implementation](docs/gameboard-implementation.md) - Core game mechanics
 - [Game Result Implementation](docs/gameresult-implementation.md) - Game results and statistics
