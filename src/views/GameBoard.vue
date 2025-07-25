@@ -118,13 +118,6 @@ const matchStore = useMatchStore()
 // Get current user ID from route query parameter - this is critical for multiplayer sync
 const currentUserId = ref((route.query.playerId as string) || (route.query.userId as string) || 'user-' + Date.now())
 
-// Debug player identification
-console.log('🎮 GameBoard: Initializing with:', {
-  matchId: route.params.id,
-  playerId: currentUserId.value,
-  route: route.fullPath
-})
-
 const { 
   currentMatchId, 
   matchData, 
@@ -164,28 +157,9 @@ const currentUserPlayerNumber = computed(() => {
 })
 
 // Computed data for DotGrid - ensure fresh reactive data
-const gameLines = computed(() => {
-  const linesData = lines.value || []
-  console.log('🎮 GameBoard: Preparing lines for DotGrid:', linesData)
-  return linesData
-})
-
-const gameSquares = computed(() => {
-  const squaresData = squares.value || []
-  console.log('🎮 GameBoard: Preparing squares for DotGrid:', squaresData)
-  // Ensure squares have the correct format for DotGrid
-  return squaresData.map(square => ({
-    ...square,
-    topLeftX: square.topLeftX ?? 0,
-    topLeftY: square.topLeftY ?? 0
-  }))
-})
-
-const gameGridSize = computed(() => {
-  const size = gridSize.value || 5
-  console.log('🎮 GameBoard: Grid size:', size)
-  return size
-})
+const gameLines = computed(() => lines.value || [])
+const gameSquares = computed(() => squares.value || [])
+const gameGridSize = computed(() => gridSize.value || 5)
 
 // Helper functions
 const getPlayerName = (playerNumber: number) => {
@@ -265,43 +239,19 @@ const clearTurnTimer = () => {
   stopCountdownSound()
 }
 
-// Force refresh data subscription every few seconds to ensure sync
-let syncInterval: number | null = null
-
-const ensureDataSync = () => {
-  if (currentMatchId.value) {
-    console.log('🔄 GameBoard: Force refreshing match data for sync...')
-    matchStore.unsubscribeFromMatch()
-    setTimeout(() => {
-      matchStore.subscribeToMatchById(currentMatchId.value!)
-    }, 100)
-  }
-}
+// Removed periodic refresh - Firebase real-time updates are sufficient
 
 // Handle line selection from DotGrid
 const handleLineSelected = async (line: { startDot: string; endDot: string }) => {
-  console.log('🎮 GameBoard: Line selected:', line, {
-    canMove: canCurrentPlayerMove.value,
-    matchId: currentMatchId.value,
-    userId: currentUserId.value,
-    currentPlayer: currentPlayer.value,
-    userPlayerNumber: currentUserPlayerNumber.value
-  })
-  
-  if (!canCurrentPlayerMove.value || !currentMatchId.value) {
-    console.log('🚫 GameBoard: Move blocked - cannot move or no match ID')
-    return
-  }
+  if (!canCurrentPlayerMove.value || !currentMatchId.value) return
   
   try {
-    console.log('🎮 GameBoard: Sending move to Firebase...')
-    const result = await playMove(currentMatchId.value, currentUserId.value, {
+    await playMove(currentMatchId.value, currentUserId.value, {
       startDot: line.startDot,
       endDot: line.endDot
     })
-    console.log('✅ GameBoard: Move result:', result)
   } catch (error) {
-    console.error('❌ GameBoard: Error playing move:', error)
+    console.error('Error playing move:', error)
   }
 }
 
@@ -337,14 +287,6 @@ const resetGame = () => {
 
 // Watch for turn changes and restart timer
 watch([currentPlayer, matchData], ([newPlayer, newMatchData]) => {
-  console.log('🎮 GameBoard: Match data updated:', {
-    currentPlayer: newPlayer,
-    status: newMatchData?.status,
-    linesCount: newMatchData?.lines?.length || 0,
-    squaresCount: newMatchData?.squares?.length || 0,
-    scores: newMatchData?.scores
-  })
-  
   if (newMatchData?.status === 'active' && !gameOver.value) {
     startTurnTimer()
   } else {
@@ -358,13 +300,7 @@ onMounted(() => {
   
   const matchId = route.params.id as string
   if (matchId) {
-    console.log('🎮 GameBoard: Subscribing to match:', matchId, 'as player:', currentUserId.value)
     matchStore.subscribeToMatchById(matchId)
-    
-    // Set up periodic sync check to ensure all players stay synchronized
-    syncInterval = window.setInterval(() => {
-      ensureDataSync()
-    }, 10000) // Refresh every 10 seconds
   } else {
     router.push('/')
   }
@@ -373,9 +309,6 @@ onMounted(() => {
 // Cleanup on unmount
 onUnmounted(() => {
   clearTurnTimer()
-  if (syncInterval) {
-    clearInterval(syncInterval)
-  }
   matchStore.unsubscribeFromMatch()
 })
 
