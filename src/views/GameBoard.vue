@@ -17,10 +17,12 @@
     <div v-else-if="matchData" class="game-container">
       <!-- Header -->
       <header class="game-header">
-        <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="header-logo" />
-        <button @click="handleForfeit" class="forfeit-btn" :disabled="!canCurrentUserMove">
-          🏳️ Forfeit Game
-        </button>
+        <div class="header-content">
+          <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="header-logo" />
+          <button @click="handleForfeit" class="forfeit-btn" :disabled="!canCurrentUserMove">
+            🏳️ Forfeit Game
+          </button>
+        </div>
       </header>
 
       <!-- Scoreboard -->
@@ -30,6 +32,10 @@
           <div class="player-info">
             <span class="player-name">{{ matchData.player1?.name || 'Player 1' }}</span>
             <span class="player-score">{{ scores[1] || 0 }} squares</span>
+            <span v-if="currentPlayer === 1" class="turn-status">
+              <span class="turn-text">Your Turn</span>
+              <span v-if="timerState.isActive" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
+            </span>
           </div>
         </div>
         <div class="score-item" :class="{ 'current': currentPlayer === 2 }">
@@ -37,6 +43,10 @@
           <div class="player-info">
             <span class="player-name">{{ matchData.player2?.name || 'Player 2' }}</span>
             <span class="player-score">{{ scores[2] || 0 }} squares</span>
+            <span v-if="currentPlayer === 2" class="turn-status">
+              <span class="turn-text">Your Turn</span>
+              <span v-if="timerState.isActive" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
+            </span>
           </div>
         </div>
       </div>
@@ -261,14 +271,22 @@ watch(gameOver, (isOver) => {
 /* Header */
 .game-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   padding: 1rem 0;
   margin-bottom: 1rem;
 }
 
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+}
+
 .header-logo {
-  height: 4rem;
+  height: 5rem;
   width: auto;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
 }
@@ -363,6 +381,25 @@ watch(gameOver, (isOver) => {
   font-size: 1rem;
 }
 
+.turn-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.turn-text {
+  font-weight: 600;
+  color: #f97316;
+  font-size: 0.875rem;
+}
+
+.timer-text {
+  font-weight: 700;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
 /* Game Grid Container */
 .game-grid-container {
   flex: 1;
@@ -371,10 +408,11 @@ watch(gameOver, (isOver) => {
   align-items: center;
   background: white;
   border-radius: 0.75rem;
-  padding: 1rem;
+  padding: 2rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 1rem;
-  min-height: 300px;
+  min-height: 400px;
+  overflow: visible;
 }
 
 
@@ -413,7 +451,7 @@ watch(gameOver, (isOver) => {
   }
   
   .header-logo {
-    height: 3.5rem;
+    height: 4rem;
   }
   
   .forfeit-btn {
@@ -445,8 +483,8 @@ watch(gameOver, (isOver) => {
   }
   
   .game-grid-container {
-    padding: 0.75rem;
-    min-height: 250px;
+    padding: 1.5rem;
+    min-height: 350px;
   }
   
   .chat-container {
@@ -464,7 +502,7 @@ watch(gameOver, (isOver) => {
   }
   
   .header-logo {
-    height: 3rem;
+    height: 3.5rem;
   }
   
   .forfeit-btn {
@@ -491,8 +529,8 @@ watch(gameOver, (isOver) => {
   }
   
   .game-grid-container {
-    padding: 0.5rem;
-    min-height: 200px;
+    padding: 1rem;
+    min-height: 300px;
   }
   
   .chat-container {
