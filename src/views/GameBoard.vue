@@ -219,40 +219,19 @@ const canCurrentPlayerMove = computed(() => {
 
 // Game status - only show game over if Firebase says so OR local calculation AND Firebase game is active
 const gameOver = computed(() => {
-  // Debug what's causing game over
-  console.log('🎮 Game Over Check:', {
-    firebaseGameOver: firebaseGameOver.value,
-    matchStatus: matchData.value?.status,
-    claimedSquares: claimedSquares.value.length,
-    totalSquares: (gridSize.value - 1) * (gridSize.value - 1),
-    hasMatchData: !!matchData.value
-  })
-  
   // Don't show game over if no match data yet
   if (!matchData.value) return false
   
   // If Firebase explicitly says game is over, respect that
-  if (firebaseGameOver.value) {
-    console.log('🏁 Game over: Firebase says complete')
-    return true
-  }
+  if (firebaseGameOver.value) return true
   
   // If Firebase game isn't active, don't show local game over
-  if (matchData.value?.status !== 'active') {
-    console.log('⏳ Game not over: Match not active, status:', matchData.value?.status)
-    return false
-  }
+  if (matchData.value?.status !== 'active') return false
   
   // Only calculate local game over for active games
   const totalSquares = (gridSize.value - 1) * (gridSize.value - 1)
   const claimedCount = claimedSquares.value.length
-  const isLocallyComplete = claimedCount >= totalSquares
-  
-  if (isLocallyComplete) {
-    console.log('🏁 Game over: All squares claimed locally')
-  }
-  
-  return isLocallyComplete
+  return claimedCount >= totalSquares
 })
 
 const winner = computed(() => {
@@ -270,18 +249,10 @@ const winner = computed(() => {
 const syncFromFirebase = () => {
   if (!matchData.value) return
   
-  console.log('🔄 Syncing from Firebase:', {
-    status: matchData.value.status,
-    firebaseGameOver: firebaseGameOver.value,
-    firebaseSquares: firebaseSquares.value?.length || 0,
-    firebaseLines: firebaseLines.value?.length || 0
-  })
-  
   // Only sync game state for active games
   if (matchData.value.status !== 'active') {
     // For non-active games, reset to initial state
     if (matchData.value.status === 'waiting') {
-      console.log('🔄 Resetting to initial state for waiting game')
       drawnLines.value = []
       claimedSquares.value = []
       scores.value = { 1: 0, 2: 0 }
@@ -311,8 +282,6 @@ const syncFromFirebase = () => {
   // Sync squares - only claimed ones
   if (firebaseSquares.value) {
     const claimedFirebaseSquares = firebaseSquares.value.filter(square => square.player !== undefined)
-    console.log('🔄 Syncing claimed squares:', claimedFirebaseSquares.length, 'of', firebaseSquares.value.length)
-    
     claimedSquares.value = claimedFirebaseSquares.map(square => ({
       id: square.id,
       topLeftX: square.topLeftX || 0,
