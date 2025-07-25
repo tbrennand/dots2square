@@ -45,15 +45,6 @@
           @line-selected="handleLineSelected"
         />
       </main>
-
-      <aside class="game-chat">
-        <Chat 
-          v-if="currentMatchId"
-          :matchId="currentMatchId" 
-          :currentPlayerName="currentPlayerName"
-          :hasSecondPlayer="true"
-        />
-      </aside>
     </div>
   </div>
 </template>
@@ -65,7 +56,6 @@ import { useMatchStore } from '../stores/matchStore'
 import { playMove } from '../firebase/matchHelpers'
 import { useTurnTimer } from '../composables/useTurnTimer'
 import DotGrid from '../components/DotGrid.vue'
-import Chat from '../components/Chat.vue'
 import { storeToRefs } from 'pinia'
 
 const route = useRoute()
@@ -159,12 +149,8 @@ watch(gameOver, (isOver) => {
 }
 
 .game-layout {
-  display: grid;
-  grid-template-columns: 1fr 350px; /* Main game area and chat sidebar */
-  grid-template-rows: auto 1fr; /* Header and main content */
-  grid-template-areas:
-    "header header"
-    "main chat";
+  display: flex;
+  flex-direction: column;
   gap: 2rem;
   height: 100%;
 }
@@ -248,17 +234,9 @@ watch(gameOver, (isOver) => {
 }
 
 .game-main {
-  grid-area: main;
+  flex-grow: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  /* Removed background, padding, and shadow to make the container invisible */
-}
-
-.game-chat {
-  grid-area: chat;
-  width: 100%; /* Take up full width of the grid column */
-  flex-shrink: 0;
-  /* This would ideally be a slide-out panel, but for now, it's fixed */
 }
 </style> 
