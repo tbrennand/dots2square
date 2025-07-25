@@ -249,10 +249,7 @@ const selectLine = (line: PossibleLine) => {
   padding: 2rem;
   position: relative;
   margin: 0 auto;
-  background: #ffffff;
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  background: transparent;
 }
 
 .dot {
