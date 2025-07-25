@@ -56,8 +56,10 @@ interface Line {
 
 interface Square {
   id: string
-  topLeftX: number
-  topLeftY: number
+  topLeftX?: number
+  topLeftY?: number
+  x?: number
+  y?: number
   player?: number
 }
 
@@ -211,8 +213,9 @@ const getLineStyle = (line: PossibleLine | Line, isHitbox = true) => {
 
 // Square style method
 const squareStyle = (square: Square) => {
-  const x = square.topLeftX * spacing.value
-  const y = square.topLeftY * spacing.value
+  // Handle both Firebase format (x,y) and local format (topLeftX, topLeftY)
+  const x = (square.x ?? square.topLeftX ?? 0) * spacing.value
+  const y = (square.y ?? square.topLeftY ?? 0) * spacing.value
   const size = spacing.value - 4 // Slightly smaller than spacing
   
   return {
