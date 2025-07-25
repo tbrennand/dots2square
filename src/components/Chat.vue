@@ -144,6 +144,8 @@ async function sendMessage() {
     isHostChat: props.isHostChat || false
   }
   
+  console.log('Message object being sent:', message)
+  
   try {
     const messagesRef = collection(db, `matches/${props.matchId}/messages`)
     console.log('Messages collection ref:', messagesRef)
@@ -178,6 +180,13 @@ function scrollToBottom() {
 
 // Subscribe to messages
 onMounted(() => {
+  console.log('Chat component mounted with props:', {
+    matchId: props.matchId,
+    currentPlayerName: props.currentPlayerName,
+    hasSecondPlayer: props.hasSecondPlayer,
+    isHostChat: props.isHostChat
+  })
+  
   if (!props.matchId) {
     console.warn('No matchId provided for chat subscription');
     return;
@@ -200,6 +209,13 @@ onMounted(() => {
     }) as ChatMessage) || [];
     
     console.log('All messages:', allMessages)
+    console.log('Message details:', allMessages.map(msg => ({
+      id: msg.id,
+      author: msg.author,
+      text: msg.text,
+      isHostChat: msg.isHostChat,
+      timestamp: msg.timestamp
+    })))
     
     // Filter messages based on chat type
     if (props.isHostChat) {
