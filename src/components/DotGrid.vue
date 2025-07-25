@@ -293,10 +293,10 @@ const selectLine = (line: PossibleLine) => {
 .line-visual {
   width: 100%;
   height: 100%;
-  background-color: #f3f4f6; /* Very light grey for unclaimed lines */
+  background-color: transparent; /* Lines are invisible by default */
   border-radius: 3px;
   transition: all 0.3s ease;
-  opacity: 0.6;
+  opacity: 0; /* Make lines invisible */
 }
 
 .line-visual.line-hover {
