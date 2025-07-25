@@ -55,6 +55,9 @@
         </div>
 
         <div class="game-controls">
+          <button @click="toggleAudio" :class="['audio-button', { 'audio-disabled': !audioEnabled }]">
+            {{ audioEnabled ? '🔊' : '🔇' }}
+          </button>
           <button @click="switchPlayer" class="switch-player-button">
             Switch to {{ getPlayerName(activePlayer === 1 ? 2 : 1) }}
           </button>
@@ -123,6 +126,11 @@ const players = ref({
 const timeRemaining = ref(30)
 const turnTimer = ref<number | null>(null)
 const TURN_DURATION = 30 // seconds
+
+// Audio state
+const countdownAudio = ref<HTMLAudioElement | null>(null)
+const audioPlaying = ref(false)
+const audioEnabled = ref(true)
 
 // Computed properties
 const winner = computed(() => {
@@ -198,15 +206,57 @@ const findCompletedSquares = () => {
   return newSquares
 }
 
+// Initialize audio
+const initializeAudio = () => {
+  countdownAudio.value = new Audio('/sounds/countdown.mp3')
+  countdownAudio.value.volume = 0.6
+  countdownAudio.value.preload = 'auto'
+}
+
+// Play countdown sound
+const playCountdownSound = () => {
+  if (countdownAudio.value && !audioPlaying.value && audioEnabled.value) {
+    audioPlaying.value = true
+    countdownAudio.value.currentTime = 0
+    countdownAudio.value.play().catch(error => {
+      console.log('Audio play failed:', error)
+    })
+  }
+}
+
+// Toggle audio on/off
+const toggleAudio = () => {
+  audioEnabled.value = !audioEnabled.value
+  if (!audioEnabled.value) {
+    stopCountdownSound()
+  }
+}
+
+// Stop countdown sound
+const stopCountdownSound = () => {
+  if (countdownAudio.value && audioPlaying.value) {
+    countdownAudio.value.pause()
+    countdownAudio.value.currentTime = 0
+    audioPlaying.value = false
+  }
+}
+
 // Start turn timer
 const startTurnTimer = () => {
   clearTurnTimer()
+  stopCountdownSound()
   timeRemaining.value = TURN_DURATION
   
   turnTimer.value = window.setInterval(() => {
     timeRemaining.value--
     
+    // Play countdown sound during last 5 seconds
+    if (timeRemaining.value === 5) {
+      playCountdownSound()
+    }
+    
     if (timeRemaining.value <= 0) {
+      stopCountdownSound()
       // Time's up - switch to next player
       nextTurn()
     }
@@ -219,6 +269,7 @@ const clearTurnTimer = () => {
     clearInterval(turnTimer.value)
     turnTimer.value = null
   }
+  stopCountdownSound()
 }
 
 // Switch to next turn
@@ -290,6 +341,7 @@ const resetGame = () => {
 
 // Initialize game on mount
 onMounted(() => {
+  initializeAudio()
   resetGame()
 })
 
@@ -501,6 +553,39 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.audio-button {
+  padding: 0.5rem;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.audio-button:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.audio-button.audio-disabled {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+.audio-button.audio-disabled:hover {
+  background: linear-gradient(135deg, #4b5563, #374151);
+  box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4);
 }
 
 .switch-player-button {
