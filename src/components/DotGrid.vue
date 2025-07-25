@@ -12,7 +12,11 @@
       @click="selectLine(line)"
       @mouseenter="hoverLine = line.id"
       @mouseleave="hoverLine = null"
-      :class="{ 'disabled': !canMakeMove }"
+      :class="{ 
+        'disabled': !canMakeMove,
+        'horizontal': line.startDot.split('-')[0] === line.endDot.split('-')[0],
+        'vertical': line.startDot.split('-')[1] === line.endDot.split('-')[1]
+      }"
       :style="getLineStyle(line)"
     >
       <div class="line-hitbox"></div>
@@ -20,7 +24,7 @@
     </div>
 
     <!-- Drawn Lines -->
-    <div v-for="line in drawnLines" :key="line.id" :id="line.id" class="line-container drawn" :style="getLineStyle(line)">
+    <div v-for="line in drawnLines" :key="line.id" :id="line.id" class="line-container drawn" :style="getLineStyle(line, false)">
       <div class="line-visual line-drawn" :class="{ 'player1-line': line.player === 1, 'player2-line': line.player === 2 }"></div>
     </div>
     
@@ -173,38 +177,36 @@ const possibleLines = computed(() => {
 const potentialLines = computed(() => possibleLines.value)
 
 // Get line position and style dynamically
-const getLineStyle = (line: PossibleLine | Line) => {
+const getLineStyle = (line: PossibleLine | Line, isHitbox = true) => {
   const [startY, startX] = line.startDot.split('-').map(Number)
   const [endY, endX] = line.endDot.split('-').map(Number)
 
   const isHorizontal = startY === endY
-  const isVertical = startX === endX
+  const thickness = isHitbox ? 20 : 4 // 20px for hitbox, 4px for visual line
 
   if (isHorizontal) {
     const width = Math.abs(endX - startX) * spacing.value
     const left = Math.min(startX, endX) * spacing.value
-    const top = startY * spacing.value - 2 // Center vertically
+    const top = startY * spacing.value - (thickness / 2) // Center hitbox or line
 
     return {
       left: `${left}px`,
       top: `${top}px`,
       width: `${width}px`,
-      height: '4px',
+      height: `${thickness}px`,
     }
-  } else if (isVertical) {
+  } else { // isVertical
     const height = Math.abs(endY - startY) * spacing.value
-    const left = startX * spacing.value - 2 // Center horizontally
+    const left = startX * spacing.value - (thickness / 2) // Center hitbox or line
     const top = Math.min(startY, endY) * spacing.value
 
     return {
       left: `${left}px`,
       top: `${top}px`,
-      width: '4px',
+      width: `${thickness}px`,
       height: `${height}px`,
     }
   }
-
-  return {}
 }
 
 // Square style method
@@ -291,18 +293,37 @@ const selectLine = (line: PossibleLine) => {
 }
 
 .line-visual {
-  width: 100%;
-  height: 100%;
+  position: absolute;
   background-color: transparent; /* Lines are invisible by default */
   border-radius: 3px;
   transition: all 0.3s ease;
   opacity: 0; /* Make lines invisible */
+  
+  /* Centering logic */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.line-container.horizontal .line-visual {
+  width: 100%;
+  height: 4px;
+}
+
+.line-container.vertical .line-visual {
+  width: 4px;
+  height: 100%;
+}
+
+.line-container.drawn .line-visual {
+  width: 100%;
+  height: 100%;
 }
 
 .line-visual.line-hover {
   background: linear-gradient(90deg, #f97316, #ea580c);
-  opacity: 0.8;
-  transform: scale(1.1);
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.1);
   box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
 }
 
