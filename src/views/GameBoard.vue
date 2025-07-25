@@ -34,7 +34,7 @@
             <span class="player-score">{{ scores[1] || 0 }} squares</span>
             <span v-if="currentPlayer === 1" class="turn-status">
               <span class="turn-text">Your Turn</span>
-              <span v-if="timerState.isActive" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
+              <span v-if="timerState.isActive && timerState.timeRemaining > 0" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
             </span>
           </div>
         </div>
@@ -45,7 +45,7 @@
             <span class="player-score">{{ scores[2] || 0 }} squares</span>
             <span v-if="currentPlayer === 2" class="turn-status">
               <span class="turn-text">Your Turn</span>
-              <span v-if="timerState.isActive" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
+              <span v-if="timerState.isActive && timerState.timeRemaining > 0" class="timer-text">{{ formatTime(timerState.timeRemaining) }}</span>
             </span>
           </div>
         </div>
@@ -78,6 +78,8 @@
       <div v-if="isDev" class="debug-info">
         <div>Grid: {{ gridSize }}x{{ gridSize }} | Lines: {{ lines.length }} | Squares: {{ squares.length }}</div>
         <div>Turn: {{ currentPlayer }} | Can Move: {{ canCurrentUserMove }}</div>
+        <div>Timer: Active={{ timerState.isActive }} | Time={{ timerState.timeRemaining }}</div>
+        <div>Current User: {{ currentUserId }} | Player Number: {{ currentUserPlayerNumber }}</div>
       </div>
     </div>
   </div>
@@ -120,6 +122,9 @@ const {
 // Initialize turn timer
 const turnTimer = useTurnTimer(currentMatchId.value || '', currentUserId.value)
 const timerState = computed(() => turnTimer.getTimerState())
+
+// Debug timer state
+console.log('Timer state:', timerState.value)
 
 const canCurrentUserMove = computed(() => matchStore.canPlayerMove(currentUserId.value))
 const currentUserPlayerNumber = computed(() => matchStore.getPlayerNumber(currentUserId.value))
@@ -286,8 +291,8 @@ watch(gameOver, (isOver) => {
 }
 
 .header-logo {
-  height: 5rem;
-  width: auto;
+  width: 256px;
+  height: auto;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
 }
 
@@ -411,8 +416,9 @@ watch(gameOver, (isOver) => {
   padding: 2rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 1rem;
-  min-height: 400px;
+  min-height: 500px;
   overflow: visible;
+  position: relative;
 }
 
 
@@ -451,7 +457,7 @@ watch(gameOver, (isOver) => {
   }
   
   .header-logo {
-    height: 4rem;
+    width: 288px;
   }
   
   .forfeit-btn {
@@ -502,7 +508,13 @@ watch(gameOver, (isOver) => {
   }
   
   .header-logo {
-    height: 3.5rem;
+    width: 320px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .header-logo {
+    width: 384px;
   }
   
   .forfeit-btn {
