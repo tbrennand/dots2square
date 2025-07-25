@@ -175,7 +175,12 @@
       </div>
 
     <!-- Chat/Message Area -->
-    <Chat v-if="matchId" :matchId="matchId" :currentPlayerName="getPlayerName(getCurrentPlayerNumber())" />
+    <Chat 
+      v-if="matchId" 
+      :matchId="matchId" 
+      :currentPlayerName="getPlayerName(getCurrentPlayerNumber())"
+      :hasSecondPlayer="hasPlayer2"
+    />
 
     <!-- Error/Success Messages -->
     <div v-if="errorMessage" class="error-message">

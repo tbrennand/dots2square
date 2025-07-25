@@ -1,34 +1,58 @@
 <template>
-  <div v-if="props.matchId" class="chat-section">
-    <h3 class="section-title">💬 Chat</h3>
-    <div class="chat-messages" ref="chatMessages">
-      <div v-if="sortedMessages.length === 0" class="no-messages">
-        <p>No messages yet. Start the conversation!</p>
+  <div v-if="props.matchId && hasSecondPlayer" class="chat-container">
+    <!-- Chat Tab Icon (always visible when second player joins) -->
+    <div 
+      class="chat-tab" 
+      :class="{ 'chat-tab--active': isOpen }"
+      @click="toggleChat"
+      :title="isOpen ? 'Close chat' : 'Open chat'"
+    >
+      <span class="chat-tab-icon">💬</span>
+      <span v-if="unreadCount > 0" class="chat-notification">{{ unreadCount }}</span>
+    </div>
+
+    <!-- Slide-out Chat Panel -->
+    <div class="chat-panel" :class="{ 'chat-panel--open': isOpen }">
+      <div class="chat-panel-header">
+        <h3 class="chat-panel-title">💬 Chat</h3>
+        <button @click="toggleChat" class="chat-close-btn" title="Close chat">
+          ✕
+        </button>
       </div>
-      <div v-for="message in sortedMessages" :key="message.id" class="chat-message">
-        <span class="message-time">{{ formatTime(message.timestamp) }}</span>
-        <span class="message-author">{{ message.author }}:</span>
-        <span class="message-text">{{ message.text }}</span>
+      
+      <div class="chat-messages" ref="chatMessages">
+        <div v-if="sortedMessages.length === 0" class="no-messages">
+          <p>No messages yet. Start the conversation!</p>
+        </div>
+        <div v-for="message in sortedMessages" :key="message.id" class="chat-message">
+          <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+          <span class="message-author">{{ message.author }}:</span>
+          <span class="message-text">{{ message.text }}</span>
+        </div>
+      </div>
+      
+      <div class="chat-input">
+        <input 
+          v-model="newMessage" 
+          @keyup.enter="sendMessage"
+          placeholder="Type a message..."
+          class="message-input"
+          :disabled="isLoading"
+        />
+        <button @click="sendMessage" :disabled="!newMessage.trim() || isLoading" class="send-btn">
+          <span v-if="isLoading" class="loading-spinner"></span>
+          <span v-else>Send</span>
+        </button>
       </div>
     </div>
-    <div class="chat-input">
-      <input 
-        v-model="newMessage" 
-        @keyup.enter="sendMessage"
-        placeholder="Type a message..."
-        class="message-input"
-        :disabled="isLoading"
-      />
-      <button @click="sendMessage" :disabled="!newMessage.trim() || isLoading" class="send-btn">
-        <span v-if="isLoading" class="loading-spinner"></span>
-        <span v-else>Send</span>
-      </button>
-    </div>
+
+    <!-- Backdrop for mobile -->
+    <div v-if="isOpen" class="chat-backdrop" @click="toggleChat"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { doc, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase/index'
 
@@ -44,13 +68,20 @@ interface ChatMessage {
 interface Props {
   matchId: string
   currentPlayerName: string
+  hasSecondPlayer?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  hasSecondPlayer: false
+})
+
 const chatMessages = ref<ChatMessage[]>([])
 const newMessage = ref('')
 const chatMessagesRef = ref<HTMLElement>()
 const isLoading = ref(false)
+const isOpen = ref(false)
+const unreadCount = ref(0)
+const lastReadMessageId = ref<string>('')
 let unsubscribe: Unsubscribe | null = null
 
 // Computed sorted messages (oldest to newest)
@@ -65,6 +96,28 @@ function formatTime(date: Date): string {
     hour: '2-digit',
     minute: '2-digit'
   }).format(date)
+}
+
+// Toggle chat panel
+function toggleChat() {
+  isOpen.value = !isOpen.value
+  if (isOpen.value) {
+    // Mark messages as read when opening
+    markMessagesAsRead()
+    // Focus input after animation
+    setTimeout(() => {
+      const input = document.querySelector('.message-input') as HTMLInputElement
+      if (input) input.focus()
+    }, 300)
+  }
+}
+
+// Mark messages as read
+function markMessagesAsRead() {
+  if (sortedMessages.value.length > 0) {
+    lastReadMessageId.value = sortedMessages.value[sortedMessages.value.length - 1].id
+    unreadCount.value = 0
+  }
 }
 
 // Send message
@@ -120,14 +173,35 @@ onMounted(() => {
       timestamp: doc.data().timestamp?.toDate() ?? new Date()
     }) as ChatMessage) || [];
     
-    // Scroll to bottom on new messages
-    nextTick(() => {
-      scrollToBottom()
-    })
+    // Update unread count
+    if (!isOpen.value && sortedMessages.value.length > 0) {
+      const lastMessage = sortedMessages.value[sortedMessages.value.length - 1]
+      if (lastMessage.id !== lastReadMessageId.value && lastMessage.author !== props.currentPlayerName) {
+        unreadCount.value++
+      }
+    }
+    
+    // Scroll to bottom on new messages if chat is open
+    if (isOpen.value) {
+      nextTick(() => {
+        scrollToBottom()
+      })
+    }
   }, (error) => {
     console.error('Error listening to messages:', error);
     chatMessages.value = [];
   })
+})
+
+// Watch for second player joining
+watch(() => props.hasSecondPlayer, (newValue) => {
+  if (newValue && !isOpen.value) {
+    // Auto-open chat when second player joins
+    setTimeout(() => {
+      isOpen.value = true
+      markMessagesAsRead()
+    }, 500)
+  }
 })
 
 // Cleanup
@@ -137,37 +211,134 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Chat Section - Integrated with MatchLobby design */
-.chat-section {
-  margin-top: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  background: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+/* Chat Container */
+.chat-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  z-index: 1000;
+  pointer-events: none;
 }
 
-.section-title {
-  text-align: center;
-  color: #f97316 !important;
+/* Chat Tab */
+.chat-tab {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  background: #f97316;
+  color: white;
+  padding: 1rem 0.75rem;
+  border-radius: 0.5rem 0 0 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  pointer-events: auto;
+  z-index: 1001;
+}
+
+.chat-tab:hover {
+  background: #ea580c;
+  transform: translateY(-50%) translateX(-5px);
+}
+
+.chat-tab--active {
+  background: #ea580c;
+}
+
+.chat-tab-icon {
+  font-size: 1.25rem;
+  display: block;
+}
+
+.chat-notification {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.75rem;
   font-weight: 600;
-  margin: 0.75rem 0;
-  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2s infinite;
 }
 
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Chat Panel */
+.chat-panel {
+  position: fixed;
+  top: 0;
+  right: -400px;
+  width: 400px;
+  height: 100vh;
+  background: white;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  transition: right 0.3s ease;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  z-index: 1002;
+}
+
+.chat-panel--open {
+  right: 0;
+}
+
+/* Chat Panel Header */
+.chat-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f97316;
+  color: white;
+  border-bottom: 1px solid #ea580c;
+}
+
+.chat-panel-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.chat-close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s;
+}
+
+.chat-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Chat Messages */
 .chat-messages {
-  height: 120px; /* Reduced height for better integration */
+  flex: 1;
   overflow-y: auto;
-  padding: 0.75rem;
+  padding: 1rem;
   background: #f8fafc;
-  border-bottom: 1px solid #e5e7eb;
 }
 
 .no-messages {
   text-align: center;
   color: #9ca3af;
   font-style: italic;
-  padding: 1rem 0;
+  padding: 2rem 0;
 }
 
 .no-messages p {
@@ -176,14 +347,14 @@ onUnmounted(() => {
 }
 
 .chat-message {
-  margin-bottom: 0.375rem;
-  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
   line-height: 1.4;
 }
 
 .message-time {
   color: #9ca3af;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   margin-right: 0.5rem;
 }
 
@@ -198,18 +369,20 @@ onUnmounted(() => {
   word-wrap: break-word;
 }
 
+/* Chat Input */
 .chat-input {
   display: flex;
-  padding: 0.75rem;
+  padding: 1rem;
   background: white;
+  border-top: 1px solid #e5e7eb;
   gap: 0.5rem;
 }
 
 .message-input {
   flex: 1;
-  padding: 0.5rem;
+  padding: 0.75rem;
   border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
   font-size: 0.875rem;
   transition: border-color 0.2s;
 }
@@ -226,16 +399,16 @@ onUnmounted(() => {
 }
 
 .send-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
   background: #f97316;
   color: white;
   border: none;
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
   font-size: 0.875rem;
-  min-width: 60px;
+  min-width: 70px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -263,43 +436,73 @@ onUnmounted(() => {
   to { transform: rotate(360deg); }
 }
 
-/* Responsive adjustments */
+/* Backdrop for mobile */
+.chat-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
-  .chat-messages {
-    height: 100px;
+  .chat-panel {
+    width: 100vw;
+    right: -100vw;
   }
   
-  .section-title {
-    font-size: 0.875rem;
-    margin: 0.5rem 0;
+  .chat-tab {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .chat-tab-icon {
+    font-size: 1rem;
+  }
+  
+  .chat-panel-header {
+    padding: 0.75rem;
+  }
+  
+  .chat-panel-title {
+    font-size: 1rem;
+  }
+  
+  .chat-messages {
+    padding: 0.75rem;
   }
   
   .chat-input {
-    padding: 0.5rem;
+    padding: 0.75rem;
   }
   
   .message-input {
+    padding: 0.5rem;
     font-size: 0.8rem;
   }
   
   .send-btn {
     padding: 0.5rem 0.75rem;
     font-size: 0.8rem;
-    min-width: 50px;
+    min-width: 60px;
   }
 }
 
 @media (max-width: 480px) {
-  .chat-messages {
-    height: 80px;
+  .chat-tab {
+    padding: 0.5rem 0.375rem;
   }
   
-  .chat-message {
-    font-size: 0.75rem;
+  .chat-tab-icon {
+    font-size: 0.875rem;
   }
   
-  .message-time {
-    font-size: 0.65rem;
+  .chat-notification {
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
   }
 }
 </style> 
