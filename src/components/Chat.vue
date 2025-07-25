@@ -127,6 +127,13 @@ function markMessagesAsRead() {
 async function sendMessage() {
   if (!newMessage.value.trim() || isLoading.value) return
   
+  console.log('Sending message:', {
+    matchId: props.matchId,
+    author: props.currentPlayerName,
+    text: newMessage.value.trim(),
+    isHostChat: props.isHostChat
+  })
+  
   isLoading.value = true
   const messageText = newMessage.value.trim()
   
@@ -139,15 +146,24 @@ async function sendMessage() {
   
   try {
     const messagesRef = collection(db, `matches/${props.matchId}/messages`)
-    await addDoc(messagesRef, message)
+    console.log('Messages collection ref:', messagesRef)
+    
+    const docRef = await addDoc(messagesRef, message)
+    console.log('Message sent successfully with ID:', docRef.id)
+    
     newMessage.value = ''
     
     // Scroll to bottom
     nextTick(() => {
       scrollToBottom()
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending message:', error)
+    console.error('Error details:', {
+      code: error?.code,
+      message: error?.message,
+      stack: error?.stack
+    })
   } finally {
     isLoading.value = false
   }
@@ -171,19 +187,29 @@ onMounted(() => {
   const messagesQuery = query(messagesRef, orderBy('timestamp', 'asc'))
   
   unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+    console.log('Chat subscription update:', {
+      matchId: props.matchId,
+      isHostChat: props.isHostChat,
+      totalMessages: snapshot.docs.length
+    })
+    
     const allMessages = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       timestamp: doc.data().timestamp?.toDate() ?? new Date()
     }) as ChatMessage) || [];
     
+    console.log('All messages:', allMessages)
+    
     // Filter messages based on chat type
     if (props.isHostChat) {
       // For host chat, only show messages marked as host chat
       chatMessages.value = allMessages.filter(msg => msg.isHostChat === true);
+      console.log('Host chat messages:', chatMessages.value)
     } else {
       // For regular chat, only show messages NOT marked as host chat
       chatMessages.value = allMessages.filter(msg => msg.isHostChat !== true);
+      console.log('Regular chat messages:', chatMessages.value)
     }
     
     // Update unread count
