@@ -144,7 +144,7 @@ async function sendMessage() {
     isHostChat: props.isHostChat || false
   }
   
-  console.log('Message object being sent:', message)
+  console.log('Message object being sent:', JSON.stringify(message, null, 2))
   
   try {
     const messagesRef = collection(db, `matches/${props.matchId}/messages`)
@@ -184,7 +184,8 @@ onMounted(() => {
     matchId: props.matchId,
     currentPlayerName: props.currentPlayerName,
     hasSecondPlayer: props.hasSecondPlayer,
-    isHostChat: props.isHostChat
+    isHostChat: props.isHostChat,
+    isHostChatType: typeof props.isHostChat
   })
   
   if (!props.matchId) {
@@ -214,18 +215,26 @@ onMounted(() => {
       author: msg.author,
       text: msg.text,
       isHostChat: msg.isHostChat,
+      isHostChatType: typeof msg.isHostChat,
       timestamp: msg.timestamp
     })))
     
     // Filter messages based on chat type
+    console.log('Filtering logic - props.isHostChat:', props.isHostChat, 'type:', typeof props.isHostChat)
+    
     if (props.isHostChat) {
       // For host chat, only show messages marked as host chat
-      chatMessages.value = allMessages.filter(msg => msg.isHostChat === true);
-      console.log('Host chat messages:', chatMessages.value)
+      const hostMessages = allMessages.filter(msg => {
+        console.log('Checking message:', msg.id, 'isHostChat:', msg.isHostChat, 'type:', typeof msg.isHostChat, '=== true:', msg.isHostChat === true)
+        return msg.isHostChat === true
+      });
+      chatMessages.value = hostMessages;
+      console.log('Host chat messages:', hostMessages)
     } else {
       // For regular chat, only show messages NOT marked as host chat
-      chatMessages.value = allMessages.filter(msg => msg.isHostChat !== true);
-      console.log('Regular chat messages:', chatMessages.value)
+      const regularMessages = allMessages.filter(msg => msg.isHostChat !== true);
+      chatMessages.value = regularMessages;
+      console.log('Regular chat messages:', regularMessages)
     }
     
     // Update unread count
