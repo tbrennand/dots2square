@@ -374,6 +374,10 @@ export async function playMove(
       squareCheckResult.completedSquares.forEach(square => {
         const existingSquareIndex = updatedSquares.findIndex(s => s.id === square.id)
         if (existingSquareIndex >= 0) {
+          // Only count as claimed if it wasn't already claimed
+          if (updatedSquares[existingSquareIndex].player === undefined) {
+            squaresClaimed++
+          }
           // Update existing square
           updatedSquares[existingSquareIndex] = {
             ...updatedSquares[existingSquareIndex],
@@ -381,13 +385,13 @@ export async function playMove(
             lines: square.lines
           }
         } else {
-          // Add new square
+          // Add new square (shouldn't happen with pre-populated squares)
           updatedSquares.push({
             ...square,
             player: playerNumber
           })
+          squaresClaimed++
         }
-        squaresClaimed++
       })
       
       // Update scores
@@ -562,7 +566,7 @@ function checkForCompletedSquares(
     for (let y = 0; y < gridSize - 1; y++) {
       const squareId = `${x}-${y}`
       
-      // Skip if square already exists
+      // Skip if square is already claimed by a player
       if (existingSquares?.some(s => s.id === squareId && s.player !== undefined)) {
         continue
       }
