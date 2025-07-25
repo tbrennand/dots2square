@@ -171,14 +171,14 @@ const currentUserPlayerNumber = computed(() => {
 
 // Computed data for DotGrid - ensure fresh reactive data
 const gameLines = computed(() => {
-  const lines = lines.value || []
-  console.log('🎮 Game lines for DotGrid:', lines.length, lines)
-  return lines
+  const linesData = lines.value || []
+  console.log('🎮 Game lines for DotGrid:', linesData.length, linesData)
+  return linesData
 })
 const gameSquares = computed(() => {
-  const squares = squares.value || []
-  console.log('🎮 Game squares for DotGrid:', squares.length, squares)
-  return squares
+  const squaresData = squares.value || []
+  console.log('🎮 Game squares for DotGrid:', squaresData.length, squaresData)
+  return squaresData
 })
 const gameGridSize = computed(() => {
   const size = gridSize.value || 5
