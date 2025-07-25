@@ -220,18 +220,41 @@ const canCurrentPlayerMove = computed(() => {
 // Game status - only show game over if Firebase says so OR local calculation AND Firebase game is active
 const gameOver = computed(() => {
   // Don't show game over if no match data yet
-  if (!matchData.value) return false
+  if (!matchData.value) {
+    console.log('🎮 Game Over: NO - No match data')
+    return false
+  }
   
   // If Firebase explicitly says game is over, respect that
-  if (firebaseGameOver.value) return true
+  if (firebaseGameOver.value) {
+    console.log('🎮 Game Over: YES - Firebase says complete')
+    return true
+  }
   
   // If Firebase game isn't active, don't show local game over
-  if (matchData.value?.status !== 'active') return false
+  if (matchData.value?.status !== 'active') {
+    console.log('🎮 Game Over: NO - Match not active, status:', matchData.value?.status)
+    return false
+  }
   
   // Only calculate local game over for active games
   const totalSquares = (gridSize.value - 1) * (gridSize.value - 1)
   const claimedCount = claimedSquares.value.length
-  return claimedCount >= totalSquares
+  
+  console.log('🎮 Game Over Check:', {
+    totalSquares,
+    claimedCount,
+    claimedSquares: claimedSquares.value.map(s => ({ id: s.id, player: s.player })),
+    isComplete: claimedCount >= totalSquares
+  })
+  
+  if (claimedCount >= totalSquares) {
+    console.log('🎮 Game Over: YES - All squares claimed locally')
+    return true
+  }
+  
+  console.log('🎮 Game Over: NO - Game continues')
+  return false
 })
 
 const winner = computed(() => {
@@ -282,12 +305,21 @@ const syncFromFirebase = () => {
   // Sync squares - only claimed ones
   if (firebaseSquares.value) {
     const claimedFirebaseSquares = firebaseSquares.value.filter(square => square.player !== undefined)
+    console.log('🔄 Firebase Squares Debug:', {
+      totalFirebaseSquares: firebaseSquares.value.length,
+      claimedFirebaseSquares: claimedFirebaseSquares.length,
+      allSquares: firebaseSquares.value.map(s => ({ id: s.id, player: s.player })),
+      claimedOnly: claimedFirebaseSquares.map(s => ({ id: s.id, player: s.player }))
+    })
+    
     claimedSquares.value = claimedFirebaseSquares.map(square => ({
       id: square.id,
       topLeftX: square.topLeftX || 0,
       topLeftY: square.topLeftY || 0,
       player: square.player as number
     }))
+  } else {
+    console.log('🔄 No Firebase squares to sync')
   }
 }
 
