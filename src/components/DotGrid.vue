@@ -246,10 +246,6 @@ const selectLine = (line: PossibleLine) => {
 
 <style scoped>
 .dot-grid-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
   position: relative;
   margin: 0 auto;
   background: transparent;
