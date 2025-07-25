@@ -18,13 +18,13 @@
                 </div>
                 <div class="player-score">{{ scores[1] }} squares</div>
               </div>
-            </div>
-            <div v-if="currentPlayer === 1" class="turn-indicator">
-              <span class="turn-text">{{ activePlayer === 1 ? 'Your Turn' : `${getPlayerName(1)}'s Turn` }}</span>
-              <div class="timer-container">
-                <span class="timer" :class="{ 'timer-warning': timeRemaining <= 10 }">
-                  {{ formatTime(timeRemaining) }}
-                </span>
+              <div v-if="currentPlayer === 1" class="turn-indicator">
+                <span class="turn-text">{{ activePlayer === 1 ? 'Your Turn' : `${getPlayerName(1)}'s Turn` }}</span>
+                <div class="timer-container">
+                  <span class="timer" :class="{ 'timer-warning': timeRemaining <= 10 }">
+                    {{ formatTime(timeRemaining) }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -42,13 +42,13 @@
                 </div>
                 <div class="player-score">{{ scores[2] }} squares</div>
               </div>
-            </div>
-            <div v-if="currentPlayer === 2" class="turn-indicator">
-              <span class="turn-text">{{ activePlayer === 2 ? 'Your Turn' : `${getPlayerName(2)}'s Turn` }}</span>
-              <div class="timer-container">
-                <span class="timer" :class="{ 'timer-warning': timeRemaining <= 10 }">
-                  {{ formatTime(timeRemaining) }}
-                </span>
+              <div v-if="currentPlayer === 2" class="turn-indicator">
+                <span class="turn-text">{{ activePlayer === 2 ? 'Your Turn' : `${getPlayerName(2)}'s Turn` }}</span>
+                <div class="timer-container">
+                  <span class="timer" :class="{ 'timer-warning': timeRemaining <= 10 }">
+                    {{ formatTime(timeRemaining) }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -61,7 +61,7 @@
           <button @click="switchPlayer" class="switch-player-button">
             Switch to {{ getPlayerName(activePlayer === 1 ? 2 : 1) }}
           </button>
-          <button @click="resetGame" class="reset-button">New Game</button>
+          <button @click="forfeitMatch" class="forfeit-button">Forfeit Match</button>
         </div>
       </header>
 
@@ -323,6 +323,15 @@ const switchPlayer = () => {
   activePlayer.value = activePlayer.value === 1 ? 2 : 1
 }
 
+// Forfeit match
+const forfeitMatch = () => {
+  // Set the other player as winner
+  const otherPlayer = activePlayer.value === 1 ? 2 : 1
+  scores.value[otherPlayer as 1 | 2] = 999 // Make them clear winner
+  gameOver.value = true
+  clearTurnTimer()
+}
+
 // Format time display
 const formatTime = (seconds: number) => {
   return `${seconds}s`
@@ -353,18 +362,16 @@ onUnmounted(() => {
 
 <style scoped>
 .game-board-container {
-  display: flex;
-  flex-direction: column;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 1.5rem;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #ffffff;
+  padding: 1rem;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .game-layout {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
   height: 100%;
   max-width: 1200px;
   margin: 0 auto;
@@ -374,43 +381,42 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  padding: 1.5rem 2rem;
-  border-radius: 1.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #ffffff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  min-height: 80px;
 }
 
 .logo {
-  height: 80px;
+  height: 120px;
   width: auto;
   flex-shrink: 0;
 }
 
 .player-panels {
   display: flex;
-  gap: 2rem;
+  gap: 1rem;
   flex-grow: 1;
   justify-content: center;
 }
 
 .player-panel {
-  padding: 1.5rem;
-  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
   border: 2px solid transparent;
-  min-width: 280px;
-  background: rgba(248, 250, 252, 0.8);
-  backdrop-filter: blur(5px);
+  min-width: 200px;
+  max-height: 60px;
+  background: #f9fafb;
   transition: all 0.3s ease;
   position: relative;
 }
 
 .player-panel.is-turn {
-  border-color: #f59e0b;
-  background: rgba(255, 251, 235, 0.9);
-  box-shadow: 0 8px 32px rgba(245, 158, 11, 0.2);
-  transform: translateY(-2px);
+  border-color: #f97316;
+  background: #fff7ed;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
 }
 
 .player-panel.is-you::before {
@@ -419,48 +425,49 @@ onUnmounted(() => {
   left: 0;
   top: 0;
   bottom: 0;
-  width: 4px;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  border-radius: 1rem 0 0 1rem;
+  width: 3px;
+  background: #1f2937;
+  border-radius: 0.75rem 0 0 0.75rem;
 }
 
 .player-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  height: 100%;
 }
 
 .player-avatar {
-  width: 50px;
-  height: 50px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1.25rem;
+  font-size: 1rem;
   color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 2px solid white;
+  flex-shrink: 0;
 }
 
 .player-avatar.small {
-  width: 32px;
-  height: 32px;
-  font-size: 0.875rem;
+  width: 28px;
+  height: 28px;
+  font-size: 0.75rem;
 }
 
 .player1-avatar {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: #1f2937;
 }
 
 .player2-avatar {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: #f97316;
 }
 
 .tie-avatar {
-  background: linear-gradient(135deg, #6b7280, #4b5563);
+  background: #6b7280;
 }
 
 .player-initial {
@@ -469,48 +476,50 @@ onUnmounted(() => {
 
 .player-details {
   flex: 1;
+  min-width: 0;
 }
 
 .player-name {
-  font-size: 1.125rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: #1f2937;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.125rem;
 }
 
 .you-badge {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: #f97316;
   color: white;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
+  font-size: 0.625rem;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
   font-weight: 500;
-  text-shadow: none;
 }
 
 .player-score {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #6b7280;
   font-weight: 500;
 }
 
 .turn-indicator {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
-  background: rgba(16, 185, 129, 0.1);
-  border-radius: 0.75rem;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(249, 115, 22, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  flex-shrink: 0;
 }
 
 .turn-text {
   font-weight: 600;
-  color: #059669;
-  font-size: 0.875rem;
+  color: #ea580c;
+  font-size: 0.75rem;
+  white-space: nowrap;
 }
 
 .timer-container {
@@ -519,14 +528,14 @@ onUnmounted(() => {
 }
 
 .timer {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-  font-size: 1rem;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.875rem;
   font-weight: 600;
   color: #dc2626;
   background: rgba(254, 226, 226, 0.8);
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  min-width: 3.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  min-width: 2.5rem;
   text-align: center;
   border: 1px solid rgba(220, 38, 38, 0.2);
 }
@@ -552,77 +561,78 @@ onUnmounted(() => {
 .game-controls {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .audio-button {
-  padding: 0.5rem;
-  background: linear-gradient(135deg, #10b981, #059669);
+  padding: 0.375rem;
+  background: #f97316;
   color: white;
   border: none;
-  border-radius: 0.75rem;
-  font-size: 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  width: 40px;
-  height: 40px;
+  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .audio-button:hover {
-  background: linear-gradient(135deg, #059669, #047857);
+  background: #ea580c;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
 }
 
 .audio-button.audio-disabled {
-  background: linear-gradient(135deg, #6b7280, #4b5563);
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+  background: #6b7280;
+  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3);
 }
 
 .audio-button.audio-disabled:hover {
-  background: linear-gradient(135deg, #4b5563, #374151);
-  box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4);
+  background: #4b5563;
+  box-shadow: 0 4px 8px rgba(107, 114, 128, 0.4);
 }
 
 .switch-player-button {
-  padding: 0.75rem 1.25rem;
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  padding: 0.5rem 0.75rem;
+  background: #1f2937;
   color: white;
   border: none;
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 2px 4px rgba(31, 41, 55, 0.3);
 }
 
 .switch-player-button:hover {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  background: #111827;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 8px rgba(31, 41, 55, 0.4);
 }
 
-.reset-button {
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+.forfeit-button {
+  padding: 0.5rem 0.75rem;
+  background: #dc2626;
   color: white;
   border: none;
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
+  font-size: 0.75rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
 }
 
-.reset-button:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+.forfeit-button:hover {
+  background: #b91c1c;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
 }
 
 .game-main {
@@ -640,8 +650,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(5px);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -649,29 +658,28 @@ onUnmounted(() => {
 }
 
 .game-over-content {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  padding: 3rem;
-  border-radius: 1.5rem;
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 1rem;
   text-align: center;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
   max-width: 400px;
 }
 
 .winner-avatar {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 1.5rem;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 2rem;
+  font-size: 1.5rem;
   color: white;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  border: 4px solid white;
+  border: 3px solid white;
 }
 
 .winner-initial, .tie-icon {
@@ -679,80 +687,85 @@ onUnmounted(() => {
 }
 
 .game-over-content h2 {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #1f2937;
-  margin-bottom: 2rem;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  margin-bottom: 1.5rem;
 }
 
 .final-scores {
-  margin: 2rem 0;
+  margin: 1.5rem 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .score-row {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: rgba(248, 250, 252, 0.5);
-  border-radius: 0.75rem;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
 }
 
 .score-text {
-  font-size: 1rem;
+  font-size: 0.875rem;
   color: #374151;
   font-weight: 500;
 }
 
 .play-again-button {
-  padding: 1rem 2.5rem;
-  background: linear-gradient(135deg, #10b981, #059669);
+  padding: 0.75rem 1.5rem;
+  background: #f97316;
   color: white;
   border: none;
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
-  font-size: 1.125rem;
+  font-size: 1rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
 }
 
 .play-again-button:hover {
-  background: linear-gradient(135deg, #059669, #047857);
+  background: #ea580c;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
 }
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .game-header {
     flex-direction: column;
-    gap: 1.5rem;
-    padding: 1.25rem;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    min-height: auto;
+  }
+  
+  .logo {
+    height: 80px;
   }
   
   .player-panels {
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 0.5rem;
+    width: 100%;
   }
   
   .player-panel {
-    min-width: 260px;
+    min-width: 280px;
     width: 100%;
-    max-width: 300px;
+    max-width: 320px;
+    max-height: none;
   }
   
   .game-controls {
     width: 100%;
-    max-width: 200px;
+    max-width: 160px;
+    flex-direction: row;
+    justify-content: center;
   }
 }
 </style>

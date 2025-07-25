@@ -249,14 +249,17 @@ const selectLine = (line: PossibleLine) => {
   padding: 2rem;
   position: relative;
   margin: 0 auto;
-  background: transparent;
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
 }
 
 .dot {
   position: absolute;
   width: 12px;
   height: 12px;
-  background: linear-gradient(135deg, #374151, #1f2937);
+  background: #1f2937;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   transition: all 0.3s ease;
@@ -265,7 +268,7 @@ const selectLine = (line: PossibleLine) => {
 }
 
 .dot:hover {
-  background: linear-gradient(135deg, #1f2937, #111827);
+  background: #111827;
   cursor: pointer;
   transform: translate(-50%, -50%) scale(1.3);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -323,7 +326,7 @@ const selectLine = (line: PossibleLine) => {
 }
 
 .line-visual.line-hover {
-  background: linear-gradient(90deg, #f97316, #ea580c);
+  background: #f97316;
   opacity: 1;
   transform: translate(-50%, -50%) scale(1.1);
   box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
@@ -335,13 +338,13 @@ const selectLine = (line: PossibleLine) => {
 }
 
 .player1-line {
-  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  background: #1f2937;
+  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.3);
 }
 
 .player2-line {
-  background: linear-gradient(90deg, #f59e0b, #d97706);
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  background: #f97316;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
 }
 
 .square {
@@ -366,15 +369,15 @@ const selectLine = (line: PossibleLine) => {
 }
 
 .player1-square {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  border-color: #1d4ed8;
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  background: #1f2937;
+  border-color: #1f2937;
+  box-shadow: 0 6px 20px rgba(31, 41, 55, 0.4);
 }
 
 .player2-square {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  border-color: #d97706;
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+  background: #f97316;
+  border-color: #f97316;
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
 }
 
 .square-initial {
