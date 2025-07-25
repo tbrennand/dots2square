@@ -567,26 +567,30 @@ function checkForCompletedSquares(
         continue
       }
       
-      // Define the four lines that make up this square (using dot IDs)
+      // Define the four lines that make up this square (using dot IDs "row-col")
+      const topDot = `${y}-${x}`
+      const rightDot = `${y}-${x + 1}`
+      const bottomDot = `${y + 1}-${x}`
+      const bottomRightDot = `${y + 1}-${x + 1}`
+
       const squareLines = [
         // Top line
-        `${x}-${y}-${x + 1}-${y}`,
-        // Right line
-        `${x + 1}-${y}-${x + 1}-${y + 1}`,
+        { startDot: topDot, endDot: rightDot },
         // Bottom line
-        `${x}-${y + 1}-${x + 1}-${y + 1}`,
+        { startDot: bottomDot, endDot: bottomRightDot },
         // Left line
-        `${x}-${y}-${x}-${y + 1}`
+        { startDot: topDot, endDot: bottomDot },
+        // Right line
+        { startDot: rightDot, endDot: bottomRightDot }
       ]
       
       // Check if all four lines exist
-      const allLinesExist = squareLines.every(squareLine => {
-        const [startX, startY, endX, endY] = squareLine.split('-').map(Number)
-        return lines?.some(line => 
-          (line.startDot === `${startX}-${startY}` && line.endDot === `${endX}-${endY}`) ||
-          (line.startDot === `${endX}-${endY}` && line.endDot === `${startX}-${startY}`)
+      const allLinesExist = squareLines.every(squareLine => 
+        lines?.some(line => 
+          (line.startDot === squareLine.startDot && line.endDot === squareLine.endDot) ||
+          (line.startDot === squareLine.endDot && line.endDot === squareLine.startDot)
         )
-      })
+      )
       
       if (allLinesExist) {
         completedSquares.push({
@@ -594,7 +598,7 @@ function checkForCompletedSquares(
           topLeftX: x,
           topLeftY: y,
           player: undefined, // Will be set by the calling function
-          lines: squareLines
+          lines: squareLines.map(l => `${l.startDot}-${l.endDot}`)
         })
       }
     }

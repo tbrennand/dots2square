@@ -174,46 +174,37 @@ const potentialLines = computed(() => possibleLines.value)
 
 // Get line position and style dynamically
 const getLineStyle = (line: PossibleLine | Line) => {
-  const startPos = getDotPosition(line.startDot)
-  const endPos = getDotPosition(line.endDot)
-  
-  // Calculate line properties
-  const isHorizontal = startPos.y === endPos.y
-  const isVertical = startPos.x === endPos.x
-  
+  const [startY, startX] = line.startDot.split('-').map(Number)
+  const [endY, endX] = line.endDot.split('-').map(Number)
+
+  const isHorizontal = startY === endY
+  const isVertical = startX === endX
+
   if (isHorizontal) {
-    const width = Math.abs(endPos.x - startPos.x)
-    const left = Math.min(startPos.x, endPos.x)
-    const top = startPos.y - 2 // Center vertically
-    
+    const width = Math.abs(endX - startX) * spacing.value
+    const left = Math.min(startX, endX) * spacing.value
+    const top = startY * spacing.value - 2 // Center vertically
+
     return {
       left: `${left}px`,
       top: `${top}px`,
       width: `${width}px`,
       height: '4px',
-      transform: 'none'
     }
   } else if (isVertical) {
-    const height = Math.abs(endPos.y - startPos.y)
-    const left = startPos.x - 2 // Center horizontally
-    const top = Math.min(startPos.y, endPos.y)
-    
+    const height = Math.abs(endY - startY) * spacing.value
+    const left = startX * spacing.value - 2 // Center horizontally
+    const top = Math.min(startY, endY) * spacing.value
+
     return {
       left: `${left}px`,
       top: `${top}px`,
       width: '4px',
       height: `${height}px`,
-      transform: 'none'
     }
   }
-  
-  return {}
-}
 
-// Get dot position for coordinates
-const getDotPosition = (dotId: string) => {
-  const [y, x] = dotId.split('-').map(Number)
-  return { x: x * spacing.value, y: y * spacing.value }
+  return {}
 }
 
 // Square style method
