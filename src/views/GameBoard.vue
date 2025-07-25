@@ -6,29 +6,48 @@
         
         <div class="player-panels">
           <!-- Player 1 Panel -->
-          <div :class="['player-panel', { 'is-turn': currentPlayer === 1 }]">
+          <div :class="['player-panel', { 'is-turn': currentPlayer === 1, 'is-you': activePlayer === 1 }]">
             <div class="panel-header">
-              <span class="player-name">Player 1</span>
+              <span class="player-name">
+                Player 1
+                <span v-if="activePlayer === 1" class="you-badge">(You)</span>
+              </span>
               <span class="player-score">Score: {{ scores[1] }}</span>
             </div>
             <div v-if="currentPlayer === 1" class="turn-indicator">
-              <span>Your Turn</span>
+              <span v-if="activePlayer === 1">Your Turn</span>
+              <span v-else>Player 1's Turn</span>
+              <span class="timer" :class="{ 'timer-warning': timeRemaining <= 10 }">
+                {{ formatTime(timeRemaining) }}
+              </span>
             </div>
           </div>
 
           <!-- Player 2 Panel -->
-          <div :class="['player-panel', { 'is-turn': currentPlayer === 2 }]">
+          <div :class="['player-panel', { 'is-turn': currentPlayer === 2, 'is-you': activePlayer === 2 }]">
             <div class="panel-header">
-              <span class="player-name">Player 2</span>
+              <span class="player-name">
+                Player 2
+                <span v-if="activePlayer === 2" class="you-badge">(You)</span>
+              </span>
               <span class="player-score">Score: {{ scores[2] }}</span>
             </div>
             <div v-if="currentPlayer === 2" class="turn-indicator">
-              <span>Your Turn</span>
+              <span v-if="activePlayer === 2">Your Turn</span>
+              <span v-else>Player 2's Turn</span>
+              <span class="timer" :class="{ 'timer-warning': timeRemaining <= 10 }">
+                {{ formatTime(timeRemaining) }}
+              </span>
             </div>
           </div>
         </div>
 
-        <button @click="resetGame" class="reset-button">New Game</button>
+        <div class="game-controls">
+          <button @click="switchPlayer" class="switch-player-button">
+            Switch to Player {{ activePlayer === 1 ? 2 : 1 }}
+          </button>
+          <button @click="resetGame" class="reset-button">New Game</button>
+        </div>
       </header>
 
       <main class="game-main">
@@ -36,7 +55,7 @@
           :grid-size="gridSize"
           :drawn-lines="drawnLines"
           :claimed-squares="claimedSquares"
-          :can-make-move="!gameOver"
+          :can-make-move="canCurrentPlayerMove"
           @line-selected="handleLineSelected"
         />
         
@@ -56,16 +75,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import DotGrid from '../components/DotGrid.vue'
 
 // Game state
 const gridSize = ref(5) // 5x5 grid of squares (6x6 dots)
 const drawnLines = ref<Array<{id: string, startDot: string, endDot: string, player: number}>>([])
 const claimedSquares = ref<Array<{id: string, topLeftX: number, topLeftY: number, player: number}>>([])
-const currentPlayer = ref(1)
+const currentPlayer = ref(1) // Whose turn it is in the game
+const activePlayer = ref(1)  // Which player is actively playing (local player identification)
 const scores = ref({ 1: 0, 2: 0 })
 const gameOver = ref(false)
+
+// Timer state
+const timeRemaining = ref(30)
+const turnTimer = ref<number | null>(null)
+const TURN_DURATION = 30 // seconds
 
 // Computed properties
 const winner = computed(() => {
@@ -73,6 +98,10 @@ const winner = computed(() => {
   if (scores.value[1] > scores.value[2]) return 1
   if (scores.value[2] > scores.value[1]) return 2
   return 'tie'
+})
+
+const canCurrentPlayerMove = computed(() => {
+  return !gameOver.value && currentPlayer.value === activePlayer.value && timeRemaining.value > 0
 })
 
 // Check if a line already exists
@@ -128,9 +157,38 @@ const findCompletedSquares = () => {
   return newSquares
 }
 
+// Start turn timer
+const startTurnTimer = () => {
+  clearTurnTimer()
+  timeRemaining.value = TURN_DURATION
+  
+  turnTimer.value = window.setInterval(() => {
+    timeRemaining.value--
+    
+    if (timeRemaining.value <= 0) {
+      // Time's up - switch to next player
+      nextTurn()
+    }
+  }, 1000)
+}
+
+// Clear turn timer
+const clearTurnTimer = () => {
+  if (turnTimer.value) {
+    clearInterval(turnTimer.value)
+    turnTimer.value = null
+  }
+}
+
+// Switch to next turn
+const nextTurn = () => {
+  currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
+  startTurnTimer()
+}
+
 // Handle line selection from DotGrid
 const handleLineSelected = (line: { startDot: string; endDot: string }) => {
-  if (gameOver.value || lineExists(line.startDot, line.endDot)) return
+  if (!canCurrentPlayerMove.value || lineExists(line.startDot, line.endDot)) return
   
   // Add the new line
   const newLine = {
@@ -153,17 +211,29 @@ const handleLineSelected = (line: { startDot: string; endDot: string }) => {
     scores.value[currentPlayer.value as 1 | 2] += squaresCompleted
     
     // Player gets another turn if they completed squares
-    // (currentPlayer stays the same)
+    // Reset timer but keep same player
+    startTurnTimer()
   } else {
     // Switch to other player
-    currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
+    nextTurn()
   }
   
   // Check if game is over (all squares claimed)
   const totalSquares = gridSize.value * gridSize.value
   if (claimedSquares.value.length >= totalSquares) {
     gameOver.value = true
+    clearTurnTimer()
   }
+}
+
+// Switch active player (for local play)
+const switchPlayer = () => {
+  activePlayer.value = activePlayer.value === 1 ? 2 : 1
+}
+
+// Format time display
+const formatTime = (seconds: number) => {
+  return `${seconds}s`
 }
 
 // Reset game
@@ -171,13 +241,20 @@ const resetGame = () => {
   drawnLines.value = []
   claimedSquares.value = []
   currentPlayer.value = 1
+  activePlayer.value = 1
   scores.value = { 1: 0, 2: 0 }
   gameOver.value = false
+  startTurnTimer()
 }
 
 // Initialize game on mount
 onMounted(() => {
   resetGame()
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  clearTurnTimer()
 })
 </script>
 
@@ -235,11 +312,30 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
 }
 
+.player-panel.is-you {
+  border-left: 4px solid #3b82f6;
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;
   font-weight: 600;
   color: #374151;
+}
+
+.player-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.you-badge {
+  background-color: #3b82f6;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
 }
 
 .player-score {
@@ -249,8 +345,55 @@ onMounted(() => {
 
 .turn-indicator {
   margin-top: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   color: #16a34a;
   font-weight: 600;
+}
+
+.timer {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 1.125rem;
+  color: #dc2626;
+  background-color: #fee2e2;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  min-width: 3rem;
+  text-align: center;
+}
+
+.timer-warning {
+  background-color: #dc2626;
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.game-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.switch-player-button {
+  padding: 0.5rem 1rem;
+  background-color: #8b5cf6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.3s ease;
+}
+
+.switch-player-button:hover {
+  background-color: #7c3aed;
 }
 
 .reset-button {
@@ -329,4 +472,21 @@ onMounted(() => {
 .play-again-button:hover {
   background-color: #15803d;
 }
-</style> 
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .game-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .player-panels {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .player-panel {
+    width: 200px;
+  }
+}
+</style>
