@@ -409,24 +409,29 @@ const matchUrl = computed(() => {
 const copyMatchLink = async () => {
   try {
     await navigator.clipboard.writeText(matchUrl.value)
-    successMessage.value = '✅ Match link copied to clipboard!'
+    successMessage.value = '📋 Link copied! You can now paste it anywhere.'
     
     // Add visual feedback to the button
-    const copyBtn = document.querySelector('.share-btn.primary') as HTMLElement
+    const copyBtn = document.querySelector('.share-btn.secondary') as HTMLElement
     if (copyBtn) {
       copyBtn.style.transform = 'scale(0.95)'
       copyBtn.style.background = '#059669'
+      copyBtn.textContent = 'Copied!'
       setTimeout(() => {
         copyBtn.style.transform = ''
         copyBtn.style.background = ''
-      }, 200)
+        copyBtn.textContent = '📋 Copy Link'
+      }, 2000)
     }
     
     setTimeout(() => {
       successMessage.value = ''
-    }, 3000)
+    }, 4000)
   } catch (error) {
-    errorMessage.value = '❌ Failed to copy link'
+    errorMessage.value = '❌ Failed to copy link - please try again'
+    setTimeout(() => {
+      errorMessage.value = ''
+    }, 3000)
   }
 }
 
@@ -970,18 +975,29 @@ onUnmounted(() => {
 }
 
 .success-message {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #16a34a;
+  background: #ecfdf5;
+  border: 2px solid #10b981;
+  color: #065f46;
   text-align: center;
-  font-weight: 600;
-  animation: fadeInOut 3s ease-in-out;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  animation: fadeInOut 4s ease-in-out;
+  position: relative;
+}
+
+.success-message::before {
+  content: '📋';
+  font-size: 1.5rem;
+  margin-right: 0.5rem;
 }
 
 @keyframes fadeInOut {
   0% { opacity: 0; transform: translateY(-10px); }
   10% { opacity: 1; transform: translateY(0); }
-  90% { opacity: 1; transform: translateY(0); }
+  85% { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-10px); }
 }
 
