@@ -311,12 +311,60 @@ export async function playMove(
     const result = await runTransaction(db, async (transaction) => {
       // Get current match data
       const matchDoc = await transaction.get(matchRef)
+      
       if (!matchDoc.exists()) {
-        throw new Error('Match not found')
+        console.error('Match not found:', matchId)
+        return { success: false, squaresClaimed: 0, gameCompleted: false, error: 'Match not found' }
       }
       
       const matchData = matchDoc.data() as MatchData
       
+      // Handle forfeit action
+      if (line.forfeit && line.winner) {
+        console.log(`🚫 Processing forfeit: Player ${line.winner} wins by forfeit`)
+        
+        const updatedMatchData = {
+          ...matchData,
+          gameOver: true,
+          winner: line.winner,
+          status: 'completed' as const,
+          updatedAt: new Date()
+        }
+        
+        transaction.update(matchRef, updatedMatchData)
+        
+        return {
+          success: true,
+          squaresClaimed: 0,
+          gameCompleted: true,
+          winner: line.winner
+        }
+      }
+      
+      // Handle pass turn action
+      if (line.pass) {
+        console.log('🔄 Processing pass turn')
+        
+        const nextTurn = matchData.currentTurn === 1 ? 2 : 1
+        const nextPlayerId = nextTurn === 1 ? matchData.player1.id : (matchData.player2?.id || matchData.player1.id)
+        
+        const updatedMatchData = {
+          ...matchData,
+          currentTurn: nextTurn,
+          currentPlayerId: nextPlayerId,
+          turnStartedAt: serverTimestamp(),
+          updatedAt: new Date()
+        }
+        
+        transaction.update(matchRef, updatedMatchData)
+        
+        return {
+          success: true,
+          squaresClaimed: 0,
+          gameCompleted: false
+        }
+      }
+
       // Validate move
       const validationResult = validateMove(matchData, playerId, line)
       if (!validationResult.valid) {
