@@ -110,10 +110,8 @@ const gridStyle = computed(() => ({
   width: `${gridWidth.value}px`,
   height: `${gridHeight.value}px`,
   position: 'relative' as const,
-  background: 'white',
+  background: 'transparent',
   borderRadius: '1rem',
-  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-  border: '2px solid #f1f5f9',
   maxWidth: '100%',
   maxHeight: '100%'
 }))
@@ -256,6 +254,7 @@ const selectLine = (line: PossibleLine) => {
   padding: 2rem;
   position: relative;
   margin: 0 auto;
+  background: transparent;
 }
 
 .dot {
