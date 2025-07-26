@@ -418,16 +418,38 @@ export async function playMove(
         matchData.squares || []
       )
       
+      console.log('🔍 Square Check Result:', {
+        newLineAdded: newLine,
+        totalLines: updatedLines.length,
+        completedSquares: squareCheckResult.completedSquares.length,
+        completedSquareIds: squareCheckResult.completedSquares.map(s => s.id)
+      })
+      
       // Update squares
       const updatedSquares = [...(matchData.squares || [])]
       let squaresClaimed = 0
       
+      console.log('🔍 Processing completed squares:', {
+        completedCount: squareCheckResult.completedSquares.length,
+        existingSquares: updatedSquares.length
+      })
+      
       squareCheckResult.completedSquares.forEach(square => {
         const existingSquareIndex = updatedSquares.findIndex(s => s.id === square.id)
+        
+        console.log('🔍 Processing square:', {
+          squareId: square.id,
+          existingIndex: existingSquareIndex,
+          existingPlayer: existingSquareIndex >= 0 ? updatedSquares[existingSquareIndex].player : 'not found'
+        })
+        
         if (existingSquareIndex >= 0) {
           // Only count as claimed if it wasn't already claimed
           if (updatedSquares[existingSquareIndex].player === undefined) {
             squaresClaimed++
+            console.log('✅ Square claimed!', square.id)
+          } else {
+            console.log('⚠️ Square already claimed by player:', updatedSquares[existingSquareIndex].player)
           }
           // Update existing square
           updatedSquares[existingSquareIndex] = {
@@ -437,12 +459,20 @@ export async function playMove(
           }
         } else {
           // Add new square (shouldn't happen with pre-populated squares)
+          console.log('⚠️ Adding new square - this should not happen:', square.id)
           updatedSquares.push({
             ...square,
             player: playerNumber
           })
           squaresClaimed++
         }
+      })
+      
+      console.log('🔍 Final square results:', {
+        squaresClaimed,
+        playerNumber,
+        totalUpdatedSquares: updatedSquares.length,
+        claimedSquares: updatedSquares.filter(s => s.player !== undefined).length
       })
       
       // Update scores
