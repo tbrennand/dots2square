@@ -347,7 +347,7 @@ const getLineClass = (line: Line) => {
   transform: translate(-50%, -50%);
   background-color: #f97316;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.1s ease; /* Faster transition */
   border-radius: 2px;
 }
 

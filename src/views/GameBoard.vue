@@ -467,57 +467,82 @@ const syncFromFirebase = () => {
   }
 }
 
+const isMakingMove = ref(false) // The new move lock
+
+// Watcher for debugging turn changes
+watch(canCurrentPlayerMove, (canMove) => {
+  console.log(`[TURN_CHECK] Can current player move: ${canMove}`, {
+    isMyTurn: currentPlayer.value === currentUserPlayerNumber.value,
+    currentPlayer: currentPlayer.value,
+    myPlayerNumber: currentUserPlayerNumber.value,
+    isMakingMove: isMakingMove.value,
+    gameOver: gameOver.value
+  });
+})
+
 // Handle line selection with Firebase sync
 const handleLineSelected = async (line: { startDot: string; endDot: string }) => {
-  if (!canCurrentPlayerMove.value || !currentMatchId.value) return
-
-  const lineId = [line.startDot, line.endDot].sort().join('-')
-  if (drawnLines.value.some(l => l.id === lineId)) return
-
-  const player = currentPlayer.value
-  const newLine = { id: lineId, startDot: line.startDot, endDot: line.endDot, player }
-  
-  // Optimistically update UI
-  drawnLines.value.push(newLine)
-  
-  // Check for completed squares with the new line
-  const newSquaresFound = checkForCompletedSquares(newLine)
-  
-  if (newSquaresFound.length > 0) {
-    // Player claimed a square!
-    console.log(`✅ Player ${player} claimed ${newSquaresFound.length} square(s)!`)
-    
-    // Add new squares to the list
-    newSquaresFound.forEach(square => {
-      claimedSquares.value.push({ ...square, player })
-    })
-    
-    // Update score
-    scores.value[player] = (scores.value[player] || 0) + newSquaresFound.length
-    
-    // EXTRA TURN: Do not switch currentPlayer
-    console.log(`🔄 Player ${player} gets an extra turn.`)
-    
-  } else {
-    // No square claimed, switch turns
-    currentPlayer.value = player === 1 ? 2 : 1
-    console.log(`🔄 No square claimed. Switching to player ${currentPlayer.value}.`)
+  // Rigorous check to prevent moves when it's not the player's turn or a move is already processing.
+  if (!canCurrentPlayerMove.value || isMakingMove.value) {
+    console.log(`[MOVE BLOCKED] Can move: ${canCurrentPlayerMove.value}, Is already making move: ${isMakingMove.value}`);
+    return;
   }
   
-  // Sync the final state to Firebase
+  isMakingMove.value = true; // Lock the board
+  console.log(`[MOVE START] Player ${currentPlayer.value} is making a move. Board locked.`);
+
+  const lineId = [line.startDot, line.endDot].sort().join('-')
+  if (drawnLines.value.some(l => l.id === lineId)) {
+    isMakingMove.value = false; // Unlock if line already exists
+    return;
+  }
+
+  const player = currentPlayer.value;
+  const newLine = { id: lineId, startDot: line.startDot, endDot: line.endDot, player };
+  
+  // 1. Optimistic UI Update
+  drawnLines.value.push(newLine);
+  
+  // 2. Check for completed squares
+  const newSquaresFound = checkForCompletedSquares(newLine);
+  
+  let turnSwitch = true; // Assume the turn will switch
+
+  if (newSquaresFound.length > 0) {
+    console.log(`[SQUARE CLAIMED] Player ${player} claimed ${newSquaresFound.length} square(s).`);
+    newSquaresFound.forEach(square => {
+      claimedSquares.value.push({ ...square, player });
+    });
+    scores.value[player] = (scores.value[player] || 0) + newSquaresFound.length;
+    
+    // 3. EXTRA TURN RULE: Do not switch turns
+    turnSwitch = false;
+    console.log(`[EXTRA TURN] Player ${player} gets another turn.`);
+  }
+
+  // 4. Determine the next player
+  const nextPlayer = turnSwitch ? (player === 1 ? 2 : 1) : player;
+  
+  // 5. Sync to Firebase
   try {
-    await updateDoc(doc(db, 'matches', currentMatchId.value), {
+    console.log(`[FIREBASE SYNC] Syncing move. Next player: ${nextPlayer}`);
+    await updateDoc(doc(db, 'matches', currentMatchId.value!), {
       lines: drawnLines.value,
       squares: claimedSquares.value,
       scores: scores.value,
-      currentPlayer: currentPlayer.value,
+      currentPlayer: nextPlayer,
       updatedAt: serverTimestamp(),
-    })
+    });
+    console.log('[FIREBASE SYNC] Sync successful.');
   } catch (error) {
-    console.error("Firebase sync failed:", error)
-    // NOTE: In a real app, you might want to revert the optimistic updates here
+    console.error("[FIREBASE SYNC] Sync failed:", error);
+    // Potentially revert optimistic updates here
+  } finally {
+    // 6. Unlock the board
+    isMakingMove.value = false;
+    console.log(`[MOVE END] Board unlocked.`);
   }
-}
+};
 
 // Check for completed squares (same logic as before)
 const checkForCompletedSquares = (line: Line) => {
