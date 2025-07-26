@@ -1057,6 +1057,7 @@ watch(gameOver, (isOver) => {
   justify-content: center;
   align-items: center;
   position: relative;
+  z-index: 10; /* Ensure grid is above the header */
   padding: 1rem;
 }
 

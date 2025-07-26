@@ -218,7 +218,7 @@ const getLineHitboxStyle = (line: PossibleLine) => {
       left: `${startX * spacing.value - (thickness / 2) + padding}px`,
       top: `${Math.min(startY, endY) * spacing.value + padding}px`,
       width: `${thickness}px`,
-      height: `${thickness}px`,
+      height: `${spacing.value}px`, // Corrected from thickness
     }
   }
 }
