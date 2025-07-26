@@ -84,11 +84,13 @@
     </header>
 
     <main class="game-main">
-      <DotGrid
+      <DotGrid 
         :grid-size="gridSize"
         :drawn-lines="drawnLines"
         :claimed-squares="claimedSquares"
         :can-make-move="canCurrentPlayerMove"
+        :player1-name="matchData?.player1?.name || 'Player 1'"
+        :player2-name="matchData?.player2?.name || 'Player 2'"
         @line-selected="handleLineSelected"
       />
       

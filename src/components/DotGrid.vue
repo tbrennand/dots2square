@@ -31,7 +31,9 @@
     <!-- Claimed Squares -->
     <div v-for="square in claimedSquares" :key="square.id" class="square" :style="squareStyle(square)">
       <div class="square-content" :class="{ 'player1-square': square.player === 1, 'player2-square': square.player === 2 }">
-        <span class="square-initial">{{ getPlayerInitial(square.player) }}</span>
+        <div class="initial-circle">
+          <span class="square-initial">{{ getPlayerInitial(square.player) }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -75,6 +77,8 @@ const props = defineProps<{
   drawnLines?: Line[]
   claimedSquares?: Square[]
   canMakeMove?: boolean
+  player1Name?: string
+  player2Name?: string
 }>()
 
 // Emits
@@ -226,10 +230,17 @@ const squareStyle = (square: Square) => {
   }
 }
 
-// Get player initial
+// Get player initial from actual player names
 const getPlayerInitial = (player?: number) => {
-  if (player === 1) return 'A'  // Player 1 gets 'A'
-  if (player === 2) return 'B'  // Player 2 gets 'B'
+  if (player === 1 && props.player1Name) {
+    return props.player1Name.charAt(0).toUpperCase()
+  }
+  if (player === 2 && props.player2Name) {
+    return props.player2Name.charAt(0).toUpperCase()
+  }
+  // Fallback to A/B if no names provided
+  if (player === 1) return 'A'
+  if (player === 2) return 'B'
   return ''
 }
 
@@ -420,12 +431,24 @@ const getLineClass = (line: Line) => {
 }
 
 .square-initial {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: white !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-  z-index: 11;
+  color: #1f2937 !important;
+  text-shadow: none;
+  filter: none;
+  z-index: 12;
+}
+
+.initial-circle {
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(0, 0, 0, 0.1);
 }
 
 .square:hover {
