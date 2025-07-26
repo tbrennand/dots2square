@@ -456,12 +456,110 @@ const getLineClass = (line: Line) => {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
-/* Enhanced mobile responsiveness and touch optimization */
+/* Mobile Optimizations - Complete Overhaul */
 @media (max-width: 768px) {
   .dot-grid-container {
-    padding: 0;
-    max-width: 95vw;
-    max-height: 60vh;
+    width: 100% !important;
+    height: auto !important;
+    max-width: min(90vw, 400px);
+    max-height: min(90vw, 400px);
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-width: 1.5px;
+    transition: all 0.2s ease;
+  }
+  
+  .dot:active {
+    transform: translate(-50%, -50%) scale(1.4);
+    background: #f97316;
+  }
+  
+  .line-container {
+    /* Larger touch targets for mobile */
+    min-width: 32px;
+    min-height: 32px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+  
+  .line-hitbox {
+    /* Even larger touch area */
+    min-width: 40px;
+    min-height: 40px;
+    margin: -20px 0 0 -20px;
+    border-radius: 6px;
+  }
+  
+  .line-container:active .line-visual {
+    background: #f97316 !important;
+    opacity: 0.9 !important;
+    transform: translate(-50%, -50%) scale(1.3) !important;
+  }
+  
+  .line-visual.line-hover {
+    transform: translate(-50%, -50%) scale(1.3);
+    background: #f97316;
+    opacity: 0.8;
+  }
+  
+  .line-drawn {
+    opacity: 1;
+  }
+  
+  .player1-line {
+    background: #3b82f6 !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  }
+  
+  .player2-line {
+    background: #f97316 !important;
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4);
+  }
+  
+  .square {
+    border-width: 2.5px;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+  }
+  
+  .square-content {
+    border-radius: 6px;
+  }
+  
+  .initial-circle {
+    width: 20px;
+    height: 20px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    border-width: 1.5px;
+  }
+  
+  .square-initial {
+    font-size: 0.875rem;
+    font-weight: 800;
+  }
+  
+  .square:active {
+    transform: scale(1.05);
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  .dot-grid-container {
+    max-width: min(95vw, 320px);
+    max-height: min(95vw, 320px);
+    padding: 0.75rem;
+    border-radius: 10px;
   }
   
   .dot {
@@ -471,88 +569,145 @@ const getLineClass = (line: Line) => {
   }
   
   .line-container {
-    /* Increase touch target size for mobile */
-    min-width: 24px;
-    min-height: 24px;
+    min-width: 28px;
+    min-height: 28px;
   }
   
   .line-hitbox {
-    /* Larger touch area */
-    min-width: 30px;
-    min-height: 30px;
-    margin: -15px 0 0 -15px;
+    min-width: 36px;
+    min-height: 36px;
+    margin: -18px 0 0 -18px;
   }
   
   .square {
     border-width: 2px;
+    border-radius: 6px;
+  }
+  
+  .initial-circle {
+    width: 18px;
+    height: 18px;
+    border-width: 1px;
   }
   
   .square-initial {
     font-size: 0.75rem;
   }
-  
-  .line-visual.line-hover {
-    transform: translate(-50%, -50%) scale(1.2);
-    background: #f97316;
-    opacity: 0.8;
-  }
 }
 
-@media (max-width: 480px) {
+/* Landscape mobile optimization */
+@media (max-height: 600px) and (orientation: landscape) {
   .dot-grid-container {
-    max-width: 98vw;
-    max-height: 55vh;
+    max-width: min(70vh, 350px);
+    max-height: min(70vh, 350px);
+    padding: 0.5rem;
   }
   
   .dot {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
+  }
+  
+  .line-container {
+    min-width: 24px;
+    min-height: 24px;
   }
   
   .line-hitbox {
-    min-width: 35px;
-    min-height: 35px;
-    margin: -17px 0 0 -17px;
+    min-width: 32px;
+    min-height: 32px;
+    margin: -16px 0 0 -16px;
+  }
+  
+  .initial-circle {
+    width: 16px;
+    height: 16px;
   }
   
   .square-initial {
-    font-size: 0.625rem;
+    font-size: 0.675rem;
   }
 }
 
 /* Touch device optimizations */
-@media (hover: none) {
+@media (hover: none) and (pointer: coarse) {
   .dot:hover {
     transform: translate(-50%, -50%);
     background: #1f2937;
   }
   
-  .line-visual.line-hover {
-    background: #f97316;
-    opacity: 0.6;
+  .line-visual:hover {
+    transform: translate(-50%, -50%);
+    background: transparent;
+    opacity: 0;
+  }
+  
+  .line-container.potential:active .line-visual {
+    background: #f97316 !important;
+    opacity: 0.9 !important;
+    transform: translate(-50%, -50%) scale(1.2) !important;
   }
   
   .square:hover {
     transform: none;
   }
   
-  /* Add touch feedback */
-  .line-container:active .line-visual {
-    background: #f97316;
-    opacity: 0.8;
-    transform: translate(-50%, -50%) scale(1.1);
-    transition: all 0.1s ease;
+  .square:active {
+    transform: scale(1.03);
   }
 }
 
-/* High DPI displays */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+/* High DPI mobile displays */
+@media (-webkit-min-device-pixel-ratio: 2) and (max-width: 768px) {
   .dot {
-    border-width: 0.5px;
+    border-width: 0.75px;
   }
   
   .line-visual {
-    border-radius: 2px;
+    border-radius: 1.5px;
+  }
+  
+  .square {
+    border-width: 1.25px;
+  }
+  
+  .initial-circle {
+    border-width: 0.75px;
+  }
+}
+
+/* Very large mobile screens (like iPad Mini) */
+@media (min-width: 769px) and (max-width: 1024px) and (pointer: coarse) {
+  .dot-grid-container {
+    max-width: min(80vw, 500px);
+    max-height: min(80vw, 500px);
+    padding: 1.5rem;
+  }
+  
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-width: 2px;
+  }
+  
+  .line-container {
+    min-width: 36px;
+    min-height: 36px;
+  }
+  
+  .line-hitbox {
+    min-width: 44px;
+    min-height: 44px;
+    margin: -22px 0 0 -22px;
+  }
+  
+  .initial-circle {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .square-initial {
+    font-size: 1rem;
   }
 }
 </style> 

@@ -1032,11 +1032,11 @@ watch(gameOver, (isOver) => {
   box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
 }
 
-/* Mobile and touch device optimizations */
+/* Mobile Optimizations - Comprehensive Overhaul */
 @media (max-width: 768px) {
   .game-container {
     padding: 0.5rem;
-    font-size: 14px;
+    min-height: 100vh;
   }
 
   .game-header {
@@ -1045,196 +1045,246 @@ watch(gameOver, (isOver) => {
     padding: 0.75rem;
     min-height: auto;
   }
-  
+
   .logo {
     height: 60px;
-    max-width: 200px;
+    order: 1;
   }
-  
+
   .player-panels {
-    flex-direction: column;
+    order: 2;
+    width: 100%;
     gap: 0.5rem;
-    width: 100%;
   }
-  
+
   .player-panel {
-    min-width: auto;
-    width: 100%;
-    max-width: none;
-    padding: 0.5rem 0.75rem;
+    min-width: 0;
+    flex: 1;
+    padding: 0.5rem;
     max-height: 50px;
   }
-  
-  .player-info {
-    gap: 0.5rem;
-  }
-  
-  .player-avatar {
-    width: 32px;
-    height: 32px;
-    font-size: 0.875rem;
-  }
-  
-  .player-name {
-    font-size: 0.875rem;
-  }
-  
-  .player-score {
-    font-size: 0.75rem;
-  }
-  
-  .turn-text, .waiting-text {
-    font-size: 0.625rem;
-  }
-  
-  .game-controls {
-    flex-direction: row;
-    gap: 0.5rem;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  
-  .audio-toggle, .pass-button, .quit-button {
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
-    min-height: 44px; /* iOS recommended touch target */
-    flex: 1;
-    min-width: 120px;
-  }
-  
-  .audio-text {
-    display: none; /* Hide text on very small screens */
-  }
-  
-  .game-main {
-    padding: 0.5rem;
-  }
-  
-  .game-over-overlay {
-    padding: 1rem;
-  }
-  
-  .game-over-content {
-    padding: 1.5rem;
-    max-width: 90vw;
-  }
-  
-  .winner-avatar {
-    width: 48px;
-    height: 48px;
-    font-size: 1.25rem;
-  }
-  
-  .game-over-content h2 {
-    font-size: 1.25rem;
-  }
-  
-  .score-text {
-    font-size: 0.875rem;
-  }
-  
-  .play-again-button {
-    padding: 0.875rem 1.5rem;
-    font-size: 0.875rem;
-    min-height: 44px;
-  }
-}
 
-@media (max-width: 480px) {
-  .game-container {
-    padding: 0.25rem;
-  }
-  
-  .game-header {
-    padding: 0.5rem;
-  }
-  
-  .logo {
-    height: 50px;
-  }
-  
-  .player-panel {
-    max-height: 45px;
-    padding: 0.375rem 0.5rem;
-  }
-  
   .player-avatar {
     width: 28px;
     height: 28px;
     font-size: 0.75rem;
   }
-  
+
+  .player-name {
+    font-size: 0.75rem;
+  }
+
+  .player-score {
+    font-size: 0.625rem;
+  }
+
+  .turn-text {
+    font-size: 0.625rem;
+  }
+
+  .waiting-text {
+    font-size: 0.625rem;
+  }
+
+  .timer-countdown {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.25rem;
+  }
+
+  .missed-turns {
+    font-size: 0.5rem;
+  }
+
+  .game-controls {
+    order: 3;
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .game-controls button {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    flex: 1;
+  }
+
   .audio-toggle {
+    flex: 0 0 auto;
     min-width: 60px;
   }
-  
+
+  .audio-text {
+    font-size: 0.625rem;
+  }
+
+  .game-main {
+    padding: 1rem 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  .game-container {
+    padding: 0.25rem;
+  }
+
+  .game-header {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .logo {
+    height: 50px;
+  }
+
+  .player-panel {
+    padding: 0.375rem;
+    max-height: 45px;
+  }
+
+  .player-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 0.625rem;
+  }
+
+  .player-name {
+    font-size: 0.625rem;
+  }
+
+  .player-score {
+    font-size: 0.5rem;
+  }
+
+  .turn-text, .waiting-text {
+    font-size: 0.5rem;
+  }
+
+  .timer-countdown {
+    font-size: 0.5rem;
+    padding: 0.125rem 0.25rem;
+  }
+
+  .game-controls button {
+    min-height: 40px;
+    font-size: 0.625rem;
+    padding: 0.375rem 0.5rem;
+  }
+
+  .audio-text {
+    display: none; /* Hide text on very small screens */
+  }
+
+  .game-main {
+    padding: 0.75rem 0.25rem;
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-height: 600px) and (orientation: landscape) {
+  .game-container {
+    padding: 0.25rem;
+  }
+
+  .game-header {
+    flex-direction: row;
+    min-height: 60px;
+    padding: 0.5rem;
+  }
+
+  .logo {
+    height: 40px;
+    order: 1;
+    flex: 0 0 auto;
+  }
+
+  .player-panels {
+    order: 2;
+    flex: 1;
+    gap: 0.5rem;
+  }
+
+  .player-panel {
+    max-height: 40px;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .player-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 0.625rem;
+  }
+
+  .game-controls {
+    order: 3;
+    flex: 0 0 auto;
+    width: auto;
+    gap: 0.25rem;
+  }
+
+  .game-controls button {
+    min-height: 36px;
+    min-width: 36px;
+    font-size: 0.625rem;
+    padding: 0.25rem 0.5rem;
+  }
+
   .audio-text {
     display: none;
   }
-  
-  .pass-button, .quit-button {
-    min-width: 80px;
-    font-size: 0.75rem;
+
+  .game-main {
+    padding: 0.5rem;
+    flex: 1;
+    overflow: hidden;
   }
 }
 
 /* Touch-specific optimizations */
-@media (hover: none) {
+@media (hover: none) and (pointer: coarse) {
+  .game-controls button:hover {
+    transform: none;
+  }
+
+  .game-controls button:active {
+    transform: scale(0.95);
+    background: rgba(249, 115, 22, 0.1);
+  }
+
   .player-panel:hover {
     transform: none;
   }
-  
-  .audio-toggle:hover,
-  .pass-button:hover,
-  .quit-button:hover,
-  .play-again-button:hover {
-    transform: none;
-  }
-  
-  /* Add touch feedback instead */
-  .audio-toggle:active,
-  .pass-button:active,
-  .quit-button:active,
-  .play-again-button:active {
-    transform: scale(0.95);
-    transition: transform 0.1s ease;
+
+  .player-panel.is-turn:active {
+    transform: scale(0.98);
   }
 }
 
-/* Landscape orientation on mobile */
-@media (max-width: 768px) and (orientation: landscape) {
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
   .game-header {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 1rem;
-  }
-  
-  .player-panels {
-    flex-direction: row;
-    gap: 1rem;
-    flex: 1;
-    justify-content: center;
+    border-width: 0.5px;
   }
   
   .player-panel {
-    width: auto;
-    min-width: 180px;
+    border-width: 1.5px;
+  }
+}
+
+/* Very tall screens (like iPhone Pro Max) */
+@media (min-height: 800px) and (max-width: 480px) {
+  .game-main {
+    padding: 2rem 0.5rem;
   }
   
   .logo {
-    height: 40px;
-  }
-  
-  .game-controls {
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  
-  .audio-toggle, .pass-button, .quit-button {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.75rem;
-    min-width: 80px;
+    height: 70px;
   }
 }
 </style>
