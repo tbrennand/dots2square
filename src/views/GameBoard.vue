@@ -163,7 +163,7 @@ const {
 } = storeToRefs(matchStore)
 
 // Local game state for immediate UI updates (synced with Firebase)
-const gridSize = ref(6) // Changed from 5 to 6 to match Firebase
+const gridSize = ref(8) // Changed to 8 to match Firebase
 const currentPlayer = ref(1)
 const drawnLines = ref<Array<{id: string, startDot: string, endDot: string, player: number}>>([])
 const claimedSquares = ref<Array<{id: string, topLeftX: number, topLeftY: number, player: number}>>([])
@@ -394,7 +394,7 @@ const syncFromFirebase = () => {
   }
   
   // Update local state from Firebase for active games
-  gridSize.value = firebaseGridSize.value || 6 // Ensure gridSize is 6 for active games
+  gridSize.value = firebaseGridSize.value || 8 // Ensure gridSize is 8 for active games
   currentPlayer.value = firebaseCurrentPlayer.value || 1
   scores.value = { 
     1: firebaseScores.value?.[1] || 0, 
