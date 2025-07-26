@@ -98,6 +98,7 @@ const sortedMessages = computed(() => {
   console.log('sortedMessages computed - messages array:', messages)
   const sorted = messages.sort((a, b) => (a.timestamp?.getTime() || 0) - (b.timestamp?.getTime() || 0));
   console.log('sortedMessages computed - sorted result:', sorted)
+  console.log('🧪 CHAT TEST: Chat component is loaded with tooltip!')
   return sorted;
 })
 

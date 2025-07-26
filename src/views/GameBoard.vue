@@ -663,6 +663,7 @@ const debugDotGridData = computed(() => ({
 // Watch for DotGrid data changes
 watch(debugDotGridData, (newData) => {
   console.log('🎯 DotGrid data updated:', newData)
+  console.log('🧪 TEST: Changes are being loaded! Grid size is:', newData.gridSize)
 }, { deep: true, immediate: true })
 
 // Initialize game on mount
