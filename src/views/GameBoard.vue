@@ -138,8 +138,9 @@ import { useMatchStore } from '@/stores/matchStore'
 import { playMove } from '@/firebase/matchHelpers'
 import DotGrid from '@/components/DotGrid.vue'
 import { useTurnTimer } from '@/composables/useTurnTimer'
-import { useUserStore } from '@/store/userStore'
 import type { Line } from '@/types' // Import the Line type
+import { db } from '@/firebase' // Corrected import path
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 
 const route = useRoute()
 const router = useRouter()
@@ -468,85 +469,53 @@ const syncFromFirebase = () => {
 
 // Handle line selection with Firebase sync
 const handleLineSelected = async (line: { startDot: string; endDot: string }) => {
-  console.log('🎯 Line selected:', line)
-  console.log('🎮 Line selection debug:', {
-    canCurrentPlayerMove: canCurrentPlayerMove.value,
-    currentMatchId: currentMatchId.value,
-    currentPlayer: currentPlayer.value,
-    userPlayerNumber: currentUserPlayerNumber.value,
-    matchStatus: matchData.value?.status
-  })
+  if (!canCurrentPlayerMove.value || !currentMatchId.value) return
 
-  // Only allow moves if it's the player's turn and they're in the match
-  if (!canCurrentPlayerMove.value || !currentMatchId.value) {
-    console.log('❌ Move blocked - not your turn or not in match')
-    return
-  }
+  const lineId = [line.startDot, line.endDot].sort().join('-')
+  if (drawnLines.value.some(l => l.id === lineId)) return
 
-  // Check if line already exists locally (immediate feedback)
-  const lineExists = drawnLines.value.some(l =>
-    (l.startDot === line.startDot && l.endDot === line.endDot) ||
-    (l.startDot === line.endDot && l.endDot === line.startDot)
-  )
-
-  if (lineExists) {
-    console.log('❌ Line already exists:', line)
-    return
-  }
-
-  console.log('✅ Adding line locally for immediate UI update')
-
-  // Add line locally for immediate UI update
-  const newLine = {
-    id: `${line.startDot}-${line.endDot}`,
-    startDot: line.startDot,
-    endDot: line.endDot,
-    player: currentPlayer.value
-  }
+  const player = currentPlayer.value
+  const newLine = { id: lineId, startDot: line.startDot, endDot: line.endDot, player }
+  
+  // Optimistically update UI
   drawnLines.value.push(newLine)
-
-  console.log('✅ Line added locally. Total lines:', drawnLines.value.length)
-
-  // Check for completed squares locally
-  const newSquares = checkForCompletedSquares(newLine)
-  let squaresClaimed = 0
-
-  newSquares.forEach(square => {
-    if (!claimedSquares.value.some(s => s.id === square.id)) {
-      claimedSquares.value.push({
-        ...square,
-        player: currentPlayer.value
-      })
-      squaresClaimed++
-    }
-  })
-
-  console.log('✅ Squares claimed:', squaresClaimed)
-
-  // Update scores locally
-  scores.value[currentPlayer.value as 1 | 2] += squaresClaimed
-
-  // Switch turns locally (unless squares were claimed)
-  if (squaresClaimed === 0) {
-    currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
-    console.log('🔄 Switched to player:', currentPlayer.value)
-  } else {
-    console.log('🎯 Extra turn for claiming square!')
-  }
-
-  // Send move to Firebase (will sync back to other players)
-  try {
-    console.log('📡 Sending move to Firebase...')
-    await playMove(currentMatchId.value, currentUserId.value, {
-      startDot: line.startDot,
-      endDot: line.endDot
+  
+  // Check for completed squares with the new line
+  const newSquaresFound = checkForCompletedSquares(newLine)
+  
+  if (newSquaresFound.length > 0) {
+    // Player claimed a square!
+    console.log(`✅ Player ${player} claimed ${newSquaresFound.length} square(s)!`)
+    
+    // Add new squares to the list
+    newSquaresFound.forEach(square => {
+      claimedSquares.value.push({ ...square, player })
     })
-    console.log('✅ Move sent to Firebase successfully')
+    
+    // Update score
+    scores.value[player] = (scores.value[player] || 0) + newSquaresFound.length
+    
+    // EXTRA TURN: Do not switch currentPlayer
+    console.log(`🔄 Player ${player} gets an extra turn.`)
+    
+  } else {
+    // No square claimed, switch turns
+    currentPlayer.value = player === 1 ? 2 : 1
+    console.log(`🔄 No square claimed. Switching to player ${currentPlayer.value}.`)
+  }
+  
+  // Sync the final state to Firebase
+  try {
+    await updateDoc(doc(db, 'matches', currentMatchId.value), {
+      lines: drawnLines.value,
+      squares: claimedSquares.value,
+      scores: scores.value,
+      currentPlayer: currentPlayer.value,
+      updatedAt: serverTimestamp(),
+    })
   } catch (error) {
-    console.error('❌ Error syncing move to Firebase:', error)
-    // Revert local changes if Firebase sync fails
-    drawnLines.value = drawnLines.value.filter(l => l.id !== newLine.id)
-    // Could also revert squares and scores here, but for simplicity keeping the optimistic update
+    console.error("Firebase sync failed:", error)
+    // NOTE: In a real app, you might want to revert the optimistic updates here
   }
 }
 
