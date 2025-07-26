@@ -3,30 +3,18 @@
     <!-- Dots -->
     <div v-for="dot in dots" :key="dot.id" class="dot" :style="{ top: `${dot.y * spacing}px`, left: `${dot.x * spacing}px` }"></div>
     
-    <!-- Potential Lines (for hover effect) -->
+    <!-- Potential Lines for Hovering -->
     <div
       v-for="line in potentialLines"
       :key="line.id"
-      :id="line.id"
-      class="line-container potential"
-      @click="selectLine(line)"
-      @mouseenter="hoveredLine = line"
-      @mouseleave="hoveredLine = null"
-      :class="{ 
-        'disabled': !canMakeMove,
+      class="line-hitbox"
+      :class="{
         'horizontal': line.startDot.split('-')[0] === line.endDot.split('-')[0],
         'vertical': line.startDot.split('-')[1] === line.endDot.split('-')[1]
       }"
-      :style="getLineStyle(line)"
-    >
-      <div class="line-hitbox"></div>
-      <!-- Hovered Line Visual -->
-      <div 
-        v-if="hoveredLine && drawnLines.length > 0" 
-        class="line-visual" 
-        :style="getLineStyle(hoveredLine)"
-      ></div>
-    </div>
+      :style="getLineHitboxStyle(line)"
+      @click="selectLine(line)"
+    ></div>
 
     <!-- Drawn Lines -->
     <div v-for="line in drawnLines" :key="line.id">
@@ -81,15 +69,15 @@ interface PossibleLine {
 
 // Props
 const props = withDefaults(defineProps<{
-  gridSize?: number
-  drawnLines?: Line[]
-  claimedSquares?: Square[]
+  gridSize: number
+  drawnLines: Line[]
+  claimedSquares: Square[]
   canMakeMove: boolean
-  player1Name?: string
-  player2Name?: string
-  player1Color?: string
-  player2Color?: string
-  isGameActive: boolean // Add this prop
+  player1Name: string
+  player2Name: string
+  player1Color: string
+  player2Color: string
+  isGameActive: boolean
 }>(), {
   gridSize: 8,
   drawnLines: () => [],
@@ -105,10 +93,8 @@ const props = withDefaults(defineProps<{
 // Emits
 const emit = defineEmits(['line-selected'])
 
-const hoveredLine = ref<PossibleLine | null>(null)
-
-// Component state
-const gridSize = props.gridSize || 6
+// Grid dimensions
+const gridSize = props.gridSize
 const spacing = computed(() => {
   // Dynamic spacing based on grid size
   if (gridSize <= 6) return 80
@@ -120,7 +106,6 @@ const spacing = computed(() => {
 const gridWidth = computed(() => (gridSize + 1) * spacing.value)
 const gridHeight = computed(() => (gridSize + 1) * spacing.value)
 
-// Grid dimensions
 const gridContainer = ref<HTMLElement | null>(null)
 
 // Generate dots based on grid size (n+1 x n+1 dots for n x n grid)
@@ -171,7 +156,6 @@ const potentialLines = computed<PossibleLine[]>(() => {
   }
   
   const lines: PossibleLine[] = []
-  const gridSize = props.gridSize
   // Horizontal lines
   for (let y = 0; y <= gridSize; y++) {
     for (let x = 0; x < gridSize; x++) {
@@ -231,6 +215,30 @@ const getLineStyle = (line: Line | PossibleLine) => {
   }
 
   return style
+}
+
+// Get line hitbox style
+const getLineHitboxStyle = (line: PossibleLine) => {
+  const [startY, startX] = line.startDot.split('-').map(Number)
+  const [endY, endX] = line.endDot.split('-').map(Number)
+  const isHorizontal = startY === endY
+  const thickness = 20 // Hitbox thickness
+
+  if (isHorizontal) {
+    return {
+      left: `${Math.min(startX, endX) * spacing.value}px`,
+      top: `${startY * spacing.value - (thickness / 2)}px`,
+      width: `${spacing.value}px`,
+      height: `${thickness}px`,
+    }
+  } else { // Vertical
+    return {
+      left: `${startX * spacing.value - (thickness / 2)}px`,
+      top: `${Math.min(startY, endY) * spacing.value}px`,
+      width: `${thickness}px`,
+      height: `${spacing.value}px`,
+    }
+  }
 }
 
 // Square style method
@@ -347,7 +355,33 @@ const getLineClass = (line: Line) => {
   position: absolute;
   cursor: pointer;
   z-index: 10;
-  /* background: rgba(255, 0, 0, 0.2); */ /* Uncomment to debug hitboxes */
+}
+
+.line-hitbox::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #f97316;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: 2px;
+}
+
+.line-hitbox:hover::before {
+  opacity: 0.6;
+}
+
+/* Size the ::before pseudo-element based on orientation */
+.line-hitbox.horizontal::before {
+  width: 100%;
+  height: 4px;
+}
+
+.line-hitbox.vertical::before {
+  width: 4px;
+  height: 100%;
 }
 
 .line-visual {
@@ -413,10 +447,10 @@ const getLineClass = (line: Line) => {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .dot-grid-container {
-    max-width: 95vw; /* Ensure grid fits within the screen width */
+    padding-bottom: 95vw; /* Use viewport width for aspect ratio */
+    max-width: 95vw;
     max-height: 95vw;
   }
-  
   .dot {
     width: 8px;
     height: 8px;
