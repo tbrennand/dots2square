@@ -2,7 +2,7 @@
   <div class="game-container">
     <div class="game-header">
       <!-- Logo -->
-      <img src="/dots2squares-logo.png" alt="Dots2Squares" class="logo" />
+      <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares" class="logo" />
       
       <!-- Game Controls - Moved above player panels -->
       <div class="game-controls">
