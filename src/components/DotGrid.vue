@@ -1,7 +1,7 @@
 <template>
   <div class="dot-grid-container" :style="gridStyle">
     <!-- Dots -->
-    <div v-for="dot in dots" :key="dot.id" class="dot" :style="{ top: `${dot.y * spacing}px`, left: `${dot.x * spacing}px` }"></div>
+    <div v-for="dot in dots" :key="dot.id" class="dot" :style="{ top: `${dot.y * spacing + padding}px`, left: `${dot.x * spacing + padding}px` }"></div>
     
     <!-- Potential Lines for Hovering -->
     <div
@@ -36,36 +36,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-
-// Define interfaces for the component
-interface Dot {
-  id: string
-  x: number
-  y: number
-}
-
-interface Line {
-  id: string
-  startDot: string
-  endDot: string
-  player?: number
-}
-
-interface Square {
-  id: string
-  topLeftX?: number
-  topLeftY?: number
-  x?: number
-  y?: number
-  player?: number
-}
-
-interface PossibleLine {
-  id: string
-  startDot: string
-  endDot: string
-}
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import type { Line, Square, PossibleLine, Dot } from '@/types'
 
 // Props
 const props = withDefaults(defineProps<{
@@ -93,26 +65,35 @@ const props = withDefaults(defineProps<{
 // Emits
 const emit = defineEmits(['line-selected'])
 
-// Grid dimensions
-const gridSize = props.gridSize
+// --- New Responsive and Padding Logic ---
+const padding = 16 // 16px of padding inside the grid container
+const windowWidth = ref(window.innerWidth)
+const handleResize = () => { windowWidth.value = window.innerWidth }
+onMounted(() => window.addEventListener('resize', handleResize))
+onUnmounted(() => window.removeEventListener('resize', handleResize))
+
 const spacing = computed(() => {
-  // Dynamic spacing based on grid size
-  if (gridSize <= 6) return 80
-  if (gridSize <= 8) return 70
-  if (gridSize <= 10) return 60
-  if (gridSize <= 12) return 50
-  return 45 // For larger grids
+  if (windowWidth.value <= 768) { // Mobile devices
+    // Calculate spacing to fit 95% of screen width with padding
+    return (windowWidth.value * 0.95 - padding * 2) / props.gridSize
+  }
+  // Desktop fixed spacing
+  if (props.gridSize <= 8) return 70
+  if (props.gridSize <= 10) return 60
+  return 50
 })
-const gridWidth = computed(() => (gridSize + 1) * spacing.value)
-const gridHeight = computed(() => (gridSize + 1) * spacing.value)
+
+const gridWidth = computed(() => (props.gridSize * spacing.value) + (padding * 2))
+const gridHeight = computed(() => (props.gridSize * spacing.value) + (padding * 2))
+// --- End of New Logic ---
 
 const gridContainer = ref<HTMLElement | null>(null)
 
 // Generate dots based on grid size (n+1 x n+1 dots for n x n grid)
 const dots = computed(() => {
   const dotsArray: Dot[] = []
-  for (let row = 0; row < gridSize + 1; row++) {
-    for (let col = 0; col < gridSize + 1; col++) {
+  for (let row = 0; row < props.gridSize + 1; row++) {
+    for (let col = 0; col < props.gridSize + 1; col++) {
       dotsArray.push({
         id: `${row}-${col}`,
         x: col,
@@ -157,8 +138,8 @@ const potentialLines = computed<PossibleLine[]>(() => {
   
   const lines: PossibleLine[] = []
   // Horizontal lines
-  for (let y = 0; y <= gridSize; y++) {
-    for (let x = 0; x < gridSize; x++) {
+  for (let y = 0; y <= props.gridSize; y++) {
+    for (let x = 0; x < props.gridSize; x++) {
       const line = {
         id: `h-${y}-${x}`,
         startDot: `${y}-${x}`,
@@ -168,8 +149,8 @@ const potentialLines = computed<PossibleLine[]>(() => {
     }
   }
   // Vertical lines
-  for (let x = 0; x <= gridSize; x++) {
-    for (let y = 0; y < gridSize; y++) {
+  for (let x = 0; x <= props.gridSize; x++) {
+    for (let y = 0; y < props.gridSize; y++) {
       const line = {
         id: `v-${y}-${x}`,
         startDot: `${y}-${x}`,
@@ -195,13 +176,13 @@ const getLineStyle = (line: Line | PossibleLine) => {
   }
 
   if (y1 === y2) { // Horizontal line
-    style.left = `${Math.min(x1, x2) * spacing.value}px`
-    style.top = `${y1 * spacing.value - (thickness / 2)}px`
+    style.left = `${Math.min(x1, x2) * spacing.value + padding}px`
+    style.top = `${y1 * spacing.value - (thickness / 2) + padding}px`
     style.width = `${spacing.value}px`
     style.height = `${thickness}px`
   } else { // Vertical line
-    style.left = `${x1 * spacing.value - (thickness / 2)}px`
-    style.top = `${Math.min(y1, y2) * spacing.value}px`
+    style.left = `${x1 * spacing.value - (thickness / 2) + padding}px`
+    style.top = `${Math.min(y1, y2) * spacing.value + padding}px`
     style.width = `${thickness}px`
     style.height = `${spacing.value}px`
   }
@@ -226,17 +207,17 @@ const getLineHitboxStyle = (line: PossibleLine) => {
 
   if (isHorizontal) {
     return {
-      left: `${Math.min(startX, endX) * spacing.value}px`,
-      top: `${startY * spacing.value - (thickness / 2)}px`,
+      left: `${Math.min(startX, endX) * spacing.value + padding}px`,
+      top: `${startY * spacing.value - (thickness / 2) + padding}px`,
       width: `${spacing.value}px`,
       height: `${thickness}px`,
     }
   } else { // Vertical
     return {
-      left: `${startX * spacing.value - (thickness / 2)}px`,
-      top: `${Math.min(startY, endY) * spacing.value}px`,
+      left: `${startX * spacing.value - (thickness / 2) + padding}px`,
+      top: `${Math.min(startY, endY) * spacing.value + padding}px`,
       width: `${thickness}px`,
-      height: `${spacing.value}px`,
+      height: `${thickness}px`,
     }
   }
 }
