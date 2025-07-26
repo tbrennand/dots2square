@@ -163,7 +163,7 @@ const {
 } = storeToRefs(matchStore)
 
 // Local game state for immediate UI updates (synced with Firebase)
-const gridSize = ref(5)
+const gridSize = ref(6) // Changed from 5 to 6 to match Firebase
 const currentPlayer = ref(1)
 const drawnLines = ref<Array<{id: string, startDot: string, endDot: string, player: number}>>([])
 const claimedSquares = ref<Array<{id: string, topLeftX: number, topLeftY: number, player: number}>>([])
@@ -394,7 +394,7 @@ const syncFromFirebase = () => {
   }
   
   // Update local state from Firebase for active games
-  gridSize.value = firebaseGridSize.value || 5
+  gridSize.value = firebaseGridSize.value || 6 // Ensure gridSize is 6 for active games
   currentPlayer.value = firebaseCurrentPlayer.value || 1
   scores.value = { 
     1: firebaseScores.value?.[1] || 0, 
@@ -604,14 +604,14 @@ const quitGame = () => {
 
 // Watch for Firebase changes and sync to local state
 watch([firebaseLines, firebaseSquares, firebaseCurrentPlayer, firebaseScores], () => {
-  console.log('🔄 Syncing from Firebase:', {
+  console.log('🔄 Firebase data changed - triggering sync:', {
     lines: firebaseLines.value?.length || 0,
     squares: firebaseSquares.value?.length || 0,
     currentPlayer: firebaseCurrentPlayer.value,
     scores: firebaseScores.value
   })
   syncFromFirebase()
-}, { deep: true })
+}, { deep: true, immediate: true })
 
 // Watch for turn changes to start/stop timer
 watch(currentPlayer, (newPlayer) => {
@@ -649,6 +649,21 @@ watch(timeRemaining, (newTime) => {
     playCountdownSound()
   }
 }, { immediate: false })
+
+// Debug computed properties to track data flow
+const debugDotGridData = computed(() => ({
+  gridSize: gridSize.value,
+  drawnLinesCount: drawnLines.value.length,
+  claimedSquaresCount: claimedSquares.value.length,
+  canMakeMove: canCurrentPlayerMove.value,
+  player1Name: matchData.value?.player1?.name || 'Player 1',
+  player2Name: matchData.value?.player2?.name || 'Player 2'
+}))
+
+// Watch for DotGrid data changes
+watch(debugDotGridData, (newData) => {
+  console.log('🎯 DotGrid data updated:', newData)
+}, { deep: true, immediate: true })
 
 // Initialize game on mount
 onMounted(() => {
