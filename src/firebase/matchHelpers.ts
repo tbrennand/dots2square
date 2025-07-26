@@ -419,10 +419,11 @@ export async function playMove(
       )
       
       console.log('🔍 Square Check Result:', {
-        newLineAdded: newLine,
+        newLineAdded: `${newLine.startDot}-${newLine.endDot}`,
         totalLines: updatedLines.length,
         completedSquares: squareCheckResult.completedSquares.length,
-        completedSquareIds: squareCheckResult.completedSquares.map(s => s.id)
+        completedSquareIds: squareCheckResult.completedSquares.map(s => s.id),
+        allLineIds: updatedLines.map(l => `${l.startDot}-${l.endDot}`)
       })
       
       // Update squares
@@ -648,6 +649,13 @@ function checkForCompletedSquares(
     lines: string[]
   }>
 } {
+  console.log('🔍 checkForCompletedSquares input:', {
+    dotsCount: dots?.length || 0,
+    linesCount: lines?.length || 0,
+    existingSquaresCount: existingSquares?.length || 0,
+    sampleLines: lines?.slice(0, 3).map(l => `${l.startDot}-${l.endDot}`)
+  })
+  
   const completedSquares: Array<{
     id: string
     topLeftX: number
@@ -657,6 +665,7 @@ function checkForCompletedSquares(
   }> = []
   
   const gridSize = Math.sqrt(dots?.length || 25)
+  console.log('🔍 Grid size calculated:', gridSize)
   
   // Check each potential square
   for (let x = 0; x < gridSize - 1; x++) {
@@ -685,6 +694,11 @@ function checkForCompletedSquares(
         { startDot: rightDot, endDot: bottomRightDot }
       ]
       
+      console.log(`🔍 Checking square ${squareId}:`, {
+        requiredLines: squareLines.map(l => `${l.startDot}-${l.endDot}`),
+        availableLines: lines?.map(l => `${l.startDot}-${l.endDot}`) || []
+      })
+      
       // Check if all four lines exist
       const allLinesExist = squareLines.every(squareLine => 
         lines?.some(line => 
@@ -694,6 +708,7 @@ function checkForCompletedSquares(
       )
       
       if (allLinesExist) {
+        console.log('✅ Square completed:', squareId)
         completedSquares.push({
           id: squareId,
           topLeftX: x,
@@ -704,6 +719,11 @@ function checkForCompletedSquares(
       }
     }
   }
+  
+  console.log('🔍 checkForCompletedSquares result:', {
+    completedCount: completedSquares.length,
+    completedIds: completedSquares.map(s => s.id)
+  })
   
   return { completedSquares }
 } 
