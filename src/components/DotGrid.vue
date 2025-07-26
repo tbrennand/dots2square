@@ -348,52 +348,44 @@ const getLineClass = (line: Line) => {
 
 .line-visual {
   position: absolute;
-  background-color: transparent; /* Lines are invisible by default */
-  border-radius: 3px;
-  transition: all 0.3s ease;
-  opacity: 0; /* Make lines invisible */
-  
-  /* Centering logic */
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  background: transparent;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+  opacity: 0;
+  z-index: 5;
 }
 
-.line-container.horizontal .line-visual {
+.line-visual.horizontal {
   width: 100%;
-  height: 4px;
+  height: 2px;
 }
 
-.line-container.vertical .line-visual {
-  width: 4px;
-  height: 100%;
-}
-
-.line-container.drawn .line-visual {
-  width: 100%;
+.line-visual.vertical {
+  width: 2px;
   height: 100%;
 }
 
 .line-visual.line-hover {
   background: #f97316;
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1.1);
-  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+  opacity: 0.6;
+  transform: translate(-50%, -50%) scale(1.2);
 }
 
-.line-drawn {
-  background-color: #374151;
+.line-visual.line-drawn {
   opacity: 1;
 }
 
 .player1-line {
-  background: #3b82f6;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  background: #3b82f6 !important;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
 }
 
 .player2-line {
-  background: #f97316;
-  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+  background: #f97316 !important;
+  box-shadow: 0 1px 3px rgba(249, 115, 22, 0.3);
 }
 
 .square {
@@ -511,18 +503,27 @@ const getLineClass = (line: Line) => {
     opacity: 0.8;
   }
   
-  .line-drawn {
+  .line-visual.line-drawn {
     opacity: 1;
+  }
+  
+  /* Much thinner lines for mobile */
+  .line-visual.horizontal {
+    height: 1px;
+  }
+  
+  .line-visual.vertical {
+    width: 1px;
   }
   
   .player1-line {
     background: #3b82f6 !important;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 1px 2px rgba(59, 130, 246, 0.4);
   }
   
   .player2-line {
     background: #f97316 !important;
-    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4);
+    box-shadow: 0 1px 2px rgba(249, 115, 22, 0.4);
   }
   
   .square {

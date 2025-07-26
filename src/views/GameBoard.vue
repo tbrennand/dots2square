@@ -1,87 +1,95 @@
 <template>
   <div class="game-container">
-    <header class="game-header">
-      <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="logo" />
+    <div class="game-header">
+      <!-- Logo -->
+      <img src="/dots2squares-logo.png" alt="Dots2Squares" class="logo" />
       
-      <div class="player-panels">
-        <!-- Player A Panel -->
-        <div :class="['player-panel', { 'is-turn': currentPlayer === 1 }]">
-          <div class="player-info">
-            <div class="player-avatar player1-avatar">
-              <span class="player-initial">A</span>
-            </div>
-            <div class="player-details">
-              <div class="player-name">{{ getPlayerName(1) }}</div>
-              <div class="player-score">{{ scores[1] }} squares</div>
-            </div>
-            <div class="turn-status">
-              <div v-if="currentPlayer === 1" class="active-turn">
-                <span class="turn-text">{{ currentUserPlayerNumber === 1 ? 'Your Turn' : `${getPlayerName(1)}'s Turn` }}</span>
-                <div v-if="isTimerActive && currentPlayer === 1" class="timer-display">
-                  <div class="timer-countdown" :class="{ 
-                    'timer-warning': timeRemaining <= 10, 
-                    'timer-critical': timeRemaining <= 5 
-                  }">
-                    {{ Math.ceil(timeRemaining) }}s
-                  </div>
-                  <div v-if="missedTurns[matchData?.player1?.id || ''] > 0" class="missed-turns">
-                    Missed: {{ missedTurns[matchData?.player1?.id || ''] }}/3
-                  </div>
-                </div>
-              </div>
-              <div v-else class="waiting-turn">
-                <span class="waiting-text">{{ currentUserPlayerNumber === 1 ? 'Waiting...' : 'Waiting for turn' }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Player B Panel -->
-        <div :class="['player-panel', { 'is-turn': currentPlayer === 2 }]">
-          <div class="player-info">
-            <div class="player-avatar player2-avatar">
-              <span class="player-initial">B</span>
-            </div>
-            <div class="player-details">
-              <div class="player-name">{{ getPlayerName(2) }}</div>
-              <div class="player-score">{{ scores[2] }} squares</div>
-            </div>
-            <div class="turn-status">
-              <div v-if="currentPlayer === 2" class="active-turn">
-                <span class="turn-text">{{ currentUserPlayerNumber === 2 ? 'Your Turn' : `${getPlayerName(2)}'s Turn` }}</span>
-                <div v-if="isTimerActive && currentPlayer === 2" class="timer-display">
-                  <div class="timer-countdown" :class="{ 
-                    'timer-warning': timeRemaining <= 10, 
-                    'timer-critical': timeRemaining <= 5 
-                  }">
-                    {{ Math.ceil(timeRemaining) }}s
-                  </div>
-                  <div v-if="missedTurns[matchData?.player2?.id || ''] > 0" class="missed-turns">
-                    Missed: {{ missedTurns[matchData?.player2?.id || ''] }}/3
-                  </div>
-                </div>
-              </div>
-              <div v-else class="waiting-turn">
-                <span class="waiting-text">{{ currentUserPlayerNumber === 2 ? 'Waiting...' : 'Waiting for turn' }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      <!-- Game Controls - Moved above player panels -->
       <div class="game-controls">
-        <button @click="toggleAudio" :class="['audio-toggle', { 'audio-disabled': !audioEnabled }]">
-          <span class="audio-icon">{{ audioEnabled ? '🔊' : '🔇' }}</span>
-          <span class="audio-text">{{ audioEnabled ? 'Sound ON' : 'Sound OFF' }}</span>
+        <button 
+          @click="toggleAudio" 
+          class="audio-toggle"
+          :class="{ 'audio-off': !audioEnabled }"
+        >
+          <span v-if="audioEnabled">🔊</span>
+          <span v-else>🔇</span>
+          <span class="audio-text">{{ audioEnabled ? 'Sound On' : 'Sound Off' }}</span>
         </button>
-        <button @click="switchPlayer" class="pass-button">
+        
+        <button 
+          @click="switchPlayer" 
+          class="pass-button"
+          :disabled="!canCurrentPlayerMove || gameOver"
+        >
           Pass Turn
         </button>
-        <button @click="resetGame" class="quit-button">
-          New Game
+        
+        <button 
+          @click="quitGame" 
+          class="quit-button"
+          :disabled="gameOver"
+        >
+          Quit
         </button>
       </div>
-    </header>
+      
+      <!-- Player Panels - Now on same row -->
+      <div class="player-panels">
+        <div 
+          class="player-panel" 
+          :class="{ 'is-turn': currentPlayer === 1 && !gameOver }"
+        >
+          <div class="player-info">
+            <div class="player-avatar player1-avatar">
+              {{ getPlayerInitial(matchData?.player1?.name || 'Player A') }}
+            </div>
+            <div class="player-details">
+              <div class="player-name">{{ matchData?.player1?.name || 'Player A' }}</div>
+              <div class="player-score">{{ scores[1] }} squares</div>
+            </div>
+          </div>
+          <div class="player-status">
+            <div v-if="currentPlayer === 1 && !gameOver" class="turn-text">
+              {{ matchData?.player1?.name || 'Player A' }}'S TURN
+              <div class="timer-countdown" v-if="isTimerActive && timeRemaining > 0">
+                {{ Math.ceil(timeRemaining) }}s
+              </div>
+              <div class="missed-turns" v-if="missedTurns[matchData?.player1?.id || '']">
+                Missed: {{ missedTurns[matchData?.player1?.id || ''] }}/3
+              </div>
+            </div>
+            <div v-else class="waiting-text">WAITING...</div>
+          </div>
+        </div>
+        
+        <div 
+          class="player-panel" 
+          :class="{ 'is-turn': currentPlayer === 2 && !gameOver }"
+        >
+          <div class="player-info">
+            <div class="player-avatar player2-avatar">
+              {{ getPlayerInitial(matchData?.player2?.name || 'Player B') }}
+            </div>
+            <div class="player-details">
+              <div class="player-name">{{ matchData?.player2?.name || 'Player B' }}</div>
+              <div class="player-score">{{ scores[2] }} squares</div>
+            </div>
+          </div>
+          <div class="player-status">
+            <div v-if="currentPlayer === 2 && !gameOver" class="turn-text">
+              {{ matchData?.player2?.name || 'Player B' }}'S TURN
+              <div class="timer-countdown" v-if="isTimerActive && timeRemaining > 0">
+                {{ Math.ceil(timeRemaining) }}s
+              </div>
+              <div class="missed-turns" v-if="missedTurns[matchData?.player2?.id || '']">
+                Missed: {{ missedTurns[matchData?.player2?.id || ''] }}/3
+              </div>
+            </div>
+            <div v-else class="waiting-text">WAITING...</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <main class="game-main">
       <DotGrid 
@@ -528,6 +536,12 @@ const getPlayerName = (playerNumber: number) => {
   return `Player ${playerNumber}`
 }
 
+// Get player initial from name
+const getPlayerInitial = (name: string) => {
+  if (!name) return 'A'
+  return name.charAt(0).toUpperCase()
+}
+
 // Switch player turn (Pass turn)
 const switchPlayer = async () => {
   if (!currentMatchId.value || !matchData.value) return
@@ -557,6 +571,15 @@ const resetGame = () => {
   drawnLines.value = []
   claimedSquares.value = []
   scores.value = { 1: 0, 2: 0 }
+}
+
+// Quit game (redirect to home)
+const quitGame = () => {
+  if (currentMatchId.value) {
+    router.push({ name: 'GameResult', query: { matchId: currentMatchId.value } })
+  } else {
+    router.push('/')
+  }
 }
 
 // Watch for Firebase changes and sync to local state
@@ -649,8 +672,9 @@ watch(gameOver, (isOver) => {
 .player-panels {
   display: flex;
   gap: 1rem;
-  flex-grow: 1;
   justify-content: center;
+  align-items: stretch;
+  width: 100%;
 }
 
 .player-panel {
@@ -850,40 +874,43 @@ watch(gameOver, (isOver) => {
 
 .game-controls {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
 .audio-toggle {
-  padding: 0.5rem 0.75rem;
-  background: #f97316;
-  color: white;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #1f2937;
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(31, 41, 55, 0.3);
+  min-height: 44px;
 }
 
 .audio-toggle:hover {
-  background: #ea580c;
+  background: #111827;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
+  box-shadow: 0 4px 8px rgba(31, 41, 55, 0.4);
 }
 
-.audio-toggle.audio-disabled {
-  background: #6b7280;
-  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3);
+.audio-toggle.audio-off {
+  background: #dc2626;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
 }
 
-.audio-toggle.audio-disabled:hover {
-  background: #4b5563;
-  box-shadow: 0 4px 8px rgba(107, 114, 128, 0.4);
+.audio-toggle.audio-off:hover {
+  background: #b91c1c;
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
 }
 
 .audio-icon {
@@ -896,41 +923,57 @@ watch(gameOver, (isOver) => {
 }
 
 .pass-button {
-  padding: 0.5rem 0.75rem;
-  background: #1f2937;
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
   color: white;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(31, 41, 55, 0.3);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+  min-height: 44px;
 }
 
-.pass-button:hover {
-  background: #111827;
+.pass-button:hover:not(:disabled) {
+  background: #2563eb;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(31, 41, 55, 0.4);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+.pass-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .quit-button {
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1.5rem;
   background: #dc2626;
   color: white;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+  min-height: 44px;
 }
 
-.quit-button:hover {
+.quit-button:hover:not(:disabled) {
   background: #b91c1c;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
+}
+
+.quit-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .game-main {
@@ -1051,10 +1094,36 @@ watch(gameOver, (isOver) => {
     order: 1;
   }
 
-  .player-panels {
+  .game-controls {
     order: 2;
     width: 100%;
+    justify-content: space-between;
     gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .game-controls button {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    flex: 1;
+  }
+
+  .audio-toggle {
+    flex: 0 0 auto;
+    min-width: 60px;
+  }
+
+  .audio-text {
+    font-size: 0.625rem;
+  }
+
+  .player-panels {
+    order: 3;
+    width: 100%;
+    gap: 0.5rem;
+    flex-direction: row;
   }
 
   .player-panel {
@@ -1093,30 +1162,6 @@ watch(gameOver, (isOver) => {
 
   .missed-turns {
     font-size: 0.5rem;
-  }
-
-  .game-controls {
-    order: 3;
-    width: 100%;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-
-  .game-controls button {
-    min-height: 44px;
-    min-width: 44px;
-    font-size: 0.75rem;
-    padding: 0.5rem 0.75rem;
-    flex: 1;
-  }
-
-  .audio-toggle {
-    flex: 0 0 auto;
-    min-width: 60px;
-  }
-
-  .audio-text {
-    font-size: 0.625rem;
   }
 
   .game-main {
