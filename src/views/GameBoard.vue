@@ -1,10 +1,10 @@
 <template>
   <div class="game-container">
     <div class="game-header">
-      <!-- Logo -->
+      <!-- Logo on left -->
       <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares" class="logo" />
       
-      <!-- Game Controls - Moved above player panels -->
+      <!-- Game Controls on right -->
       <div class="game-controls">
         <button 
           @click="toggleAudio" 
@@ -13,7 +13,7 @@
         >
           <span v-if="audioEnabled">🔊</span>
           <span v-else>🔇</span>
-          <span class="audio-text">{{ audioEnabled ? 'Sound On' : 'Sound Off' }}</span>
+          <span class="audio-text">{{ audioEnabled ? 'Sound' : 'Mute' }}</span>
         </button>
         
         <button 
@@ -21,7 +21,7 @@
           class="pass-button"
           :disabled="!canCurrentPlayerMove || gameOver"
         >
-          Pass Turn
+          Pass
         </button>
         
         <button 
@@ -32,61 +32,61 @@
           Quit
         </button>
       </div>
-      
-      <!-- Player Panels - Now on same row -->
-      <div class="player-panels">
-        <div 
-          class="player-panel" 
-          :class="{ 'is-turn': currentPlayer === 1 && !gameOver }"
-        >
-          <div class="player-info">
-            <div class="player-avatar player1-avatar">
-              {{ getPlayerInitial(matchData?.player1?.name || 'Player A') }}
-            </div>
-            <div class="player-details">
-              <div class="player-name">{{ matchData?.player1?.name || 'Player A' }}</div>
-              <div class="player-score">{{ scores[1] }} squares</div>
-            </div>
+    </div>
+    
+    <!-- Player Panels with padding -->
+    <div class="player-panels">
+      <div 
+        class="player-panel" 
+        :class="{ 'is-turn': currentPlayer === 1 && !gameOver }"
+      >
+        <div class="player-info">
+          <div class="player-avatar player1-avatar">
+            {{ getPlayerInitial(matchData?.player1?.name || 'Player A') }}
           </div>
-          <div class="player-status">
-            <div v-if="currentPlayer === 1 && !gameOver" class="turn-text">
-              {{ matchData?.player1?.name || 'Player A' }}'S TURN
-              <div class="timer-countdown" v-if="isTimerActive && timeRemaining > 0">
-                {{ Math.ceil(timeRemaining) }}s
-              </div>
-              <div class="missed-turns" v-if="missedTurns[matchData?.player1?.id || '']">
-                Missed: {{ missedTurns[matchData?.player1?.id || ''] }}/3
-              </div>
-            </div>
-            <div v-else class="waiting-text">WAITING...</div>
+          <div class="player-details">
+            <div class="player-name">{{ matchData?.player1?.name || 'Player A' }}</div>
+            <div class="player-score">{{ scores[1] }} squares</div>
           </div>
         </div>
-        
-        <div 
-          class="player-panel" 
-          :class="{ 'is-turn': currentPlayer === 2 && !gameOver }"
-        >
-          <div class="player-info">
-            <div class="player-avatar player2-avatar">
-              {{ getPlayerInitial(matchData?.player2?.name || 'Player B') }}
+        <div class="player-status">
+          <div v-if="currentPlayer === 1 && !gameOver" class="turn-text">
+            {{ matchData?.player1?.name || 'Player A' }}'S TURN
+            <div class="timer-countdown" v-if="isTimerActive && timeRemaining > 0">
+              {{ Math.ceil(timeRemaining) }}s
             </div>
-            <div class="player-details">
-              <div class="player-name">{{ matchData?.player2?.name || 'Player B' }}</div>
-              <div class="player-score">{{ scores[2] }} squares</div>
+            <div class="missed-turns" v-if="missedTurns[matchData?.player1?.id || '']">
+              Missed: {{ missedTurns[matchData?.player1?.id || ''] }}/3
             </div>
           </div>
-          <div class="player-status">
-            <div v-if="currentPlayer === 2 && !gameOver" class="turn-text">
-              {{ matchData?.player2?.name || 'Player B' }}'S TURN
-              <div class="timer-countdown" v-if="isTimerActive && timeRemaining > 0">
-                {{ Math.ceil(timeRemaining) }}s
-              </div>
-              <div class="missed-turns" v-if="missedTurns[matchData?.player2?.id || '']">
-                Missed: {{ missedTurns[matchData?.player2?.id || ''] }}/3
-              </div>
-            </div>
-            <div v-else class="waiting-text">WAITING...</div>
+          <div v-else class="waiting-text">WAITING...</div>
+        </div>
+      </div>
+      
+      <div 
+        class="player-panel" 
+        :class="{ 'is-turn': currentPlayer === 2 && !gameOver }"
+      >
+        <div class="player-info">
+          <div class="player-avatar player2-avatar">
+            {{ getPlayerInitial(matchData?.player2?.name || 'Player B') }}
           </div>
+          <div class="player-details">
+            <div class="player-name">{{ matchData?.player2?.name || 'Player B' }}</div>
+            <div class="player-score">{{ scores[2] }} squares</div>
+          </div>
+        </div>
+        <div class="player-status">
+          <div v-if="currentPlayer === 2 && !gameOver" class="turn-text">
+            {{ matchData?.player2?.name || 'Player B' }}'S TURN
+            <div class="timer-countdown" v-if="isTimerActive && timeRemaining > 0">
+              {{ Math.ceil(timeRemaining) }}s
+            </div>
+            <div class="missed-turns" v-if="missedTurns[matchData?.player2?.id || '']">
+              Missed: {{ missedTurns[matchData?.player2?.id || ''] }}/3
+            </div>
+          </div>
+          <div v-else class="waiting-text">WAITING...</div>
         </div>
       </div>
     </div>
@@ -1083,23 +1083,25 @@ watch(gameOver, (isOver) => {
   }
 
   .game-header {
-    flex-direction: column;
-    gap: 0.75rem;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
     padding: 0.75rem;
     min-height: auto;
   }
 
   .logo {
-    height: 60px;
+    height: 80px;
     order: 1;
+    flex: 0 0 auto;
   }
 
   .game-controls {
     order: 2;
-    width: 100%;
-    justify-content: space-between;
+    flex: 0 0 auto;
     gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0;
   }
 
   .game-controls button {
@@ -1107,12 +1109,71 @@ watch(gameOver, (isOver) => {
     min-width: 44px;
     font-size: 0.75rem;
     padding: 0.5rem 0.75rem;
-    flex: 1;
+    flex: 0 0 auto;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    color: white;
   }
 
   .audio-toggle {
-    flex: 0 0 auto;
-    min-width: 60px;
+    background: #f97316 !important;
+    box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3) !important;
+  }
+
+  .audio-toggle:hover {
+    background: #ea580c !important;
+    box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4) !important;
+    transform: translateY(-1px);
+  }
+
+  .audio-toggle.audio-off {
+    background: #dc2626 !important;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3) !important;
+  }
+
+  .audio-toggle.audio-off:hover {
+    background: #b91c1c !important;
+    box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4) !important;
+    transform: translateY(-1px);
+  }
+
+  .pass-button {
+    background: #3b82f6 !important;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3) !important;
+  }
+
+  .pass-button:hover:not(:disabled) {
+    background: #2563eb !important;
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4) !important;
+    transform: translateY(-1px);
+  }
+
+  .pass-button:disabled {
+    background: #9ca3af !important;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .quit-button {
+    background: #dc2626 !important;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3) !important;
+  }
+
+  .quit-button:hover:not(:disabled) {
+    background: #b91c1c !important;
+    box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4) !important;
+    transform: translateY(-1px);
+  }
+
+  .quit-button:disabled {
+    background: #9ca3af !important;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 
   .audio-text {
@@ -1124,6 +1185,7 @@ watch(gameOver, (isOver) => {
     width: 100%;
     gap: 0.5rem;
     flex-direction: row;
+    margin-bottom: 1rem;
   }
 
   .player-panel {
@@ -1185,7 +1247,25 @@ watch(gameOver, (isOver) => {
   }
 
   .logo {
-    height: 50px;
+    height: 60px;
+  }
+
+  .game-controls {
+    gap: 0.25rem;
+  }
+
+  .game-controls button {
+    min-height: 40px;
+    font-size: 0.625rem;
+    padding: 0.375rem 0.5rem;
+  }
+
+  .audio-text {
+    display: none; /* Hide text on very small screens */
+  }
+
+  .player-panels {
+    margin-bottom: 0.75rem;
   }
 
   .player-panel {
@@ -1214,16 +1294,6 @@ watch(gameOver, (isOver) => {
   .timer-countdown {
     font-size: 0.5rem;
     padding: 0.125rem 0.25rem;
-  }
-
-  .game-controls button {
-    min-height: 40px;
-    font-size: 0.625rem;
-    padding: 0.375rem 0.5rem;
-  }
-
-  .audio-text {
-    display: none; /* Hide text on very small screens */
   }
 
   .game-main {
