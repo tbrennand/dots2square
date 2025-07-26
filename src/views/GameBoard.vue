@@ -87,7 +87,7 @@
           >
             S
           </button>
-          <span class="control-label">Sound</span>
+          <span class="control-label mobile-hidden">Sound</span>
         </div>
         <div class="control-item">
           <button
@@ -97,7 +97,7 @@
           >
             P
           </button>
-          <span class="control-label">Pass</span>
+          <span class="control-label mobile-hidden">Pass</span>
         </div>
         <div class="control-item">
           <button
@@ -107,7 +107,7 @@
           >
             Q
           </button>
-          <span class="control-label">Quit</span>
+          <span class="control-label mobile-hidden">Quit</span>
         </div>
       </div>
     </div>
@@ -139,6 +139,7 @@ import { playMove } from '@/firebase/matchHelpers'
 import DotGrid from '@/components/DotGrid.vue'
 import { useTurnTimer } from '@/composables/useTurnTimer'
 import { useUserStore } from '@/store/userStore'
+import type { Line } from '@/types' // Import the Line type
 
 const route = useRoute()
 const router = useRouter()
@@ -507,7 +508,7 @@ const handleLineSelected = async (line: { startDot: string; endDot: string }) =>
   console.log('✅ Line added locally. Total lines:', drawnLines.value.length)
 
   // Check for completed squares locally
-  const newSquares = checkForCompletedSquares()
+  const newSquares = checkForCompletedSquares(newLine)
   let squaresClaimed = 0
 
   newSquares.forEach(square => {
@@ -550,32 +551,62 @@ const handleLineSelected = async (line: { startDot: string; endDot: string }) =>
 }
 
 // Check for completed squares (same logic as before)
-const checkForCompletedSquares = () => {
-  const newSquares: Array<{id: string, topLeftX: number, topLeftY: number}> = []
+const checkForCompletedSquares = (line: Line) => {
+  const newSquares = []
+  const [y1, x1] = line.startDot.split('-').map(Number)
+  const [y2, x2] = line.endDot.split('-').map(Number)
 
-  for (let x = 0; x < gridSize.value - 1; x++) {
-    for (let y = 0; y < gridSize.value - 1; y++) {
-      const squareId = `${x}-${y}`
+  const isHorizontal = y1 === y2
+  
+  const lineExists = (p1: string, p2: string) => 
+    drawnLines.value.some(l => 
+      (l.startDot === p1 && l.endDot === p2) || (l.startDot === p2 && l.endDot === p1)
+    )
 
-      // Skip if square already claimed
-      if (claimedSquares.value.some(s => s.id === squareId)) continue
-
-      // Check if all four lines exist
-      const topLine = lineExists(`${y}-${x}`, `${y}-${x + 1}`)
-      const bottomLine = lineExists(`${y + 1}-${x}`, `${y + 1}-${x + 1}`)
-      const leftLine = lineExists(`${y}-${x}`, `${y + 1}-${x}`)
-      const rightLine = lineExists(`${y}-${x + 1}`, `${y + 1}-${x + 1}`)
-
-      if (topLine && bottomLine && leftLine && rightLine) {
-        newSquares.push({
-          id: squareId,
-          topLeftX: x,
-          topLeftY: y
-        })
+  if (isHorizontal) {
+    // Check square above
+    if (y1 > 0) {
+      const p1 = `${y1 - 1}-${x1}`
+      const p2 = `${y1 - 1}-${x2}`
+      const p3 = `${y1}-${x1}`
+      const p4 = `${y1}-${x2}`
+      if (lineExists(p1, p3) && lineExists(p2, p4) && lineExists(p1, p2)) {
+        newSquares.push({ id: `sq-${y1 - 1}-${x1}`, topLeftX: x1, topLeftY: y1 - 1 })
+      }
+    }
+    // Check square below
+    if (y1 < gridSize.value) {
+      const p1 = `${y1}-${x1}`
+      const p2 = `${y1}-${x2}`
+      const p3 = `${y1 + 1}-${x1}`
+      const p4 = `${y1 + 1}-${x2}`
+      if (lineExists(p1, p3) && lineExists(p2, p4) && lineExists(p3, p4)) {
+        newSquares.push({ id: `sq-${y1}-${x1}`, topLeftX: x1, topLeftY: y1 })
+      }
+    }
+  } else { // isVertical
+    // Check square to the left
+    if (x1 > 0) {
+      const p1 = `${y1}-${x1 - 1}`
+      const p2 = `${y2}-${x1 - 1}`
+      const p3 = `${y1}-${x1}`
+      const p4 = `${y2}-${x1}`
+      if (lineExists(p1, p2) && lineExists(p1, p3) && lineExists(p2, p4)) {
+        newSquares.push({ id: `sq-${y1}-${x1 - 1}`, topLeftX: x1 - 1, topLeftY: y1 })
+      }
+    }
+    // Check square to the right
+    if (x1 < gridSize.value) {
+      const p1 = `${y1}-${x1}`
+      const p2 = `${y2}-${x1}`
+      const p3 = `${y1}-${x1 + 1}`
+      const p4 = `${y2}-${x1 + 1}`
+      if (lineExists(p1, p2) && lineExists(p3, p4) && lineExists(p1, p3)) {
+        newSquares.push({ id: `sq-${y1}-${x1}`, topLeftX: x1, topLeftY: y1 })
       }
     }
   }
-
+  
   return newSquares
 }
 
@@ -718,7 +749,6 @@ onMounted(() => {
   if (typeof id === 'string') {
     matchStore.subscribeToMatchById(id)
   } else {
-    // If id is not a string (e.g., it's an array or undefined), redirect.
     console.error('Invalid match ID parameter:', id)
     router.push('/')
   }
@@ -1544,13 +1574,17 @@ watch(gameOver, (isOver) => {
   }
 
   .control-button {
-    width: 32px; /* Smaller buttons */
-    height: 32px;
-    font-size: 0.875rem;
+    width: 36px; /* Elegant, smaller buttons */
+    height: 36px;
+    font-size: 1rem;
   }
 
   .control-label {
     font-size: 0.625rem; /* Smaller labels */
+  }
+
+  .mobile-hidden {
+    display: none; /* Hide text labels on mobile */
   }
 }
 

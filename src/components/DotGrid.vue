@@ -25,12 +25,13 @@
     </div>
     
     <!-- Claimed Squares -->
-    <div v-for="square in claimedSquares" :key="square.id" class="square" :style="squareStyle(square)" :class="{ 'player1-claimed': square.player === 1, 'player2-claimed': square.player === 2 }">
-      <div class="square-content">
-        <div class="initial-circle">
-          <span class="square-initial">{{ getPlayerInitial(square.player) }}</span>
-        </div>
-      </div>
+    <div 
+      v-for="square in claimedSquares" 
+      :key="square.id" 
+      class="square" 
+      :style="getSquareStyle(square)"
+    >
+      <div class="square-initial">{{ getPlayerInitial(square.player) }}</div>
     </div>
   </div>
 </template>
@@ -223,7 +224,7 @@ const getLineHitboxStyle = (line: PossibleLine) => {
 }
 
 // Square style method
-const squareStyle = (square: Square) => {
+const getSquareStyle = (square: Square) => {
   // Handle both Firebase format (x,y) and local format (topLeftX, topLeftY)
   const x = (square.x ?? square.topLeftX ?? 0) * spacing.value
   const y = (square.y ?? square.topLeftY ?? 0) * spacing.value
@@ -391,38 +392,33 @@ const getLineClass = (line: Line) => {
 
 .square {
   position: absolute;
-  background-size: cover;
-  background-position: center;
-  border: 3px solid;
-  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-  z-index: 1;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  z-index: 2; /* Below lines but above grid */
 }
 
 .square.player1-claimed {
-  background-color: rgba(59, 130, 246, 0.3);
-  border-color: #3b82f6;
+  background-color: #3b82f6; /* Blue */
 }
 
 .square.player2-claimed {
-  background-color: rgba(249, 115, 22, 0.3);
-  border-color: #f97316;
+  background-color: #f97316; /* Orange */
 }
 
 .square-initial {
   font-size: 1.5rem;
   font-weight: 800;
   color: white;
-  background: rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.8);
   border-radius: 50%;
   width: 30px;
   height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
 }
 
 /* Responsive adjustments */
