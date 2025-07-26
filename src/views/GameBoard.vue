@@ -112,7 +112,7 @@
       </div>
     </div>
 
-    <main class="game-main">
+    <main class="game-main" :class="{ 'is-disabled': !canCurrentPlayerMove }">
       <DotGrid
         :key="`grid-${drawnLines.length}`"
         :grid-size="gridSize"
@@ -176,50 +176,37 @@ const countdownAudio = ref<HTMLAudioElement | null>(null)
 const soundHasPlayed = ref(false) // Add this flag
 const audioInitialized = ref(false)
 
-// Get user from store
-const userStore = useUserStore()
-
-// Initialize audio (mobile-friendly)
+// Initialize audio element ONLY on user gesture
 const initializeAudio = () => {
-  try {
-    countdownAudio.value = new Audio('/sounds/countdown.mp3')
-    countdownAudio.value.volume = 0.7
-    countdownAudio.value.preload = 'none' // Don't preload on mobile
+  if (!audioInitialized.value && typeof window !== 'undefined') {
+    console.log('🔊 Initializing audio on user gesture...')
+    countdownAudio.value = new Audio('/sounds/countdown.mp3') // Correct path
+    countdownAudio.value.preload = 'auto'
+    
+    // Attempt to play and pause to "unlock" audio on mobile
+    const promise = countdownAudio.value.play()
+    if (promise !== undefined) {
+      promise.then(() => {
+        countdownAudio.value?.pause()
+        countdownAudio.value!.currentTime = 0
+        console.log('🔊 Audio context unlocked.')
+      }).catch(error => {
+        console.error("Audio unlock failed:", error)
+      });
+    }
     audioInitialized.value = true
-  } catch (error) {
-    console.log('Audio initialization failed:', error)
   }
 }
 
-// Enable audio with user interaction (required for mobile)
-const enableAudio = async () => {
+const toggleAudio = () => {
   if (!audioInitialized.value) {
     initializeAudio()
   }
-
-  if (countdownAudio.value) {
-    try {
-      // Test if audio can play (mobile requirement)
-      const playPromise = countdownAudio.value.play()
-      if (playPromise) {
-        await playPromise
-        countdownAudio.value.pause()
-        countdownAudio.value.currentTime = 0
-      }
-      audioEnabled.value = true
-    } catch (error) {
-      console.log('Audio enable failed:', error)
-      audioEnabled.value = false
-    }
-  }
-}
-
-// Toggle audio with mobile compatibility
-const toggleAudio = async () => {
-  if (!audioEnabled.value && !audioInitialized.value) {
-    await enableAudio()
-  } else {
-    audioEnabled.value = !audioEnabled.value
+  audioEnabled.value = !audioEnabled.value
+  console.log(`🔊 Audio ${audioEnabled.value ? 'enabled' : 'disabled'}`)
+  if (!audioEnabled.value && countdownAudio.value) {
+    countdownAudio.value.pause()
+    countdownAudio.value.currentTime = 0
   }
 }
 
@@ -727,13 +714,12 @@ watch(debugDotGridData, (newData) => {
 
 // Initialize game on mount
 onMounted(() => {
-  // Initialize audio for mobile compatibility
-  initializeAudio()
-
-  const matchId = route.params.id as string
-  if (matchId) {
-    matchStore.subscribeToMatchById(matchId)
+  const { id } = route.params
+  if (typeof id === 'string') {
+    matchStore.subscribeToMatchById(id)
   } else {
+    // If id is not a string (e.g., it's an array or undefined), redirect.
+    console.error('Invalid match ID parameter:', id)
     router.push('/')
   }
 })
@@ -1566,5 +1552,10 @@ watch(gameOver, (isOver) => {
   .control-label {
     font-size: 0.625rem; /* Smaller labels */
   }
+}
+
+.game-main.is-disabled {
+  pointer-events: none;
+  opacity: 0.8;
 }
 </style>
