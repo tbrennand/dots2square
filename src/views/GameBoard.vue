@@ -162,12 +162,12 @@ const {
   gameOver: firebaseGameOver
 } = storeToRefs(matchStore)
 
-// Local game state for immediate UI updates (synced with Firebase)
-const gridSize = ref(8) // Changed to 8 to match Firebase
-const currentPlayer = ref(1)
+// Initialize game state
+const gridSize = ref(8) // Always start with 8x8 grid
 const drawnLines = ref<Array<{id: string, startDot: string, endDot: string, player: number}>>([])
 const claimedSquares = ref<Array<{id: string, topLeftX: number, topLeftY: number, player: number}>>([])
 const scores = ref({ 1: 0, 2: 0 })
+const currentPlayer = ref(1)
 
 // Audio state for mobile-compatible sound
 const countdownAudio = ref<HTMLAudioElement | null>(null)
@@ -378,8 +378,11 @@ watch(timeRemaining, (newTime, oldTime) => {
 // Sync Firebase state to local state
 const syncFromFirebase = () => {
   if (!matchData.value) return
-  
   console.log('🔄 syncFromFirebase - Match status:', matchData.value.status)
+  
+  // Always set grid size to 8 for consistency
+  gridSize.value = 8
+  console.log('🔄 Grid size set to:', gridSize.value)
   
   // Only sync game state for active games
   if (matchData.value.status !== 'active') {
@@ -394,7 +397,6 @@ const syncFromFirebase = () => {
   }
   
   // Update local state from Firebase for active games
-  gridSize.value = firebaseGridSize.value || 8 // Ensure gridSize is 8 for active games
   currentPlayer.value = firebaseCurrentPlayer.value || 1
   scores.value = { 
     1: firebaseScores.value?.[1] || 0, 

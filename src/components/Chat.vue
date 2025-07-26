@@ -276,12 +276,9 @@ onMounted(() => {
 
 // Watch for second player joining
 watch(() => props.hasSecondPlayer, (newValue) => {
-  if (newValue && !isOpen.value) {
-    // Auto-open chat when second player joins
-    setTimeout(() => {
-      isOpen.value = true
-      markMessagesAsRead()
-    }, 500)
+  if (newValue) {
+    console.log('🧪 CHAT: Second player joined, but keeping chat closed')
+    // Removed auto-open behavior - chat stays closed by default
   }
 })
 
