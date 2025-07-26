@@ -658,7 +658,7 @@ function checkForCompletedSquares(
   }>
 } {
   console.log('🔍 SIMPLE DEBUG - Starting square check with', lines?.length || 0, 'lines')
-  console.log('🔍 SIMPLE DEBUG - Sample lines:', lines?.slice(0, 3).map(l => `${l.startDot}-${l.endDot}`) || [])
+  console.log('🔍 SIMPLE DEBUG - Sample lines:', lines?.slice(0, 3).map(l => `${l.startDot} to ${l.endDot}`) || [])
   
   const completedSquares: Array<{
     id: string
@@ -698,10 +698,19 @@ function checkForCompletedSquares(
         { startDot: rightDot, endDot: bottomRightDot }
       ]
       
-      // SIMPLE DEBUG - Check first square only
-      if (x === 0 && y === 0) {
-        console.log('🔍 SIMPLE DEBUG - Checking square 0-0, needs lines:', squareLines.map(l => `${l.startDot} to ${l.endDot}`))
-        console.log('🔍 SIMPLE DEBUG - Available lines:', lines?.map(l => `${l.startDot} to ${l.endDot}`) || [])
+      // DEBUG - Check first few squares
+      if ((x === 0 && y === 0) || (x === 0 && y === 1) || (x === 1 && y === 0)) {
+        console.log(`🔍 SIMPLE DEBUG - Checking square ${squareId}, needs lines:`, squareLines.map(l => `${l.startDot} to ${l.endDot}`))
+        console.log(`🔍 SIMPLE DEBUG - Available lines:`, lines?.map(l => `${l.startDot} to ${l.endDot}`) || [])
+        
+        // Check each required line
+        squareLines.forEach((requiredLine, i) => {
+          const found = lines?.some(line => 
+            (line.startDot === requiredLine.startDot && line.endDot === requiredLine.endDot) ||
+            (line.startDot === requiredLine.endDot && line.endDot === requiredLine.startDot)
+          )
+          console.log(`🔍 SIMPLE DEBUG - Line ${i+1} (${requiredLine.startDot} to ${requiredLine.endDot}): ${found ? 'FOUND' : 'MISSING'}`)
+        })
       }
       
       // Check if all four lines exist
