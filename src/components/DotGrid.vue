@@ -228,8 +228,8 @@ const squareStyle = (square: Square) => {
 
 // Get player initial
 const getPlayerInitial = (player?: number) => {
-  if (player === 1) return 'A'
-  if (player === 2) return 'B'
+  if (player === 1) return 'A'  // Player 1 gets 'A'
+  if (player === 2) return 'B'  // Player 2 gets 'B'
   return ''
 }
 
@@ -394,6 +394,7 @@ const getLineClass = (line: Line) => {
   transition: all 0.3s ease;
   border: 3px solid transparent;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  z-index: 10; /* Ensure squares appear above lines */
 }
 
 .square-content {
@@ -407,23 +408,24 @@ const getLineClass = (line: Line) => {
 }
 
 .player1-square {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  background: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important;
 }
 
 .player2-square {
-  background: #f97316;
-  border-color: #f97316;
-  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+  background: #f97316 !important;
+  border-color: #f97316 !important;
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4) !important;
 }
 
 .square-initial {
   font-size: 1.125rem;
   font-weight: 700;
-  color: white;
+  color: white !important;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  z-index: 11;
 }
 
 .square:hover {
