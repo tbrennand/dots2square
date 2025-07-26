@@ -584,11 +584,18 @@ const quitGame = () => {
 
 // Watch for Firebase changes and sync to local state
 watch([firebaseLines, firebaseSquares, firebaseCurrentPlayer, firebaseScores], () => {
+  console.log('🔄 Syncing from Firebase:', {
+    lines: firebaseLines.value?.length || 0,
+    squares: firebaseSquares.value?.length || 0,
+    currentPlayer: firebaseCurrentPlayer.value,
+    scores: firebaseScores.value
+  })
   syncFromFirebase()
 }, { deep: true })
 
 // Watch for turn changes to start/stop timer
 watch(currentPlayer, (newPlayer) => {
+  console.log('🔄 Current player changed to:', newPlayer)
   if (matchData.value?.status === 'active' && isTimerActive) {
     startTimer(newPlayer === 1 ? matchData.value.player1.id : matchData.value.player2?.id || '', 30)
   }
@@ -596,12 +603,24 @@ watch(currentPlayer, (newPlayer) => {
 
 // Watch for game status changes
 watch(() => matchData.value?.status, (newStatus) => {
+  console.log('🔄 Match status changed to:', newStatus)
   if (newStatus === 'active' && currentPlayer.value) {
     startTimer(currentPlayer.value === 1 ? matchData.value?.player1.id || '' : matchData.value?.player2?.id || '', 30)
-  } else {
-    stopTimer()
   }
-})
+}, { immediate: true })
+
+// Debug current game state
+watch([currentPlayer, canCurrentPlayerMove, gameOver], () => {
+  console.log('🎮 Game State Debug:', {
+    currentPlayer: currentPlayer.value,
+    canMove: canCurrentPlayerMove.value,
+    gameOver: gameOver.value,
+    matchStatus: matchData.value?.status,
+    userPlayerNumber: currentUserPlayerNumber.value,
+    drawnLines: drawnLines.value.length,
+    claimedSquares: claimedSquares.value.length
+  })
+}, { immediate: true })
 
 // Watch for timer warnings and play sound
 watch(timeRemaining, (newTime) => {
@@ -653,20 +672,118 @@ watch(gameOver, (isOver) => {
 
 .game-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
   background: #ffffff;
-  padding: 0.75rem 1.5rem;
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
   min-height: 80px;
 }
 
 .logo {
-  height: 120px;
-  width: auto;
-  flex-shrink: 0;
+  height: 60px;
+  flex: 0 0 auto;
+}
+
+.game-controls {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 0;
+  flex: 0 0 auto;
+}
+
+.audio-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+  min-height: 44px;
+}
+
+.audio-toggle:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+.audio-toggle.audio-off {
+  background: #dc2626;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+}
+
+.audio-toggle.audio-off:hover {
+  background: #b91c1c;
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
+}
+
+.audio-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pass-button {
+  padding: 0.75rem 1.5rem;
+  background: #f97316;
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
+  min-height: 44px;
+}
+
+.pass-button:hover:not(:disabled) {
+  background: #ea580c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
+}
+
+.pass-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.quit-button {
+  padding: 0.75rem 1.5rem;
+  background: #f97316;
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
+  min-height: 44px;
+}
+
+.quit-button:hover:not(:disabled) {
+  background: #ea580c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
+}
+
+.quit-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .player-panels {
@@ -674,7 +791,9 @@ watch(gameOver, (isOver) => {
   gap: 1rem;
   justify-content: center;
   align-items: stretch;
-  width: 100%;
+  width: auto;
+  flex: 1;
+  margin: 0 2rem;
 }
 
 .player-panel {
@@ -870,110 +989,6 @@ watch(gameOver, (isOver) => {
   margin-top: 0.125rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-.game-controls {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.audio-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #1f2937;
-  color: white;
-  border: none;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(31, 41, 55, 0.3);
-  min-height: 44px;
-}
-
-.audio-toggle:hover {
-  background: #111827;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(31, 41, 55, 0.4);
-}
-
-.audio-toggle.audio-off {
-  background: #dc2626;
-  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
-}
-
-.audio-toggle.audio-off:hover {
-  background: #b91c1c;
-  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
-}
-
-.audio-icon {
-  font-size: 1rem;
-}
-
-.audio-text {
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.pass-button {
-  padding: 0.75rem 1.5rem;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-  min-height: 44px;
-}
-
-.pass-button:hover:not(:disabled) {
-  background: #2563eb;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
-}
-
-.pass-button:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.quit-button {
-  padding: 0.75rem 1.5rem;
-  background: #dc2626;
-  color: white;
-  border: none;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
-  min-height: 44px;
-}
-
-.quit-button:hover:not(:disabled) {
-  background: #b91c1c;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
-}
-
-.quit-button:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
 .game-main {
