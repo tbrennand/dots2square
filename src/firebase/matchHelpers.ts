@@ -658,7 +658,11 @@ function checkForCompletedSquares(
   }>
 } {
   console.log('🔍 SIMPLE DEBUG - Starting square check with', lines?.length || 0, 'lines')
-  console.log('🔍 SIMPLE DEBUG - Sample lines:', lines?.slice(0, 3).map(l => `${l.startDot} to ${l.endDot}`) || [])
+  if (lines && lines.length > 0) {
+    for (let i = 0; i < Math.min(5, lines.length); i++) {
+      console.log(`🔍 SIMPLE DEBUG - Line ${i+1}: ${lines[i].startDot} to ${lines[i].endDot}`)
+    }
+  }
   
   const completedSquares: Array<{
     id: string
@@ -698,10 +702,13 @@ function checkForCompletedSquares(
         { startDot: rightDot, endDot: bottomRightDot }
       ]
       
-      // DEBUG - Check first few squares
-      if ((x === 0 && y === 0) || (x === 0 && y === 1) || (x === 1 && y === 0)) {
-        console.log(`🔍 SIMPLE DEBUG - Checking square ${squareId}, needs lines:`, squareLines.map(l => `${l.startDot} to ${l.endDot}`))
-        console.log(`🔍 SIMPLE DEBUG - Available lines:`, lines?.map(l => `${l.startDot} to ${l.endDot}`) || [])
+      // DEBUG - Check first few squares including 1-1
+      if ((x === 0 && y === 0) || (x === 0 && y === 1) || (x === 1 && y === 0) || (x === 1 && y === 1)) {
+        console.log(`🔍 SIMPLE DEBUG - Checking square ${squareId}`)
+        console.log(`🔍 SIMPLE DEBUG - Needs: ${squareLines[0].startDot} to ${squareLines[0].endDot}`)
+        console.log(`🔍 SIMPLE DEBUG - Needs: ${squareLines[1].startDot} to ${squareLines[1].endDot}`)
+        console.log(`🔍 SIMPLE DEBUG - Needs: ${squareLines[2].startDot} to ${squareLines[2].endDot}`)
+        console.log(`🔍 SIMPLE DEBUG - Needs: ${squareLines[3].startDot} to ${squareLines[3].endDot}`)
         
         // Check each required line
         squareLines.forEach((requiredLine, i) => {
@@ -709,7 +716,7 @@ function checkForCompletedSquares(
             (line.startDot === requiredLine.startDot && line.endDot === requiredLine.endDot) ||
             (line.startDot === requiredLine.endDot && line.endDot === requiredLine.startDot)
           )
-          console.log(`🔍 SIMPLE DEBUG - Line ${i+1} (${requiredLine.startDot} to ${requiredLine.endDot}): ${found ? 'FOUND' : 'MISSING'}`)
+          console.log(`🔍 SIMPLE DEBUG - Line ${i+1}: ${found ? 'FOUND' : 'MISSING'}`)
         })
       }
       
