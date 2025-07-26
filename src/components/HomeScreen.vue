@@ -3,7 +3,7 @@
     <div class="w-full max-w-lg mx-auto">
       <div class="text-center">
         <h1 class="text-3xl font-extrabold text-secondary tracking-tight mb-1">Welcome to</h1>
-        <img src="/src/assets/dots2squares-logo.png" alt="Dots 2 Squares Logo" class="mx-auto mb-2 w-64 sm:w-72 md:w-80 lg:w-96 h-auto" />
+        <img src="@/assets/dots2squares-logo.png" alt="Dots 2 Squares Logo" class="mx-auto mb-2 w-64 sm:w-72 md:w-80 lg:w-96 h-auto" />
         <p class="text-base text-muted mb-4">The classic pencil-and-paper game, reimagined.</p>
       </div>
 

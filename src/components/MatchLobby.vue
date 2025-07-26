@@ -1,7 +1,7 @@
 <template>
   <div class="match-lobby">
     <div class="lobby-header-section">
-      <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="lobby-logo" />
+      <img src="@/assets/dots2squares-logo.png" alt="Dots2Squares Logo" class="lobby-logo" />
       <div class="lobby-header">
         <h2>{{ isHost ? 'Match Lobby' : 'Joining Match' }}</h2>
         <p class="subtitle">

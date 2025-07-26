@@ -368,11 +368,11 @@ const getLineClass = (line: Line) => {
 
 .line-visual.horizontal {
   width: 100%;
-  height: 2px;
+  height: 4px; /* Much thicker for visibility */
 }
 
 .line-visual.vertical {
-  width: 2px;
+  width: 4px; /* Much thicker for visibility */
   height: 100%;
 }
 
@@ -517,11 +517,11 @@ const getLineClass = (line: Line) => {
   
   /* Much thinner lines for mobile */
   .line-visual.horizontal {
-    height: 1px;
+    height: 3px; /* Still visible on mobile */
   }
   
   .line-visual.vertical {
-    width: 1px;
+    width: 3px; /* Still visible on mobile */
   }
   
   .player1-line {

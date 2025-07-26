@@ -2,7 +2,7 @@
   <div class="game-container">
     <div class="game-header">
       <!-- Logo on left -->
-      <img src="/src/assets/dots2squares-logo.png" alt="Dots2Squares" class="logo" />
+      <img src="@/assets/dots2squares-logo.png" alt="Dots2Squares" class="logo" />
       
       <!-- Game Controls on right -->
       <div class="game-controls">
@@ -748,6 +748,7 @@ watch(gameOver, (isOver) => {
   border-bottom: 1px solid #e5e7eb;
   min-height: 80px;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .logo {
@@ -765,36 +766,36 @@ watch(gameOver, (isOver) => {
 }
 
 .audio-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-  min-height: 44px;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  padding: 0.75rem 1rem !important;
+  background: #3b82f6 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  font-size: 0.875rem !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3) !important;
+  min-height: 44px !important;
 }
 
 .audio-toggle:hover {
-  background: #2563eb;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+  background: #2563eb !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4) !important;
 }
 
 .audio-toggle.audio-off {
-  background: #dc2626;
-  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+  background: #dc2626 !important;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3) !important;
 }
 
 .audio-toggle.audio-off:hover {
-  background: #b91c1c;
-  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
+  background: #b91c1c !important;
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4) !important;
 }
 
 .audio-text {
@@ -803,57 +804,57 @@ watch(gameOver, (isOver) => {
 }
 
 .pass-button {
-  padding: 0.75rem 1.5rem;
-  background: #f97316;
-  color: white;
-  border: none;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
-  min-height: 44px;
+  padding: 0.75rem 1.5rem !important;
+  background: #f97316 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  font-size: 0.875rem !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3) !important;
+  min-height: 44px !important;
 }
 
 .pass-button:hover:not(:disabled) {
-  background: #ea580c;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
+  background: #ea580c !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4) !important;
 }
 
 .pass-button:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+  background: #9ca3af !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .quit-button {
-  padding: 0.75rem 1.5rem;
-  background: #f97316;
-  color: white;
-  border: none;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
-  min-height: 44px;
+  padding: 0.75rem 1.5rem !important;
+  background: #f97316 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  font-size: 0.875rem !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3) !important;
+  min-height: 44px !important;
 }
 
 .quit-button:hover:not(:disabled) {
-  background: #ea580c;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
+  background: #ea580c !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4) !important;
 }
 
 .quit-button:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+  background: #9ca3af !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .player-panels {
@@ -1485,6 +1486,25 @@ watch(gameOver, (isOver) => {
   
   .logo {
     height: 70px;
+  }
+}
+
+/* Mobile layout - stack controls above player panels */
+@media (max-width: 768px) {
+  .game-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .game-controls {
+    order: 2;
+    margin-bottom: 0;
+  }
+  
+  .player-panels {
+    order: 3;
+    margin: 0;
   }
 }
 </style>

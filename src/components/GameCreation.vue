@@ -2,7 +2,7 @@
   <div class="game-creation min-h-screen flex flex-col items-center justify-center p-4">
     <div class="w-full max-w-lg mx-auto">
       <div class="text-center">
-        <img src="/src/assets/dots2squares-logo.png" alt="Dots 2 Squares Logo" class="mx-auto mb-2 w-64 sm:w-72 md:w-80 lg:w-96 h-auto" />
+        <img src="@/assets/dots2squares-logo.png" alt="Dots 2 Squares Logo" class="mx-auto mb-2 w-64 sm:w-72 md:w-80 lg:w-96 h-auto" />
         <h1 class="text-3xl font-extrabold text-secondary tracking-tight">Create Your Game</h1>
         <p class="mt-2 text-lg text-muted">Choose your settings and invite friends to play!</p>
       </div>
