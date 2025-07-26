@@ -452,9 +452,18 @@ const syncFromFirebase = () => {
 
 // Handle line selection with Firebase sync
 const handleLineSelected = async (line: { startDot: string; endDot: string }) => {
+  console.log('🎯 Line selected:', line)
+  console.log('🎮 Line selection debug:', {
+    canCurrentPlayerMove: canCurrentPlayerMove.value,
+    currentMatchId: currentMatchId.value,
+    currentPlayer: currentPlayer.value,
+    userPlayerNumber: currentUserPlayerNumber.value,
+    matchStatus: matchData.value?.status
+  })
+  
   // Only allow moves if it's the player's turn and they're in the match
   if (!canCurrentPlayerMove.value || !currentMatchId.value) {
-    console.log('Move blocked - not your turn or not in match')
+    console.log('❌ Move blocked - not your turn or not in match')
     return
   }
   
@@ -464,7 +473,12 @@ const handleLineSelected = async (line: { startDot: string; endDot: string }) =>
     (l.startDot === line.endDot && l.endDot === line.startDot)
   )
   
-  if (lineExists) return
+  if (lineExists) {
+    console.log('❌ Line already exists:', line)
+    return
+  }
+  
+  console.log('✅ Adding line locally for immediate UI update')
   
   // Add line locally for immediate UI update
   const newLine = {
@@ -474,6 +488,8 @@ const handleLineSelected = async (line: { startDot: string; endDot: string }) =>
     player: currentPlayer.value
   }
   drawnLines.value.push(newLine)
+  
+  console.log('✅ Line added locally. Total lines:', drawnLines.value.length)
   
   // Check for completed squares locally
   const newSquares = checkForCompletedSquares()
@@ -489,22 +505,29 @@ const handleLineSelected = async (line: { startDot: string; endDot: string }) =>
     }
   })
   
+  console.log('✅ Squares claimed:', squaresClaimed)
+  
   // Update scores locally
   scores.value[currentPlayer.value as 1 | 2] += squaresClaimed
   
   // Switch turns locally (unless squares were claimed)
   if (squaresClaimed === 0) {
     currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
+    console.log('🔄 Switched to player:', currentPlayer.value)
+  } else {
+    console.log('🎯 Extra turn for claiming square!')
   }
   
   // Send move to Firebase (will sync back to other players)
   try {
+    console.log('📡 Sending move to Firebase...')
     await playMove(currentMatchId.value, currentUserId.value, {
       startDot: line.startDot,
       endDot: line.endDot
     })
+    console.log('✅ Move sent to Firebase successfully')
   } catch (error) {
-    console.error('Error syncing move to Firebase:', error)
+    console.error('❌ Error syncing move to Firebase:', error)
     // Revert local changes if Firebase sync fails
     drawnLines.value = drawnLines.value.filter(l => l.id !== newLine.id)
     // Could also revert squares and scores here, but for simplicity keeping the optimistic update
@@ -664,6 +687,14 @@ const debugDotGridData = computed(() => ({
 watch(debugDotGridData, (newData) => {
   console.log('🎯 DotGrid data updated:', newData)
   console.log('🧪 TEST: Changes are being loaded! Grid size is:', newData.gridSize)
+  console.log('🎮 GAME DEBUG: Current state:', {
+    gridSize: newData.gridSize,
+    drawnLines: newData.drawnLinesCount,
+    claimedSquares: newData.claimedSquaresCount,
+    canMakeMove: newData.canMakeMove,
+    currentPlayer: currentPlayer.value,
+    matchStatus: matchData.value?.status
+  })
 }, { deep: true, immediate: true })
 
 // Initialize game on mount

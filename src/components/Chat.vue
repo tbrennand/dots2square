@@ -86,7 +86,7 @@ const chatMessages = ref<ChatMessage[]>([])
 const newMessage = ref('')
 const messagesContainerRef = ref<HTMLElement>()
 const isLoading = ref(false)
-const isOpen = ref(false)
+const isOpen = ref(false) // Ensure chat stays closed by default
 const unreadCount = ref(0)
 const lastReadMessageId = ref<string>('')
 let unsubscribe: Unsubscribe | null = null
@@ -98,7 +98,7 @@ const sortedMessages = computed(() => {
   console.log('sortedMessages computed - messages array:', messages)
   const sorted = messages.sort((a, b) => (a.timestamp?.getTime() || 0) - (b.timestamp?.getTime() || 0));
   console.log('sortedMessages computed - sorted result:', sorted)
-  console.log('🧪 CHAT TEST: Chat component is loaded with tooltip!')
+  console.log('🧪 CHAT TEST: Chat component is loaded with tooltip! isOpen:', isOpen.value)
   return sorted;
 })
 
