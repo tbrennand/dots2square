@@ -411,12 +411,20 @@ export async function playMove(
       }
       const updatedLines = [...(matchData.lines || []), newLine]
       
+      console.log('🔍 SIMPLE DEBUG - Lines added so far:', updatedLines.length)
+      console.log('🔍 SIMPLE DEBUG - New line:', `${newLine.startDot} to ${newLine.endDot}`)
+      
       // Check for completed squares
       const squareCheckResult = checkForCompletedSquares(
         matchData.dots || [],
         updatedLines,
         matchData.squares || []
       )
+      
+      console.log('🔍 SIMPLE DEBUG - Completed squares found:', squareCheckResult.completedSquares.length)
+      if (squareCheckResult.completedSquares.length > 0) {
+        console.log('🔍 SIMPLE DEBUG - Completed square IDs:', squareCheckResult.completedSquares.map(s => s.id))
+      }
       
       console.log('🔍 Square Check Result:', {
         newLineAdded: `${newLine.startDot}-${newLine.endDot}`,
@@ -649,12 +657,8 @@ function checkForCompletedSquares(
     lines: string[]
   }>
 } {
-  console.log('🔍 checkForCompletedSquares input:', {
-    dotsCount: dots?.length || 0,
-    linesCount: lines?.length || 0,
-    existingSquaresCount: existingSquares?.length || 0,
-    sampleLines: lines?.slice(0, 3).map(l => `${l.startDot}-${l.endDot}`)
-  })
+  console.log('🔍 SIMPLE DEBUG - Starting square check with', lines?.length || 0, 'lines')
+  console.log('🔍 SIMPLE DEBUG - Sample lines:', lines?.slice(0, 3).map(l => `${l.startDot}-${l.endDot}`) || [])
   
   const completedSquares: Array<{
     id: string
@@ -665,7 +669,7 @@ function checkForCompletedSquares(
   }> = []
   
   const gridSize = Math.sqrt(dots?.length || 25)
-  console.log('🔍 Grid size calculated:', gridSize)
+  console.log('🔍 SIMPLE DEBUG - Grid size:', gridSize)
   
   // Check each potential square
   for (let x = 0; x < gridSize - 1; x++) {
@@ -694,10 +698,11 @@ function checkForCompletedSquares(
         { startDot: rightDot, endDot: bottomRightDot }
       ]
       
-      console.log(`🔍 Checking square ${squareId}:`, {
-        requiredLines: squareLines.map(l => `${l.startDot}-${l.endDot}`),
-        availableLines: lines?.map(l => `${l.startDot}-${l.endDot}`) || []
-      })
+      // SIMPLE DEBUG - Check first square only
+      if (x === 0 && y === 0) {
+        console.log('🔍 SIMPLE DEBUG - Checking square 0-0, needs lines:', squareLines.map(l => `${l.startDot} to ${l.endDot}`))
+        console.log('🔍 SIMPLE DEBUG - Available lines:', lines?.map(l => `${l.startDot} to ${l.endDot}`) || [])
+      }
       
       // Check if all four lines exist
       const allLinesExist = squareLines.every(squareLine => 
@@ -708,7 +713,7 @@ function checkForCompletedSquares(
       )
       
       if (allLinesExist) {
-        console.log('✅ Square completed:', squareId)
+        console.log('🔍 SIMPLE DEBUG - SQUARE COMPLETED!', squareId)
         completedSquares.push({
           id: squareId,
           topLeftX: x,
@@ -720,10 +725,7 @@ function checkForCompletedSquares(
     }
   }
   
-  console.log('🔍 checkForCompletedSquares result:', {
-    completedCount: completedSquares.length,
-    completedIds: completedSquares.map(s => s.id)
-  })
+  console.log('🔍 SIMPLE DEBUG - Final result:', completedSquares.length, 'squares completed')
   
   return { completedSquares }
 } 
