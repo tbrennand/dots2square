@@ -379,6 +379,8 @@ watch(timeRemaining, (newTime, oldTime) => {
 const syncFromFirebase = () => {
   if (!matchData.value) return
   
+  console.log('🔄 syncFromFirebase - Match status:', matchData.value.status)
+  
   // Only sync game state for active games
   if (matchData.value.status !== 'active') {
     // For non-active games, reset to initial state
@@ -401,12 +403,21 @@ const syncFromFirebase = () => {
   
   // Sync lines
   if (firebaseLines.value) {
-    drawnLines.value = firebaseLines.value.map(line => ({
-      id: line.id,
-      startDot: line.startDot,
-      endDot: line.endDot,
-      player: line.player || 1
-    }))
+    console.log('🔄 Syncing lines from Firebase:', firebaseLines.value.length, 'lines')
+    console.log('🔄 Current local lines:', drawnLines.value.length, 'lines')
+    
+    // Only sync if Firebase has more lines than local (to preserve optimistic updates)
+    if (firebaseLines.value.length >= drawnLines.value.length) {
+      drawnLines.value = firebaseLines.value.map(line => ({
+        id: line.id,
+        startDot: line.startDot,
+        endDot: line.endDot,
+        player: line.player || 1
+      }))
+      console.log('🔄 Updated local lines to:', drawnLines.value.length, 'lines')
+    } else {
+      console.log('🔄 Keeping local optimistic updates, Firebase has fewer lines')
+    }
   }
   
   // Sync squares - only claimed ones
@@ -419,12 +430,21 @@ const syncFromFirebase = () => {
       (square.player === 1 || square.player === 2)
     )
     
-    claimedSquares.value = claimedFirebaseSquares.map(square => ({
-      id: square.id,
-      topLeftX: square.topLeftX || 0,
-      topLeftY: square.topLeftY || 0,
-      player: square.player as number
-    }))
+    console.log('🔄 Syncing squares from Firebase:', claimedFirebaseSquares.length, 'squares')
+    console.log('🔄 Current local squares:', claimedSquares.value.length, 'squares')
+    
+    // Only sync if Firebase has more squares than local
+    if (claimedFirebaseSquares.length >= claimedSquares.value.length) {
+      claimedSquares.value = claimedFirebaseSquares.map(square => ({
+        id: square.id,
+        topLeftX: square.topLeftX || 0,
+        topLeftY: square.topLeftY || 0,
+        player: square.player as number
+      }))
+      console.log('🔄 Updated local squares to:', claimedSquares.value.length, 'squares')
+    } else {
+      console.log('🔄 Keeping local optimistic updates, Firebase has fewer squares')
+    }
   } else {
     claimedSquares.value = []
   }
@@ -678,6 +698,7 @@ watch(gameOver, (isOver) => {
   background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
   min-height: 80px;
+  gap: 1rem;
 }
 
 .logo {
@@ -791,9 +812,9 @@ watch(gameOver, (isOver) => {
   gap: 1rem;
   justify-content: center;
   align-items: stretch;
-  width: auto;
   flex: 1;
   margin: 0 2rem;
+  min-width: 0;
 }
 
 .player-panel {

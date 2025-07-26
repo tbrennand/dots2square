@@ -9,6 +9,10 @@
     >
       <span class="chat-tab-icon">💬</span>
       <span v-if="unreadCount > 0" class="chat-notification">{{ unreadCount }}</span>
+      <!-- Small tooltip indicator -->
+      <div class="chat-tooltip" v-if="!isOpen">
+        <span>Chat available</span>
+      </div>
     </div>
 
     <!-- Slide-out Chat Panel -->
@@ -300,54 +304,84 @@ onUnmounted(() => {
 /* Chat Tab */
 .chat-tab {
   position: fixed;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
+  bottom: 2rem;
+  right: 2rem;
+  width: 60px;
+  height: 60px;
   background: #f97316;
-  color: white;
-  padding: 1rem 0.75rem;
-  border-radius: 0.5rem 0 0 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
   transition: all 0.3s ease;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
-  pointer-events: auto;
-  z-index: 1001;
+  z-index: 1000;
+  border: 2px solid white;
 }
 
 .chat-tab:hover {
-  background: #ea580c;
-  transform: translateY(-50%) translateX(-5px);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
 }
 
 .chat-tab--active {
   background: #ea580c;
+  transform: scale(1.05);
 }
 
 .chat-tab-icon {
-  font-size: 1.25rem;
-  display: block;
+  font-size: 1.5rem;
+  color: white;
 }
 
 .chat-notification {
   position: absolute;
   top: -5px;
   right: -5px;
-  background: #ef4444;
+  background: #dc2626;
   color: white;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: pulse 2s infinite;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border: 2px solid white;
 }
 
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+/* Chat tooltip */
+.chat-tooltip {
+  position: absolute;
+  bottom: 70px;
+  right: 0;
+  background: #1f2937;
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+  z-index: 1001;
+}
+
+.chat-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 20px;
+  border: 5px solid transparent;
+  border-top-color: #1f2937;
+}
+
+.chat-tab:hover .chat-tooltip {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* Chat Panel */
