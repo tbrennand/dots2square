@@ -10,8 +10,8 @@
       :id="line.id"
       class="line-container potential"
       @click="selectLine(line)"
-      @mouseenter="hoverLine = line.id"
-      @mouseleave="hoverLine = null"
+      @mouseenter="hoveredLine = line"
+      @mouseleave="hoveredLine = null"
       :class="{ 
         'disabled': !canMakeMove,
         'horizontal': line.startDot.split('-')[0] === line.endDot.split('-')[0],
@@ -20,17 +20,25 @@
       :style="getLineStyle(line)"
     >
       <div class="line-hitbox"></div>
-      <div class="line-visual" :class="{ 'line-hover': hoverLine === line.id && canMakeMove }"></div>
+      <!-- Hovered Line Visual -->
+      <div 
+        v-if="hoveredLine && drawnLines.length > 0" 
+        class="line-visual" 
+        :style="getLineStyle(hoveredLine)"
+      ></div>
     </div>
 
     <!-- Drawn Lines -->
-    <div v-for="line in drawnLines" :key="line.id" :id="line.id" class="line-container drawn" :style="getLineStyle(line, false)">
-      <div class="line-visual line-drawn" :class="getLineClass(line)"></div>
+    <div v-for="line in drawnLines" :key="line.id">
+      <div 
+        class="line-visual"
+        :style="getLineStyle(line)"
+      ></div>
     </div>
     
     <!-- Claimed Squares -->
-    <div v-for="square in claimedSquares" :key="square.id" class="square" :style="squareStyle(square)">
-      <div class="square-content" :class="{ 'player1-square': square.player === 1, 'player2-square': square.player === 2 }">
+    <div v-for="square in claimedSquares" :key="square.id" class="square" :style="squareStyle(square)" :class="{ 'player1-claimed': square.player === 1, 'player2-claimed': square.player === 2 }">
+      <div class="square-content">
         <div class="initial-circle">
           <span class="square-initial">{{ getPlayerInitial(square.player) }}</span>
         </div>
@@ -72,19 +80,32 @@ interface PossibleLine {
 }
 
 // Props
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   gridSize?: number
   drawnLines?: Line[]
   claimedSquares?: Square[]
-  canMakeMove?: boolean
+  canMakeMove: boolean
   player1Name?: string
   player2Name?: string
-}>()
+  player1Color?: string
+  player2Color?: string
+  isGameActive: boolean // Add this prop
+}>(), {
+  gridSize: 8,
+  drawnLines: () => [],
+  claimedSquares: () => [],
+  canMakeMove: true,
+  player1Name: 'Player 1',
+  player2Name: 'Player 2',
+  player1Color: '#3b82f6',
+  player2Color: '#f97316',
+  isGameActive: false // Default to false
+})
 
 // Emits
-const emit = defineEmits<{
-  'line-selected': [line: { startDot: string; endDot: string }]
-}>()
+const emit = defineEmits(['line-selected'])
+
+const hoveredLine = ref<PossibleLine | null>(null)
 
 // Component state
 const gridSize = props.gridSize || 6
@@ -98,7 +119,9 @@ const spacing = computed(() => {
 })
 const gridWidth = computed(() => (gridSize + 1) * spacing.value)
 const gridHeight = computed(() => (gridSize + 1) * spacing.value)
-const hoverLine = ref<string | null>(null)
+
+// Grid dimensions
+const gridContainer = ref<HTMLElement | null>(null)
 
 // Generate dots based on grid size (n+1 x n+1 dots for n x n grid)
 const dots = computed(() => {
@@ -140,87 +163,74 @@ const claimedSquares = computed(() => {
   return squares
 })
 
-// Generate possible lines (all valid connections between adjacent dots)
-const possibleLines = computed(() => {
+// Generate potential lines for clicking
+const potentialLines = computed<PossibleLine[]>(() => {
+  // Only show potential lines when it's the player's turn
+  if (props.drawnLines.length === 0 && props.isGameActive === false) {
+    return []
+  }
+  
   const lines: PossibleLine[] = []
-  
-  // Check if a line already exists
-  const lineExists = (startDot: string, endDot: string) => {
-    return drawnLines.value.some(line => 
-      (line.startDot === startDot && line.endDot === endDot) ||
-      (line.startDot === endDot && line.endDot === startDot)
-    )
-  }
-  
-  // Generate horizontal lines
-  for (let row = 0; row < gridSize + 1; row++) {
-    for (let col = 0; col < gridSize; col++) {
-      const startDot = `${row}-${col}`
-      const endDot = `${row}-${col + 1}`
-      
-      if (!lineExists(startDot, endDot)) {
-        lines.push({
-          id: `${startDot}-${endDot}`,
-          startDot,
-          endDot
-        })
+  const gridSize = props.gridSize
+  // Horizontal lines
+  for (let y = 0; y <= gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      const line = {
+        id: `h-${y}-${x}`,
+        startDot: `${y}-${x}`,
+        endDot: `${y}-${x + 1}`
       }
+      lines.push(line)
     }
   }
-  
-  // Generate vertical lines
-  for (let row = 0; row < gridSize; row++) {
-    for (let col = 0; col < gridSize + 1; col++) {
-      const startDot = `${row}-${col}`
-      const endDot = `${row + 1}-${col}`
-      
-      if (!lineExists(startDot, endDot)) {
-        lines.push({
-          id: `${startDot}-${endDot}`,
-          startDot,
-          endDot
-        })
+  // Vertical lines
+  for (let x = 0; x <= gridSize; x++) {
+    for (let y = 0; y < gridSize; y++) {
+      const line = {
+        id: `v-${y}-${x}`,
+        startDot: `${y}-${x}`,
+        endDot: `${y + 1}-${x}`
       }
+      lines.push(line)
     }
   }
-  
-  return lines
+  return lines.filter(l => !drawnLines.value.some(dl => dl.id === l.id))
 })
 
-// Alias for potentialLines (same as possibleLines)
-const potentialLines = computed(() => possibleLines.value)
-
 // Get line position and style dynamically
-const getLineStyle = (line: PossibleLine | Line, isHitbox = true) => {
-  const [startY, startX] = line.startDot.split('-').map(Number)
-  const [endY, endX] = line.endDot.split('-').map(Number)
-
-  const isHorizontal = startY === endY
-  const thickness = isHitbox ? 20 : 4 // 20px for hitbox, 4px for visual line
-
-  if (isHorizontal) {
-    const width = Math.abs(endX - startX) * spacing.value
-    const left = Math.min(startX, endX) * spacing.value
-    const top = startY * spacing.value - (thickness / 2) // Center hitbox or line
-
-    return {
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${width}px`,
-      height: `${thickness}px`,
-    }
-  } else { // isVertical
-    const height = Math.abs(endY - startY) * spacing.value
-    const left = startX * spacing.value - (thickness / 2) // Center hitbox or line
-    const top = Math.min(startY, endY) * spacing.value
-
-    return {
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${thickness}px`,
-      height: `${height}px`,
-    }
+const getLineStyle = (line: Line | PossibleLine) => {
+  const { startDot, endDot } = line
+  const [y1, x1] = startDot.split('-').map(Number)
+  const [y2, x2] = endDot.split('-').map(Number)
+  const thickness = 4 // px
+  
+  const style: any = {
+    position: 'absolute',
+    zIndex: 5,
+    borderRadius: '2px'
   }
+
+  if (y1 === y2) { // Horizontal line
+    style.left = `${Math.min(x1, x2) * spacing.value}px`
+    style.top = `${y1 * spacing.value - (thickness / 2)}px`
+    style.width = `${spacing.value}px`
+    style.height = `${thickness}px`
+  } else { // Vertical line
+    style.left = `${x1 * spacing.value - (thickness / 2)}px`
+    style.top = `${Math.min(y1, y2) * spacing.value}px`
+    style.width = `${thickness}px`
+    style.height = `${spacing.value}px`
+  }
+  
+  // Set color for drawn or hovered lines
+  if ('player' in line && line.player) {
+    style.backgroundColor = line.player === 1 ? props.player1Color : props.player2Color
+  } else {
+    style.backgroundColor = '#f97316' // Hover color
+    style.opacity = 0.6
+  }
+
+  return style
 }
 
 // Square style method
@@ -308,8 +318,18 @@ const getLineClass = (line: Line) => {
 <style scoped>
 .dot-grid-container {
   position: relative;
+  width: 100%;
+  padding-bottom: 100%; /* Maintain aspect ratio */
+  max-width: 600px;
   margin: 0 auto;
-  background: transparent;
+}
+
+.grid-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .dot {
@@ -319,404 +339,87 @@ const getLineClass = (line: Line) => {
   background: #1f2937;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   border: 2px solid white;
-}
-
-.dot:hover {
-  background: #111827;
-  cursor: pointer;
-  transform: translate(-50%, -50%) scale(1.3);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.line-container {
-  position: absolute;
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-.line-container.drawn {
-  pointer-events: none;
-}
-
-.line-container.disabled {
-  cursor: not-allowed;
-  pointer-events: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .line-hitbox {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  z-index: 1;
+  cursor: pointer;
+  z-index: 10;
+  /* background: rgba(255, 0, 0, 0.2); */ /* Uncomment to debug hitboxes */
 }
 
 .line-visual {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: transparent;
-  border-radius: 2px;
+  background-color: #9ca3af;
+  opacity: 1 !important;
   transition: all 0.2s ease;
-  opacity: 0;
+  transform-origin: center;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  pointer-events: none; /* Make sure it doesn't block clicks */
   z-index: 5;
 }
 
-.line-visual.horizontal {
-  width: 100%;
-  height: 4px; /* Much thicker for visibility */
-}
-
-.line-visual.vertical {
-  width: 4px; /* Much thicker for visibility */
-  height: 100%;
-}
-
 .line-visual.line-hover {
-  background: #f97316;
-  opacity: 0.6;
-  transform: translate(-50%, -50%) scale(1.2);
-}
-
-.line-visual.line-drawn {
-  opacity: 1;
+  background-color: #f97316 !important; /* Orange on hover */
 }
 
 .player1-line {
-  background: #3b82f6 !important;
-  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+  background-color: #3b82f6 !important;
 }
 
 .player2-line {
-  background: #f97316 !important;
-  box-shadow: 0 1px 3px rgba(249, 115, 22, 0.3);
+  background-color: #f97316 !important;
 }
 
 .square {
   position: absolute;
+  background-size: cover;
+  background-position: center;
+  border: 3px solid;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
   transition: all 0.3s ease;
-  border: 3px solid transparent;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-  z-index: 10; /* Ensure squares appear above lines */
+  z-index: 1;
 }
 
-.square-content {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9px;
-  transition: all 0.3s ease;
+.square.player1-claimed {
+  background-color: rgba(59, 130, 246, 0.3);
+  border-color: #3b82f6;
 }
 
-.player1-square {
-  background: #3b82f6 !important;
-  border-color: #3b82f6 !important;
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important;
-}
-
-.player2-square {
-  background: #f97316 !important;
-  border-color: #f97316 !important;
-  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4) !important;
+.square.player2-claimed {
+  background-color: rgba(249, 115, 22, 0.3);
+  border-color: #f97316;
 }
 
 .square-initial {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #1f2937 !important;
-  text-shadow: none;
-  filter: none;
-  z-index: 12;
-}
-
-.initial-circle {
-  width: 24px;
-  height: 24px;
-  background: white;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: white;
+  background: rgba(0,0,0,0.3);
   border-radius: 50%;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border: 2px solid rgba(0, 0, 0, 0.1);
 }
 
-.square:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-}
-
-/* Mobile Optimizations - Complete Overhaul */
+/* Responsive adjustments */
 @media (max-width: 768px) {
   .dot-grid-container {
-    width: 100% !important;
-    height: auto !important;
-    max-width: min(90vw, 400px);
-    max-height: min(90vw, 400px);
-    margin: 0 auto;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-    padding: 1rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  }
-  
-  .dot {
-    width: 10px;
-    height: 10px;
-    border-width: 1.5px;
-    transition: all 0.2s ease;
-  }
-  
-  .dot:active {
-    transform: translate(-50%, -50%) scale(1.4);
-    background: #f97316;
-  }
-  
-  .line-container {
-    /* Larger touch targets for mobile */
-    min-width: 32px;
-    min-height: 32px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-  }
-  
-  .line-hitbox {
-    /* Even larger touch area */
-    min-width: 40px;
-    min-height: 40px;
-    margin: -20px 0 0 -20px;
-    border-radius: 6px;
-  }
-  
-  .line-container:active .line-visual {
-    background: #f97316 !important;
-    opacity: 0.9 !important;
-    transform: translate(-50%, -50%) scale(1.3) !important;
-  }
-  
-  .line-visual.line-hover {
-    transform: translate(-50%, -50%) scale(1.3);
-    background: #f97316;
-    opacity: 0.8;
-  }
-  
-  .line-visual.line-drawn {
-    opacity: 1;
-  }
-  
-  /* Much thinner lines for mobile */
-  .line-visual.horizontal {
-    height: 3px; /* Still visible on mobile */
-  }
-  
-  .line-visual.vertical {
-    width: 3px; /* Still visible on mobile */
-  }
-  
-  .player1-line {
-    background: #3b82f6 !important;
-    box-shadow: 0 1px 2px rgba(59, 130, 246, 0.4);
-  }
-  
-  .player2-line {
-    background: #f97316 !important;
-    box-shadow: 0 1px 2px rgba(249, 115, 22, 0.4);
-  }
-  
-  .square {
-    border-width: 2.5px;
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s ease;
-  }
-  
-  .square-content {
-    border-radius: 6px;
-  }
-  
-  .initial-circle {
-    width: 20px;
-    height: 20px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-    border-width: 1.5px;
-  }
-  
-  .square-initial {
-    font-size: 0.875rem;
-    font-weight: 800;
-  }
-  
-  .square:active {
-    transform: scale(1.05);
-  }
-}
-
-/* Extra small mobile devices */
-@media (max-width: 480px) {
-  .dot-grid-container {
-    max-width: min(95vw, 320px);
-    max-height: min(95vw, 320px);
-    padding: 0.75rem;
-    border-radius: 10px;
+    max-width: 95vw; /* Ensure grid fits within the screen width */
+    max-height: 95vw;
   }
   
   .dot {
     width: 8px;
     height: 8px;
-    border-width: 1px;
-  }
-  
-  .line-container {
-    min-width: 28px;
-    min-height: 28px;
-  }
-  
-  .line-hitbox {
-    min-width: 36px;
-    min-height: 36px;
-    margin: -18px 0 0 -18px;
-  }
-  
-  .square {
-    border-width: 2px;
-    border-radius: 6px;
-  }
-  
-  .initial-circle {
-    width: 18px;
-    height: 18px;
-    border-width: 1px;
-  }
-  
-  .square-initial {
-    font-size: 0.75rem;
-  }
-}
-
-/* Landscape mobile optimization */
-@media (max-height: 600px) and (orientation: landscape) {
-  .dot-grid-container {
-    max-width: min(70vh, 350px);
-    max-height: min(70vh, 350px);
-    padding: 0.5rem;
-  }
-  
-  .dot {
-    width: 7px;
-    height: 7px;
-  }
-  
-  .line-container {
-    min-width: 24px;
-    min-height: 24px;
-  }
-  
-  .line-hitbox {
-    min-width: 32px;
-    min-height: 32px;
-    margin: -16px 0 0 -16px;
-  }
-  
-  .initial-circle {
-    width: 16px;
-    height: 16px;
-  }
-  
-  .square-initial {
-    font-size: 0.675rem;
-  }
-}
-
-/* Touch device optimizations */
-@media (hover: none) and (pointer: coarse) {
-  .dot:hover {
-    transform: translate(-50%, -50%);
-    background: #1f2937;
-  }
-  
-  .line-visual:hover {
-    transform: translate(-50%, -50%);
-    background: transparent;
-    opacity: 0;
-  }
-  
-  .line-container.potential:active .line-visual {
-    background: #f97316 !important;
-    opacity: 0.9 !important;
-    transform: translate(-50%, -50%) scale(1.2) !important;
-  }
-  
-  .square:hover {
-    transform: none;
-  }
-  
-  .square:active {
-    transform: scale(1.03);
-  }
-}
-
-/* High DPI mobile displays */
-@media (-webkit-min-device-pixel-ratio: 2) and (max-width: 768px) {
-  .dot {
-    border-width: 0.75px;
-  }
-  
-  .line-visual {
-    border-radius: 1.5px;
-  }
-  
-  .square {
-    border-width: 1.25px;
-  }
-  
-  .initial-circle {
-    border-width: 0.75px;
-  }
-}
-
-/* Very large mobile screens (like iPad Mini) */
-@media (min-width: 769px) and (max-width: 1024px) and (pointer: coarse) {
-  .dot-grid-container {
-    max-width: min(80vw, 500px);
-    max-height: min(80vw, 500px);
-    padding: 1.5rem;
-  }
-  
-  .dot {
-    width: 12px;
-    height: 12px;
-    border-width: 2px;
-  }
-  
-  .line-container {
-    min-width: 36px;
-    min-height: 36px;
-  }
-  
-  .line-hitbox {
-    min-width: 44px;
-    min-height: 44px;
-    margin: -22px 0 0 -22px;
-  }
-  
-  .initial-circle {
-    width: 24px;
-    height: 24px;
-  }
-  
-  .square-initial {
-    font-size: 1rem;
   }
 }
 </style> 
