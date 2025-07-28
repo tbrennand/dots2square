@@ -87,29 +87,6 @@
       </div>
     </div>
 
-    <!-- Join Game Section for Invitees -->
-    <div v-if="showJoinSection" class="join-section-card">
-      <h3 class="section-title">You've been invited!</h3>
-      <p class="subtitle">Enter your name to join the match.</p>
-      <div class="join-form">
-        <input 
-          v-model="newPlayerName" 
-          placeholder="Enter your name"
-          class="name-input"
-          @keyup.enter="joinAsPlayer2"
-        />
-        <button 
-          @click="joinAsPlayer2" 
-          :disabled="!canJoin"
-          class="join-btn"
-        >
-          <span v-if="isJoining" class="loading-spinner"></span>
-          {{ isJoining ? 'Joining...' : 'Join Game' }}
-        </button>
-      </div>
-    </div>
-
-
     <!-- Lobby Actions -->
     <div class="lobby-actions" v-if="hasPlayer2">
       <!-- Host Actions -->
@@ -232,8 +209,6 @@ const isStarting = ref(false)
 const isUpdatingReady = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
-const newPlayerName = ref('')
-const isJoining = ref(false)
 
 
 // Computed properties
@@ -257,14 +232,6 @@ const canStartGame = computed(() => {
   return isHost.value && 
          hasPlayer2.value && 
          matchData.value?.status === 'waiting'
-})
-
-const showJoinSection = computed(() => {
-  return !isHost.value && !matchData.value?.player2 && matchData.value?.status === 'waiting'
-})
-
-const canJoin = computed(() => {
-  return newPlayerName.value.trim().length > 2 && !isJoining.value
 })
 
 const isCurrentPlayerReady = computed(() => {
@@ -376,24 +343,6 @@ const startGame = async () => {
   }
 }
 
-const joinAsPlayer2 = async () => {
-  if (!canJoin.value) return
-
-  isJoining.value = true
-  errorMessage.value = ''
-  
-  try {
-    await joinMatch(matchId.value, currentPlayerId.value, newPlayerName.value.trim())
-    successMessage.value = 'Joined match successfully!'
-    // The watch on matchData will handle UI updates
-  } catch (error) {
-    errorMessage.value = 'Failed to join match.'
-    console.error('Error joining as player 2:', error)
-  } finally {
-    isJoining.value = false
-  }
-}
-
 const toggleReady = async () => {
   isUpdatingReady.value = true
   errorMessage.value = ''
@@ -459,9 +408,9 @@ const kickPlayer = async (playerNumber: number) => {
 }
 
 const matchUrl = computed(() => {
-  // Use deployed URL in production, localhost in development
-  const baseUrl = import.meta.env.VITE_PUBLIC_URL || 
-    (import.meta.env.PROD ? 'https://dots2squarev2.vercel.app' : window.location.origin)
+  const baseUrl = import.meta.env.PROD 
+    ? (import.meta.env.VITE_PUBLIC_URL || 'https://dots2squarev2.vercel.app')
+    : 'http://localhost:5173'
   return `${baseUrl}/invite/${matchId.value}`
 })
 
@@ -604,30 +553,27 @@ watch(matchData, async (newMatchData) => {
     hasPlayer2: !!newMatchData.player2
   })
   
-  // Auto-join logic: if we're not the host, not already player2, and there's no player2 yet
-  // THIS LOGIC IS NOW HANDLED MANUALLY VIA THE JOIN BUTTON
-  /*
-  if (!isHost.value && 
-      newMatchData.status === 'waiting' && 
-      !newMatchData.player2) {
-    
-    console.log('Attempting to auto-join as player 2...')
-    
-    try {
-      const playerName = `Player ${Math.floor(Math.random() * 1000)}`
-      await joinMatch(matchId.value, currentPlayerId.value, playerName)
-      console.log('Successfully auto-joined match as player 2')
-    } catch (error) {
-      console.error('Failed to auto-join match:', error)
-    }
-  } else {
-    console.log('Auto-join conditions not met:', {
-      isHost: isHost.value,
-      status: newMatchData.status,
-      hasPlayer2: !!newMatchData.player2
-    })
-  }
-  */
+  // Auto-join logic removed - invitees should go through the invite screen first
+  // if (!isHost.value && 
+  //     newMatchData.status === 'waiting' && 
+  //     !newMatchData.player2) {
+  //   
+  //   console.log('Attempting to auto-join as player 2...')
+  //   
+  //   try {
+  //     const playerName = `Player ${Math.floor(Math.random() * 1000)}`
+  //     await joinMatch(matchId.value, currentPlayerId.value, playerName)
+  //     console.log('Successfully auto-joined match as player 2')
+  //   } catch (error) {
+  //     console.error('Failed to auto-join match:', error)
+  //   }
+  // } else {
+  //   console.log('Auto-join conditions not met:', {
+  //     isHost: isHost.value,
+  //     status: newMatchData.status,
+  //     hasPlayer2: !!newMatchData.player2
+  //   })
+  // }
   
   // Navigate to game when it becomes active
   if (newMatchData.status === 'active') {
@@ -658,49 +604,6 @@ onUnmounted(() => {
   max-height: 100vh;
   overflow-y: auto;
 }
-
-.join-section-card {
-  background: #fff;
-  border: 2px solid #f97316;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-.join-form {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.name-input {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-}
-
-.join-btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #f97316;
-  color: white;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.join-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 
 .lobby-header {
   text-align: center;

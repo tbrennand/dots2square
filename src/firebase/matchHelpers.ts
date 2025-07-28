@@ -134,7 +134,7 @@ export async function createMatch(options: CreateMatchOptions): Promise<string> 
       },
       // New fields for timer and forfeits
       turnStartedAt: serverTimestamp(),
-      turnDuration: 30, // Default 30 seconds
+      turnDuration: 10, // 10 seconds for testing (change back to 30 for production)
       consecutiveMissedTurns: {
         [player1Id]: 0,
       },
@@ -511,6 +511,11 @@ export async function playMove(
         currentTurn: nextTurn,
         currentPlayerId: nextPlayerId,
         turnStartedAt: serverTimestamp(), // Reset turn timer
+        // Reset consecutive missed turns for the player who just made a move
+        consecutiveMissedTurns: {
+          ...(matchData.consecutiveMissedTurns || {}),
+          [playerId]: 0 // Reset missed turns for this player
+        },
         gameOver: gameCompleted,
         winner: winner,
         status: gameCompleted ? 'completed' : 'active',

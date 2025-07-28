@@ -24,7 +24,7 @@
           </div>
           <div v-if="isGameActive" class="player-status">
             <div v-if="currentPlayer === 1 && !isGameOver" class="turn-text">
-              <span>{{ isMyTurn ? 'YOUR TURN' : 'THEIR TURN' }}</span>
+              <span>{{ isMyTurn ? 'YOUR\nTURN' : 'THEIR\nTURN' }}</span>
               <div 
                 v-if="isMultiplayer && isTimerActive" 
                 class="timer-countdown"
@@ -55,7 +55,7 @@
           </div>
           <div v-if="isGameActive" class="player-status">
             <div v-if="currentPlayer === 2 && !isGameOver" class="turn-text">
-              <span>{{ isMyTurn ? 'YOUR TURN' : 'THEIR TURN' }}</span>
+              <span>{{ isMyTurn ? 'YOUR\nTURN' : 'THEIR\nTURN' }}</span>
                <div 
                  v-if="isMultiplayer && isTimerActive" 
                  class="timer-countdown"
@@ -117,6 +117,19 @@
         @play-again="handleRestart"
       />
     </div>
+
+    <!-- Turn Timeout Warning Overlay -->
+    <div v-if="turnWarningMessage" class="timeout-warning-modal">
+      <div class="timeout-warning-content">
+        <h3>⚠️ Turn Warning</h3>
+        <p>{{ turnWarningMessage }}</p>
+        <div v-if="showWarningActions" class="warning-actions">
+          <button @click="handlePass" class="warning-btn warning-btn-pass">Pass</button>
+          <button @click="handlePlay" class="warning-btn warning-btn-play">Play</button>
+          <button @click="handleQuit" class="warning-btn warning-btn-quit">Quit</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -131,7 +144,7 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import DotGrid from '@/components/DotGrid.vue'
 import GameResult from '@/views/GameResult.vue'
 import { useAIOpponent } from '@/composables/useAIOpponent'
-import { useTurnTimer } from '@/composables/useTurnTimer'
+import { useTurnTimer, turnTimerEvents } from '@/composables/useTurnTimer'
 import { useAIScoreTracker } from '@/composables/useAIScoreTracker' // Import the new composable
 import { useSound } from '@/composables/useSound' // Import the sound composable
 import { getRandomFunnyName } from '@/utils/nameGenerator' // Import the name generator
@@ -177,6 +190,11 @@ const aiOpponentName = ref('AI Opponent') // Add a ref for the AI's name
 // Shared state
 const isMakingMove = ref(false)
 const gridKey = ref(0) // Used to force re-render on restart
+const turnWarningMessage = ref('')
+const showWarningActions = ref(false)
+const isScreenFlashing = ref(false)
+const warningTimeout = ref<NodeJS.Timeout | null>(null)
+
 
 // --- SOUND ---
 const { isMuted, playSound, toggleMute } = useSound()
@@ -315,7 +333,8 @@ const { isThinking: isAIThinking, playMove: getAIMove } = useAIOpponent(
 
 const { timeRemaining, isTimerActive, startTimer, syncTimerWithServer } = useTurnTimer(
   isMultiplayer.value ? (route.params.id as string) : '',
-  currentUser.value?.uid || ''
+  currentPlayerId.value || '',
+  matchData.value
 )
 
 // --- WATCHERS & LIFECYCLE ---
@@ -332,7 +351,11 @@ watch(matchData, (newData, oldData) => {
   // Sync timer when the turn starts or current player changes
   if (newData.turnStartedAt !== oldData?.turnStartedAt || newData.currentPlayer !== oldData?.currentPlayer) {
     if (newData.turnStartedAt?.toDate) {
-      syncTimerWithServer(newData.turnStartedAt.toDate(), newData.turnDuration || 30)
+      syncTimerWithServer(
+        newData.turnStartedAt.toDate(), 
+        newData.turnDuration || 10,
+        newData.consecutiveMissedTurns
+      )
     }
   }
 
@@ -517,12 +540,42 @@ onMounted(async () => {
     // ]
     // console.log('AI game players:', players.value)
   }
+
+  // Listen for turn timer events
+  turnTimerEvents.on('turnWarning', (payload: any) => {
+    turnWarningMessage.value = payload.message
+    showWarningActions.value = payload.showActions // Update the reactive property
+    
+    // Clear any existing timeout
+    if (warningTimeout.value) {
+      clearTimeout(warningTimeout.value)
+    }
+    
+    // Auto-hide after 3 seconds
+    warningTimeout.value = setTimeout(() => {
+      turnWarningMessage.value = ''
+      showWarningActions.value = false // Reset the reactive property
+    }, 3000)
+  })
+
+  turnTimerEvents.on('gameOverByTimeout', (payload: any) => {
+    const winnerName = payload.winner === 1 ? player1Name.value : player2Name.value
+    turnWarningMessage.value = `${winnerName} wins by timeout! The other player missed 3 turns.`
+    // After a delay, the standard game over screen will appear from Firestore update
+  })
 })
 
 onUnmounted(() => {
   if (isMultiplayer.value) {
     gameStore.unsubscribeFromMatch()
   }
+  
+  // Clear timeout on unmount
+  if (warningTimeout.value) {
+    clearTimeout(warningTimeout.value)
+  }
+  turnWarningMessage.value = ''
+  showWarningActions.value = false
 })
 
 // --- ACTIONS ---
@@ -543,6 +596,50 @@ const handleRestart = async () => {
 
 const quitGame = () => {
     router.push('/')
+}
+
+const handlePass = () => {
+  // Pass turn to opponent
+  if (isMultiplayer.value && matchData.value) {
+    // This would trigger the turn switch logic
+    console.log('Player chose to pass turn')
+  }
+  turnWarningMessage.value = 'You chose to pass your turn.'
+  showWarningActions.value = false // Hide actions when passing
+  if (warningTimeout.value) {
+    clearTimeout(warningTimeout.value)
+  }
+  warningTimeout.value = setTimeout(() => {
+    turnWarningMessage.value = ''
+  }, 3000)
+}
+
+const handlePlay = () => {
+  // Continue playing - just dismiss the warning
+  console.log('Player chose to continue playing')
+  turnWarningMessage.value = 'You chose to play your turn.'
+  showWarningActions.value = false // Hide actions when playing
+  if (warningTimeout.value) {
+    clearTimeout(warningTimeout.value)
+  }
+  warningTimeout.value = setTimeout(() => {
+    turnWarningMessage.value = ''
+  }, 3000)
+}
+
+const handleQuit = () => {
+  // Quit the game
+  console.log('Player chose to quit the game')
+  // Navigate back to home for both multiplayer and AI
+  router.push('/')
+  turnWarningMessage.value = 'You chose to quit the game.'
+  showWarningActions.value = false // Hide actions when quitting
+  if (warningTimeout.value) {
+    clearTimeout(warningTimeout.value)
+  }
+  warningTimeout.value = setTimeout(() => {
+    turnWarningMessage.value = ''
+  }, 3000)
 }
 </script>
 
@@ -648,14 +745,8 @@ const quitGame = () => {
 }
 
 .player-panel.is-you::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: #1f2937;
-  border-radius: 0.75rem 0 0 0.75rem;
+  /* Removed black indicator - box highlight is sufficient */
+  display: none;
 }
 
 .player-info {
@@ -721,6 +812,12 @@ const quitGame = () => {
   font-weight: 700;
   color: #f97316;
   text-transform: uppercase;
+}
+
+.turn-text span {
+  white-space: pre-line;
+  line-height: 1.2;
+  text-align: center;
 }
 .timer-countdown {
   background: #10b981;
@@ -949,6 +1046,113 @@ const quitGame = () => {
   box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
 }
 
+.timeout-warning-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 1.5rem 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  z-index: 2000;
+  border: 2px solid #f97316;
+  animation: modal-fade-in 0.3s ease-out;
+}
+
+.timeout-warning-content {
+  text-align: center;
+  color: #dc2626;
+}
+
+.timeout-warning-content h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.timeout-warning-content p {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.warning-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.warning-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
+}
+
+.warning-btn-pass {
+  background: #3b82f6;
+  color: white;
+}
+
+.warning-btn-pass:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+.warning-btn-play {
+  background: #10b981;
+  color: white;
+}
+
+.warning-btn-play:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(13, 148, 106, 0.4);
+}
+
+.warning-btn-quit {
+  background: #dc2626;
+  color: white;
+}
+
+.warning-btn-quit:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
+}
+
+@keyframes modal-fade-in {
+  from { 
+    opacity: 0; 
+    transform: translate(-50%, -60%);
+  }
+  to { 
+    opacity: 1; 
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Remove the old screen flash styles */
+.timeout-warning-overlay {
+  display: none;
+}
+
+.timeout-warning-overlay.flash-active {
+  display: none;
+}
+
+@keyframes screen-flash {
+  /* Remove this animation */
+}
+
+
 /* Mobile Optimizations - Comprehensive Overhaul */
 @media (max-width: 768px) {
   .game-container {
@@ -1093,6 +1297,12 @@ const quitGame = () => {
     font-size: 0.625rem;
   }
 
+  .turn-text span {
+    white-space: pre-line;
+    line-height: 1.1;
+    text-align: center;
+  }
+
   .waiting-text {
     font-size: 0.625rem;
   }
@@ -1175,6 +1385,12 @@ const quitGame = () => {
 
   .turn-text, .waiting-text {
     font-size: 0.5rem;
+  }
+
+  .turn-text span {
+    white-space: pre-line;
+    line-height: 1.1;
+    text-align: center;
   }
 
   .timer-countdown {

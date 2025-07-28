@@ -68,7 +68,7 @@
           </div>
           <div class="stat-item">
             <div class="stat-value">{{ gameDuration }}</div>
-            <div class="stat-label">Duration</div>
+            <div class="stat-label">{{ !props.isMultiplayer ? 'Record vs AI' : 'Duration' }}</div>
           </div>
         </div>
       </div>
@@ -169,7 +169,10 @@ const totalMoves = computed(() => {
 })
 
 const gameDuration = computed(() => {
-  if (!props.isMultiplayer) return 'N/A' // No duration for AI games
+  if (!props.isMultiplayer) {
+    // For AI games, show record against AI
+    return 'Record vs AI'
+  }
   if (!matchData.value?.createdAt || !matchData.value?.updatedAt) {
     return 'Unknown'
   }

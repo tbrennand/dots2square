@@ -15,6 +15,7 @@ export interface SimpleMatch {
   winnerId: string | null
   turnStartedAt?: { toDate: () => Date } // Add this for timer
   turnDuration?: number // Add this for timer
+  consecutiveMissedTurns?: Record<string, number> // Add this for timer reset
 }
 
 interface GameState {
@@ -54,7 +55,8 @@ export const useGameStore = defineStore('game', {
               matchStatus: data.status
           });
 
-          this.gameOver = claimedSquares >= totalSquares && totalSquares > 0
+          // Game is over if all squares are claimed OR if the match status is completed
+          this.gameOver = (claimedSquares >= totalSquares && totalSquares > 0) || data.status === 'completed'
         } else {
           console.error('Match not found')
           this.matchData = null

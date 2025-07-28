@@ -23,8 +23,8 @@ const routes = [
   },
   {
     path: '/invite/:id',
-    name: 'MatchInvite',
-    component: () => import('../components/MatchLobby.vue'),
+    name: 'GameInvite',
+    component: () => import('../components/GameInvite.vue'),
   },
   {
     path: '/game',
