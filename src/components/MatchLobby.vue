@@ -548,6 +548,15 @@ watch(matchData, async (newMatchData) => {
   if (newMatchData.status === 'active') {
     router.push(`/match/${matchId.value}?playerId=${currentPlayerId.value}`)
   }
+  
+  // Auto-start the game when both players join
+  if (isHost.value && 
+      newMatchData.status === 'waiting' && 
+      newMatchData.player2 && 
+      !isStarting.value) {
+    console.log('Auto-starting game with both players joined')
+    startGame()
+  }
   } catch (error) {
     console.error('Error in MatchLobby watch:', error)
   }

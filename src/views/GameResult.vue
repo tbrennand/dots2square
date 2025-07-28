@@ -95,21 +95,7 @@
         </button>
       </div>
 
-      <!-- Match Info -->
-      <div class="match-info">
-        <div class="info-item">
-          <span class="info-label">Match ID:</span>
-          <span class="info-value">{{ matchId }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Grid Size:</span>
-          <span class="info-value">{{ gridSize }}x{{ gridSize }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Completed:</span>
-          <span class="info-value">{{ formatDate(completedAt) }}</span>
-        </div>
-      </div>
+      <!-- Match Info section removed -->
     </div>
   </div>
 </template>
@@ -118,7 +104,23 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { createMatch } from '../firebase/matchHelpers'
+import { useGameStore } from '@/store/gameStore' // Import gameStore for AI results
 import { useMatchStore } from '../stores/matchStore'
+
+// --- Emits ---
+const emit = defineEmits(['play-again'])
+
+// --- Props ---
+const props = defineProps<{
+  isMultiplayer: boolean
+  matchId?: string
+  winner?: number | 'tie' | null
+  scores?: Record<number, number> // Correct type for scores
+  gridSize?: number
+  player1Name?: string
+  player2Name?: string
+  totalMoves?: number
+}>()
 
 // Router and route
 const route = useRoute()
@@ -126,6 +128,7 @@ const router = useRouter()
 
 // Match store
 const matchStore = useMatchStore()
+const gameStore = useGameStore() // Get AI game store
 
 // Local state
 const isCreatingMatch = ref(false)
@@ -135,8 +138,9 @@ const matchData = ref<any>(null)
 const matchId = computed(() => route.query.matchId as string || '')
 const winnerParam = computed(() => route.query.winner as string || '')
 
-// Parse winner from route
+// Use prop winner first, then fall back to route param for multiplayer link sharing
 const winner = computed(() => {
+  if (props.winner !== undefined) return props.winner
   if (winnerParam.value === 'tie') return 'tie'
   const winnerNum = parseInt(winnerParam.value)
   return isNaN(winnerNum) ? null : winnerNum
@@ -144,15 +148,11 @@ const winner = computed(() => {
 
 // Get match data from store or route
 const finalScores = computed(() => {
-  if (matchData.value?.scores) {
-    return matchData.value.scores
-  }
-  // Fallback to store data
-  return matchStore.scores
+  return props.scores || matchData.value?.scores || matchStore.scores
 })
 
 const gridSize = computed(() => {
-  return matchData.value?.gridSize || matchStore.gridSize || 5
+  return props.gridSize || matchData.value?.gridSize || matchStore.gridSize || 8
 })
 
 const totalSquares = computed(() => {
@@ -161,6 +161,9 @@ const totalSquares = computed(() => {
 })
 
 const claimedSquares = computed(() => {
+  if (props.scores) {
+    return Object.values(props.scores).reduce((a: number, b: number) => a + b, 0)
+  }
   if (matchData.value?.squares) {
     return matchData.value.squares.filter((s: any) => s.player !== undefined).length
   }
@@ -168,13 +171,11 @@ const claimedSquares = computed(() => {
 })
 
 const totalMoves = computed(() => {
-  if (matchData.value?.lines) {
-    return matchData.value.lines.length
-  }
-  return matchStore.lines?.length || 0
+  return props.totalMoves || matchData.value?.lines?.length || matchStore.lines?.length || 0
 })
 
 const gameDuration = computed(() => {
+  if (!props.isMultiplayer) return 'N/A' // No duration for AI games
   if (!matchData.value?.createdAt || !matchData.value?.updatedAt) {
     return 'Unknown'
   }
@@ -195,16 +196,13 @@ const completedAt = computed(() => {
 
 // Helper functions
 const getPlayerName = (playerNumber: number): string => {
-  if (playerNumber === 1 && matchData.value?.player1) {
-    return matchData.value.player1.name
-  }
-  if (playerNumber === 2 && matchData.value?.player2) {
-    return matchData.value.player2.name
-  }
+  if (playerNumber === 1) return props.player1Name || matchData.value?.player1?.name || 'Player 1'
+  if (playerNumber === 2) return props.player2Name || matchData.value?.player2?.name || 'Player 2'
   return `Player ${playerNumber}`
 }
 
 const getPlayerId = (playerNumber: number): string => {
+  if (!props.isMultiplayer) return '' // No ID for AI players
   if (playerNumber === 1 && matchData.value?.player1) {
     return matchData.value.player1.id.slice(0, 8) + '...'
   }
@@ -232,6 +230,12 @@ const formatDate = (date: Date): string => {
 
 // Event handlers
 const handlePlayAgain = async () => {
+  if (!props.isMultiplayer) {
+    // For AI game, just emit an event to the parent
+    emit('play-again')
+    return
+  }
+
   if (!matchData.value) {
     console.error('No match data available for rematch')
     return
@@ -268,13 +272,13 @@ const handleGoHome = () => {
 
 // Load match data on mount
 onMounted(async () => {
-  if (matchId.value) {
+  if (props.matchId) {
     // Try to get match data from store first
-    if (matchStore.currentMatchId === matchId.value) {
+    if (matchStore.currentMatchId === props.matchId) {
       matchData.value = matchStore.matchData
     } else {
       // Subscribe to match to get data
-      matchStore.subscribeToMatchById(matchId.value)
+      matchStore.subscribeToMatchById(props.matchId)
       
       // Wait a bit for data to load
       setTimeout(() => {
@@ -286,32 +290,53 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Change the position to be part of the overlay flow */
 .game-result {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: auto; /* Remove min-height */
+  background: none; /* Remove background */
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 0; /* Remove padding */
 }
 
 .result-container {
   background: #ffffff;
   border-radius: 1rem;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  padding: 3rem;
-  max-width: 600px;
-  width: 100%;
+  padding: 1.5rem; /* Tighter padding */
+  max-width: 500px; /* Even smaller max-width */
+  width: 95%; 
+  max-height: 95vh;
+  overflow-y: hidden; 
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; 
+}
+
+.result-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.result-container::-webkit-scrollbar-track {
+  background: #f9fafb;
+  border-radius: 1rem;
+}
+
+.result-container::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 4px;
+  border: 2px solid #f9fafb;
 }
 
 /* Header */
 .result-header {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem; /* Tighter margin */
 }
 
 .result-title {
-  font-size: 2.5rem;
+  font-size: 2rem; /* Tighter */
   font-weight: 800;
   color: #1f2937;
   margin-bottom: 0.5rem;
@@ -324,18 +349,18 @@ onMounted(async () => {
 
 /* Winner Section */
 .winner-section {
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.5rem; /* Tighter margin */
 }
 
 .winner-result, .tie-result, .no-winner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem; /* Tighter */
 }
 
 .winner-icon, .tie-icon, .no-winner-icon {
-  font-size: 4rem;
+  font-size: 2.5rem; /* Tighter */
   animation: bounce 2s infinite;
 }
 
@@ -360,29 +385,29 @@ onMounted(async () => {
 
 /* Final Score */
 .final-score-section {
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.5rem; /* Tighter margin */
 }
 
 .score-title {
-  font-size: 1.5rem;
+  font-size: 1.1rem; /* Tighter */
   font-weight: 600;
   color: #374151;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem; /* Tighter margin */
 }
 
 .score-cards {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2rem;
+  gap: 1rem; /* Tighter */
 }
 
 .player-score-card {
   background: #f8fafc;
   border: 2px solid #e2e8f0;
   border-radius: 0.75rem;
-  padding: 1.5rem;
-  min-width: 150px;
+  padding: 1rem; /* Tighter */
+  min-width: 140px; /* Tighter */
   transition: all 0.3s ease;
 }
 
@@ -436,14 +461,14 @@ onMounted(async () => {
 
 /* Game Statistics */
 .game-stats {
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.5rem; /* Tighter margin */
 }
 
 .stats-title {
-  font-size: 1.5rem;
+  font-size: 1.1rem; /* Tighter */
   font-weight: 600;
   color: #374151;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem; /* Tighter margin */
 }
 
 .stats-grid {
@@ -479,7 +504,7 @@ onMounted(async () => {
   display: flex;
   gap: 1rem;
   justify-content: center;
-  margin-bottom: 2rem;
+  margin-bottom: 0; /* Remove bottom margin */
 }
 
 .btn-play-again, .btn-go-home {
@@ -537,14 +562,14 @@ onMounted(async () => {
 /* Match Info */
 .match-info {
   border-top: 1px solid #e5e7eb;
-  padding-top: 1.5rem;
+  padding-top: 1rem; /* Reduced padding */
 }
 
 .info-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem; /* Tighter margin */
 }
 
 .info-label {
@@ -565,16 +590,21 @@ onMounted(async () => {
   }
   
   .result-container {
-    padding: 2rem;
+    padding: 1rem; 
+    width: 95%;
   }
   
   .result-title {
-    font-size: 2rem;
+    font-size: 1.5rem; /* Tighter */
   }
   
+  .winner-text {
+    font-size: 1.25rem; /* Tighter */
+  }
+
   .score-cards {
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
   }
   
   .action-buttons {

@@ -1,770 +1,506 @@
 <template>
   <div class="game-container">
     <div class="game-header">
-      <!-- Logo on left -->
-      <img src="@/assets/dots2squares-logo.png" alt="Dots2Squares" class="logo" />
+      <router-link to="/">
+        <img src="@/assets/dots2squares-logo.png" alt="Dots2Squares" class="logo" />
+      </router-link>
 
-      <!-- Player Panels -->
       <div class="player-panels">
-        <!-- Player A Panel -->
         <div
           class="player-panel"
           :class="{
-            'is-turn': currentPlayer === 1 && !gameOver,
+            'is-turn': currentPlayer === 1 && !isGameOver,
             'is-you': currentUserPlayerNumber === 1,
           }"
         >
           <div class="player-info">
             <div class="player-avatar player1-avatar">
-              {{ getPlayerInitial(matchData?.player1?.name || 'P1') }}
+              {{ player1Initial }}
             </div>
             <div class="player-details">
-              <div class="player-name">
-                {{ matchData?.player1?.name || 'Player A' }}
-              </div>
-              <div class="player-score">{{ scores[1] }} squares</div>
+              <div class="player-name">{{ player1Name }}</div>
+              <div class="player-score">{{ player1Score }} squares</div>
             </div>
           </div>
-          <div class="player-status">
-            <div v-if="currentPlayer === 1 && !gameOver" class="turn-text">
-              <span>{{
-                currentUserPlayerNumber === 1 ? 'YOUR TURN' : 'THEIR TURN'
-              }}</span>
-              <div
-                class="timer-countdown"
-                v-if="isTimerActive && timeRemaining > 0"
-              >
-                {{ Math.ceil(timeRemaining) }}
+          <div v-if="isGameActive" class="player-status">
+            <div v-if="currentPlayer === 1 && !isGameOver" class="turn-text">
+              <span>{{ isMyTurn ? 'YOUR TURN' : 'THEIR TURN' }}</span>
+              <div v-if="isMultiplayer && isTimerActive" class="timer-countdown">
+                {{ timeRemaining }}
               </div>
             </div>
             <div v-else class="waiting-text">WAITING...</div>
           </div>
         </div>
 
-        <!-- Player B Panel -->
         <div
           class="player-panel"
           :class="{
-            'is-turn': currentPlayer === 2 && !gameOver,
+            'is-turn': currentPlayer === 2 && !isGameOver,
             'is-you': currentUserPlayerNumber === 2,
           }"
         >
           <div class="player-info">
             <div class="player-avatar player2-avatar">
-              {{ getPlayerInitial(matchData?.player2?.name || 'P2') }}
+              {{ player2Initial }}
             </div>
             <div class="player-details">
-              <div class="player-name">
-                {{ matchData?.player2?.name || 'Player B' }}
-              </div>
-              <div class="player-score">{{ scores[2] }} squares</div>
+              <div class="player-name">{{ player2Name }}</div>
+              <div class="player-score">{{ player2Score }} squares</div>
             </div>
           </div>
-          <div class="player-status">
-            <div v-if="currentPlayer === 2 && !gameOver" class="turn-text">
-              <span>{{
-                currentUserPlayerNumber === 2 ? 'YOUR TURN' : 'THEIR TURN'
-              }}</span>
-              <div
-                class="timer-countdown"
-                v-if="isTimerActive && timeRemaining > 0"
-              >
-                {{ Math.ceil(timeRemaining) }}
+          <div v-if="isGameActive" class="player-status">
+            <div v-if="currentPlayer === 2 && !isGameOver" class="turn-text">
+              <span>{{ isMyTurn ? 'YOUR TURN' : 'THEIR TURN' }}</span>
+               <div v-if="isMultiplayer && isTimerActive" class="timer-countdown">
+                {{ timeRemaining }}
               </div>
+            </div>
+            <div v-else-if="!isMultiplayer && currentPlayer === 2" class="turn-text">
+              <span>THINKING...</span>
             </div>
             <div v-else class="waiting-text">WAITING...</div>
           </div>
         </div>
       </div>
 
-      <!-- Game Controls -->
       <div class="game-controls">
-        <div class="control-item">
-          <button
-            @click="toggleAudio"
-            class="control-button"
-            :class="{ 'is-active': audioEnabled }"
-          >
-            S
+        <button v-if="isGameOver" @click="handleRestart" class="control-button restart-button">
+          Restart
+        </button>
+        <template v-else>
+          <button @click="quitGame" class="control-button quit-button">
+            Quit
           </button>
-          <span class="control-label mobile-hidden">Sound</span>
-        </div>
-        <div class="control-item">
-          <button
-            @click="switchPlayer"
-            class="control-button"
-            :disabled="!canCurrentPlayerMove || gameOver"
-          >
-            P
-          </button>
-          <span class="control-label mobile-hidden">Pass</span>
-        </div>
-        <div class="control-item">
-          <button
-            @click="quitGame"
-            class="control-button"
-            :disabled="gameOver"
-          >
-            Q
-          </button>
-          <span class="control-label mobile-hidden">Quit</span>
-        </div>
+        </template>
       </div>
     </div>
 
-    <main class="game-main" :class="{ 'is-disabled': !canCurrentPlayerMove }">
+    <main class="game-main" :class="{ 'is-disabled': !canMakeMove }">
       <DotGrid
-        :key="`grid-${drawnLines.length}`"
-        :grid-size="gridSize"
+        :key="gridKey"
+        :grid-size="finalGridSize"
         :drawn-lines="drawnLines"
         :claimed-squares="claimedSquares"
-        :player1-color="player1Color"
-        :player2-color="player2Color"
-        :player1-name="matchData?.player1?.name"
-        :player2-name="matchData?.player2?.name"
-        :can-make-move="canCurrentPlayerMove"
-        :is-game-active="matchData?.status === 'active'"
+        :can-make-move="canMakeMove"
+        :is-game-active="isGameActive"
+        :current-player="currentPlayer"
+        :player1-name="player1Name"
+        :player2-name="player2Name"
+        :player1-color="'#3b82f6'"
+        :player2-color="'#f97316'"
         @line-selected="handleLineSelected"
       />
     </main>
+    <!-- Use the existing overlay style to show the result on top -->
+    <div v-if="isGameOver" class="game-over-overlay">
+      <GameResult
+        :is-multiplayer="isMultiplayer"
+        :match-id="isMultiplayer ? route.params.id as string : undefined"
+        :winner="isMultiplayer ? undefined : aiWinner"
+        :scores="isMultiplayer ? undefined : localScores"
+        :grid-size="finalGridSize"
+        :player1-name="player1Name"
+        :player2-name="player2Name"
+        :total-moves="drawnLines.length"
+        @play-again="handleRestart"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useGameStore } from '@/store/gameStore'
+import { useUserStore } from '@/store/userStore'
 import { storeToRefs } from 'pinia'
-import { useMatchStore } from '@/stores/matchStore'
-import { playMove } from '@/firebase/matchHelpers'
-import DotGrid from '@/components/DotGrid.vue'
-import { useTurnTimer } from '@/composables/useTurnTimer'
-import type { Line } from '@/types' // Import the Line type
-import { db } from '@/firebase' // Corrected import path
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
+
+import DotGrid from '@/components/DotGrid.vue'
+import GameResult from '@/views/GameResult.vue'
+import { useAIOpponent } from '@/composables/useAIOpponent'
+import { useTurnTimer } from '@/composables/useTurnTimer'
+import { useAIScoreTracker } from '@/composables/useAIScoreTracker' // Import the new composable
+import type { Line, Square } from '@/types'
+import { db } from '@/firebase'
+
+const props = withDefaults(defineProps<{
+  mode: 'ai' | 'multiplayer',
+  playerName?: string,
+  gridSize?: number
+}>(), {
+  mode: 'ai',
+  playerName: '',
+  gridSize: 8,
+});
+
+console.log('GameBoard props:', props)
 
 const route = useRoute()
 const router = useRouter()
-const matchStore = useMatchStore()
 
-// Get current user ID from route query parameter
-const currentUserId = ref((route.query.playerId as string) || (route.query.userId as string) || 'user-' + Date.now())
+// Initialize stores
+const gameStore = useGameStore()
+const userStore = useUserStore()
 
-// Get match store data
-const {
-  currentMatchId,
-  matchData,
-  lines: firebaseLines,
-  squares: firebaseSquares,
-  gridSize: firebaseGridSize,
-  currentPlayer: firebaseCurrentPlayer,
-  scores: firebaseScores,
-  gameOver: firebaseGameOver
-} = storeToRefs(matchStore)
+// --- STATE MANAGEMENT ---
+const isMultiplayer = computed(() => props.mode === 'multiplayer')
 
-// Player colors
-const player1Color = '#3b82f6' // Blue
-const player2Color = '#f97316' // Orange
+// Local state for AI mode
+// Ensure gridSize is a number
+const aiGridSize = computed(() => {
+  const parsed = typeof props.gridSize === 'string' ? parseInt(props.gridSize, 10) : props.gridSize
+  console.log('GameBoard: aiGridSize calculation - raw props.gridSize:', props.gridSize, 'parsed:', parsed)
+  return parsed
+})
+const localDrawnLines = ref<Line[]>([])
+const localClaimedSquares = ref<Square[]>([])
+const localScores = ref<Record<number, number>>({ 1: 0, 2: 0 })
+const localCurrentPlayer = ref(1)
 
-// Initialize game state
-const gridSize = ref(8) // Always start with 8x8 grid
-const drawnLines = ref<Array<{id: string, startDot: string, endDot: string, player: number}>>([])
-const claimedSquares = ref<Array<{id: string, topLeftX: number, topLeftY: number, player: number}>>([])
-const scores = ref<Record<number, number>>({ 1: 0, 2: 0 })
-const currentPlayer = ref(1)
+// Shared state
+const isMakingMove = ref(false)
+const gridKey = ref(0) // Used to force re-render on restart
 
-// Audio state for mobile-compatible sound
-const audioEnabled = ref(true) // Sound is ON by default
-const countdownAudio = ref<HTMLAudioElement | null>(null)
-const soundHasPlayed = ref(false) // Add this flag
-const audioInitialized = ref(false)
+// Firebase state for multiplayer mode
+const { user: currentUser } = storeToRefs(userStore)
+const { matchData, gameOver: firebaseGameOver } = storeToRefs(gameStore)
 
-// Initialize audio element ONLY on user gesture
-const initializeAudio = () => {
-  if (!audioInitialized.value && typeof window !== 'undefined') {
-    console.log('🔊 Initializing audio on user gesture...')
-    countdownAudio.value = new Audio('/sounds/countdown.mp3') // Correct path
-    countdownAudio.value.preload = 'auto'
-    
-    // Attempt to play and pause to "unlock" audio on mobile
-    const promise = countdownAudio.value.play()
-    if (promise !== undefined) {
-      promise.then(() => {
-        countdownAudio.value?.pause()
-        countdownAudio.value!.currentTime = 0
-        console.log('🔊 Audio context unlocked.')
-      }).catch(error => {
-        console.error("Audio unlock failed:", error)
-      });
-    }
-    audioInitialized.value = true
+// --- UNIFIED COMPUTED PROPS ---
+const finalGridSize = computed(() => {
+  const size = isMultiplayer.value ? (matchData.value?.gridSize || 8) : (aiGridSize.value || 8)
+  console.log('GameBoard: finalGridSize calculated:', size)
+  return size
+})
+const totalSquares = computed(() => {
+  const total = (finalGridSize.value - 1) * (finalGridSize.value - 1)
+  console.log('GameBoard: totalSquares calculated:', total)
+  return total
+})
+
+const drawnLines = computed(() => isMultiplayer.value ? (matchData.value?.lines || []) : localDrawnLines.value)
+const claimedSquares = computed(() => {
+  if (isMultiplayer.value) {
+    const squares = matchData.value?.squares || []
+    console.log('GameBoard: claimedSquares filtering for multiplayer:', {
+      totalSquares: squares.length,
+      squaresWithPlayer: squares.filter(square => square.player !== undefined).length,
+      squaresWithUndefined: squares.filter(square => square.player === undefined).length,
+      sampleSquares: squares.slice(0, 3)
+    })
+    // Only return squares that have a player assigned (not undefined)
+    return squares.filter(square => square.player !== undefined)
+  } else {
+    return localClaimedSquares.value
   }
-}
+})
+const scores = computed(() => isMultiplayer.value ? (matchData.value?.scores || { 1: 0, 2: 0 }) : localScores.value)
+const currentPlayer = computed(() => isMultiplayer.value ? (matchData.value?.currentPlayer || 1) : localCurrentPlayer.value)
 
-const toggleAudio = () => {
-  if (!audioInitialized.value) {
-    initializeAudio()
-  }
-  audioEnabled.value = !audioEnabled.value
-  console.log(`🔊 Audio ${audioEnabled.value ? 'enabled' : 'disabled'}`)
-  if (!audioEnabled.value && countdownAudio.value) {
-    countdownAudio.value.pause()
-    countdownAudio.value.currentTime = 0
-  }
-}
+const player1Name = computed(() => isMultiplayer.value ? (matchData.value?.player1?.name || 'Player 1') : (props.playerName || 'You'))
+const player2Name = computed(() => isMultiplayer.value ? (matchData.value?.player2?.name || 'Player 2') : 'AI Opponent')
+const player1Initial = computed(() => player1Name.value.charAt(0).toUpperCase())
+const player2Initial = computed(() => player2Name.value.charAt(0).toUpperCase())
+const player1Score = computed(() => scores.value[1] || 0)
+const player2Score = computed(() => scores.value[2] || 0)
 
-// Play countdown sound (mobile-compatible)
-const playCountdownSound = () => {
-  if (countdownAudio.value && audioEnabled.value) {
-    try {
-      countdownAudio.value.currentTime = 0
-      const playPromise = countdownAudio.value.play()
-      if (playPromise) {
-        playPromise.catch(error => {
-          console.log('Audio play failed:', error)
-        })
-      }
-    } catch (error) {
-      console.log('Audio play error:', error)
-    }
-  }
-}
-
-// Get current user's player number
 const currentUserPlayerNumber = computed(() => {
-  if (!matchData.value) return 1
-  if (matchData.value.player1?.id === currentUserId.value) return 1
-  if (matchData.value.player2?.id === currentUserId.value) return 2
-  return 1
-})
-
-// Check if current user can make moves
-const canCurrentPlayerMove = computed(() => {
-  // Must be active game, correct turn, and current user's turn
-  return matchData.value?.status === 'active' &&
-         currentPlayer.value === currentUserPlayerNumber.value
-})
-
-// Game status - only show game over if Firebase says so OR local calculation AND Firebase game is active
-const gameOver = computed(() => {
-  // Don't show game over if no match data yet
-  if (!matchData.value) {
-    console.log('🎮 Game Over: NO - No match data')
-    return false
-  }
-
-  // If Firebase explicitly says game is over, respect that
-  if (firebaseGameOver.value) {
-    console.log('🎮 Game Over: YES - Firebase says complete')
-    return true
-  }
-
-  // If Firebase game isn't active, don't show local game over
-  if (matchData.value?.status !== 'active') {
-    console.log('🎮 Game Over: NO - Match not active, status:', matchData.value?.status)
-    return false
-  }
-
-  // Only calculate local game over for active games
-  const totalSquares = (gridSize.value - 1) * (gridSize.value - 1)
-  const claimedCount = claimedSquares.value.length
-
-  console.log('🎮 Game Over Check:', {
-    totalSquares,
-    claimedCount,
-    claimedSquares: claimedSquares.value.map(s => ({ id: s.id, player: s.player })),
-    isComplete: claimedCount >= totalSquares
+  if (!isMultiplayer.value || !matchData.value?.player1 || !currentUser.value) return 1
+  const isPlayer1 = matchData.value.player1.id === currentUser.value.uid
+  console.log('GameBoard: currentUserPlayerNumber calculation:', {
+    matchData: matchData.value,
+    currentUser: currentUser.value,
+    isPlayer1,
+    result: isPlayer1 ? 1 : 2
   })
-
-  if (claimedCount >= totalSquares) {
-    console.log('🎮 Game Over: YES - All squares claimed locally')
-    return true
-  }
-
-  console.log('🎮 Game Over: NO - Game continues')
-  return false
+  return isPlayer1 ? 1 : 2
 })
 
-const winner = computed(() => {
-  // Use Firebase winner if available
-  if (matchData.value?.winner) return matchData.value.winner
+const isMyTurn = computed(() => {
+  const result = currentPlayer.value === currentUserPlayerNumber.value
+  console.log('GameBoard: isMyTurn calculation:', {
+    currentPlayer: currentPlayer.value,
+    currentUserPlayerNumber: currentUserPlayerNumber.value,
+    result
+  })
+  return result
+})
 
-  // Otherwise calculate locally if game is over
-  if (!gameOver.value) return null
-  if (scores.value[1] > scores.value[2]) return 1
-  if (scores.value[2] > scores.value[1]) return 2
+const isGameActive = computed(() => {
+  const result = isMultiplayer.value ? matchData.value?.status === 'active' : !isGameOver.value
+  console.log('GameBoard: isGameActive calculation:', {
+    isMultiplayer: isMultiplayer.value,
+    matchStatus: matchData.value?.status,
+    isGameOver: isGameOver.value,
+    result
+  })
+  return result
+})
+// ----------------------------------------------------------------
+// Game Over Logic
+// ----------------------------------------------------------------
+const localGameOver = computed(() => {
+  const over = claimedSquares.value.length >= totalSquares.value
+  console.log(`localGameOver check: claimed=${claimedSquares.value.length}, total=${totalSquares.value}, over=${over}`)
+  return over
+})
+const isGameOver = computed(() => isMultiplayer.value ? firebaseGameOver.value : localGameOver.value)
+const canMakeMove = computed(() => {
+  const result = isGameActive.value && isMyTurn.value && !isMakingMove.value && !isGameOver.value
+  console.log('GameBoard: canMakeMove calculation:', {
+    isGameActive: isGameActive.value,
+    isMyTurn: isMyTurn.value,
+    isMakingMove: isMakingMove.value,
+    isGameOver: isGameOver.value,
+    result
+  })
+  return result
+})
+
+// --- NEW: AI Winner Calculation ---
+const aiWinner = computed(() => {
+  if (!localGameOver.value) return null
+  if (localScores.value[1] > localScores.value[2]) return 1
+  if (localScores.value[2] > localScores.value[1]) return 2
   return 'tie'
 })
 
-// Turn timer with forfeit tracking
-const missedTurns = ref<{ [playerId: string]: number }>({})
+// --- SCORE TRACKING ---
+const { updateScore } = useAIScoreTracker()
+watch(aiWinner, (newWinner) => {
+  if (newWinner === null) return
+  if (newWinner === 1) updateScore('win')
+  if (newWinner === 2) updateScore('loss')
+  if (newWinner === 'tie') updateScore('draw')
+})
 
-const {
-  timeRemaining,
-  timeRemainingPercentage,
-  isTimerActive,
-  isExpired: timerIsExpired,
-  startTimer,
-  stopTimer
-} = useTurnTimer(
-  currentMatchId.value || '',
-  currentUserId.value
+// --- COMPOSABLES ---
+const { isThinking: isAIThinking, playMove: getAIMove } = useAIOpponent(
+  finalGridSize,
+  drawnLines,
+  computed(() => !isMultiplayer.value && currentPlayer.value === 2 && !isMakingMove.value)
 )
 
-// Handle timer expiration and missed turns
-const handleTimerExpired = async () => {
-  console.log('⏰ Turn timer expired')
+const { timeRemaining, isTimerActive, startTimer } = useTurnTimer(
+  isMultiplayer.value ? (route.params.id as string) : '',
+  currentUser.value?.uid || ''
+)
 
-  if (!matchData.value || !currentMatchId.value) return
-
-  const currentPlayerId = currentPlayer.value === 1 ? matchData.value.player1.id : matchData.value.player2?.id
-  if (!currentPlayerId) return
-
-  // Track missed turn
-  if (!missedTurns.value[currentPlayerId]) {
-    missedTurns.value[currentPlayerId] = 0
-  }
-  missedTurns.value[currentPlayerId]++
-
-  console.log(`📊 Player ${currentPlayer.value} missed turns: ${missedTurns.value[currentPlayerId]}`)
-
-  // Check for forfeit (3 missed turns)
-  if (missedTurns.value[currentPlayerId] >= 3) {
-    console.log(`🚫 Player ${currentPlayer.value} forfeits after 3 missed turns`)
-
-    // Force game end with opponent as winner
-    try {
-      await playMove(currentMatchId.value, currentUserId.value, {
-        startDot: '0-0', // Dummy move to trigger forfeit
-        endDot: '0-1',
-        forfeit: true,
-        winner: currentPlayer.value === 1 ? 2 : 1
-      })
-    } catch (error) {
-      console.error('Error handling forfeit:', error)
-    }
-    return
-  }
-
-  // Switch to other player
-  await switchPlayer()
-}
-
-// Watch for timer warnings and play sound
-watch(timeRemaining, (newTime, oldTime) => {
-  // Play sound every second for last 5 seconds
-  if (newTime <= 5 && newTime > 0) {
-    const newSecond = Math.ceil(newTime)
-    const oldSecond = Math.ceil(oldTime || 0)
-
-    // Only play sound when we cross to a new second
-    if (newSecond !== oldSecond && newSecond <= 5) {
-      console.log(`🔊 Playing countdown sound: ${newSecond}s remaining`)
-      playCountdownSound()
-    }
-  }
-
-  // Handle timer expiration
-  if (newTime <= 0 && (oldTime || 0) > 0) {
-    handleTimerExpired()
-  }
-}, { immediate: false })
-
-// Watch for timer changes to play sound
-watch(timeRemaining, (newTime) => {
-  if (audioEnabled.value && countdownAudio.value) {
-    // When the timer hits exactly 5 seconds, play the sound once.
-    if (newTime <= 5 && !soundHasPlayed.value) {
-      // Stop any previously running sound to ensure a clean play
-      countdownAudio.value.pause()
-      countdownAudio.value.currentTime = 0
-
-      countdownAudio.value.play().catch(e => console.error("Audio play failed:", e))
-      soundHasPlayed.value = true
-      console.log('🔊 Playing 5-second countdown sound, once per turn.')
-    }
-  }
-})
-
-// When turn switches, reset the flag
-watch(currentPlayer, () => {
-  soundHasPlayed.value = false
-})
-
-// Sync Firebase state to local state
-const syncFromFirebase = () => {
-  if (!matchData.value) return
-  console.log('🔄 syncFromFirebase - Match status:', matchData.value.status)
-
-  // Always set grid size to 8 for consistency
-  gridSize.value = 8
-  console.log('🔄 Grid size set to:', gridSize.value)
-
-  // Only sync game state for active games
-  if (matchData.value.status !== 'active') {
-    // For non-active games, reset to initial state
-    if (matchData.value.status === 'waiting') {
-      drawnLines.value = []
-      claimedSquares.value = []
-      scores.value = { 1: 0, 2: 0 }
-      currentPlayer.value = 1
-    }
-    return
-  }
-
-  // Update local state from Firebase for active games
-  currentPlayer.value = firebaseCurrentPlayer.value || 1
-  scores.value = {
-    1: firebaseScores.value?.[1] || 0,
-    2: firebaseScores.value?.[2] || 0
-  }
-
-  // Sync lines
-  if (firebaseLines.value) {
-    console.log('🔄 Syncing lines from Firebase:', firebaseLines.value.length, 'lines')
-    console.log('🔄 Current local lines:', drawnLines.value.length, 'lines')
-
-    // Only sync if Firebase has more lines than local (to preserve optimistic updates)
-    if (firebaseLines.value.length >= drawnLines.value.length) {
-      drawnLines.value = firebaseLines.value.map(line => ({
-        id: line.id,
-        startDot: line.startDot,
-        endDot: line.endDot,
-        player: line.player || 1
-      }))
-      console.log('🔄 Updated local lines to:', drawnLines.value.length, 'lines')
-    } else {
-      console.log('🔄 Keeping local optimistic updates, Firebase has fewer lines')
-    }
-  }
-
-  // Sync squares - only claimed ones
-  if (firebaseSquares.value) {
-    // Filter for squares that have actual numeric player values
-    const claimedFirebaseSquares = firebaseSquares.value.filter(square =>
-      square.player !== undefined &&
-      square.player !== null &&
-      typeof square.player === 'number' &&
-      (square.player === 1 || square.player === 2)
-    )
-
-    console.log('🔄 Syncing squares from Firebase:', claimedFirebaseSquares.length, 'squares')
-    console.log('🔄 Current local squares:', claimedSquares.value.length, 'squares')
-
-    // Only sync if Firebase has more squares than local
-    if (claimedFirebaseSquares.length >= claimedSquares.value.length) {
-      claimedSquares.value = claimedFirebaseSquares.map(square => ({
-        id: square.id,
-        topLeftX: square.topLeftX || 0,
-        topLeftY: square.topLeftY || 0,
-        player: square.player as number
-      }))
-      console.log('🔄 Updated local squares to:', claimedSquares.value.length, 'squares')
-    } else {
-      console.log('🔄 Keeping local optimistic updates, Firebase has fewer squares')
-    }
-  } else {
-    claimedSquares.value = []
-  }
-}
-
-const isMakingMove = ref(false) // The new move lock
-
-// Watcher for debugging turn changes
-watch(canCurrentPlayerMove, (canMove) => {
-  console.log(`[TURN_CHECK] Can current player move: ${canMove}`, {
-    isMyTurn: currentPlayer.value === currentUserPlayerNumber.value,
-    currentPlayer: currentPlayer.value,
-    myPlayerNumber: currentUserPlayerNumber.value,
-    isMakingMove: isMakingMove.value,
-    gameOver: gameOver.value
-  });
-})
-
-// Handle line selection with Firebase sync
+// --- CORE GAME LOGIC ---
 const handleLineSelected = async (line: { startDot: string; endDot: string }) => {
-  // Rigorous check to prevent moves when it's not the player's turn or a move is already processing.
-  if (!canCurrentPlayerMove.value || isMakingMove.value) {
-    console.log(`[MOVE BLOCKED] Can move: ${canCurrentPlayerMove.value}, Is already making move: ${isMakingMove.value}`);
-    return;
+  console.log('GameBoard: handleLineSelected called with:', line, {
+    canMakeMove: canMakeMove.value,
+    currentPlayer: currentPlayer.value,
+    isMultiplayer: isMultiplayer.value
+  })
+  
+  // Allow AI moves even when canMakeMove is false (for AI mode)
+  const isAIMove = !isMultiplayer.value && currentPlayer.value === 2
+  if (!canMakeMove.value && !isAIMove) {
+    console.log('GameBoard: Move rejected - not AI move and canMakeMove is false')
+    return
   }
   
-  isMakingMove.value = true; // Lock the board
-  console.log(`[MOVE START] Player ${currentPlayer.value} is making a move. Board locked.`);
+  isMakingMove.value = true
 
   const lineId = [line.startDot, line.endDot].sort().join('-')
   if (drawnLines.value.some(l => l.id === lineId)) {
-    isMakingMove.value = false; // Unlock if line already exists
-    return;
+    isMakingMove.value = false
+    return
   }
 
-  const player = currentPlayer.value;
-  const newLine = { id: lineId, startDot: line.startDot, endDot: line.endDot, player };
-  
-  // 1. Optimistic UI Update
-  drawnLines.value.push(newLine);
-  
-  // 2. Check for completed squares
-  const newSquaresFound = checkForCompletedSquares(newLine);
-  
-  let turnSwitch = true; // Assume the turn will switch
+  const player = currentPlayer.value
+  const tempLines = [...drawnLines.value, { ...line, id: lineId, player }]
+  const newSquares = checkForCompletedSquares({ ...line, id: lineId, player }, tempLines)
 
-  if (newSquaresFound.length > 0) {
-    console.log(`[SQUARE CLAIMED] Player ${player} claimed ${newSquaresFound.length} square(s).`);
-    newSquaresFound.forEach(square => {
-      claimedSquares.value.push({ ...square, player });
-    });
-    scores.value[player] = (scores.value[player] || 0) + newSquaresFound.length;
-    
-    // 3. EXTRA TURN RULE: Do not switch turns
-    turnSwitch = false;
-    console.log(`[EXTRA TURN] Player ${player} gets another turn.`);
-  }
-
-  // 4. Determine the next player
-  const nextPlayer = turnSwitch ? (player === 1 ? 2 : 1) : player;
+  const turnSwitch = newSquares.length === 0
+  const nextPlayer = turnSwitch ? (player === 1 ? 2 : 1) : player
   
-  // 5. Sync to Firebase
-  try {
-    console.log(`[FIREBASE SYNC] Syncing move. Next player: ${nextPlayer}`);
-    await updateDoc(doc(db, 'matches', currentMatchId.value!), {
-      lines: drawnLines.value,
-      squares: claimedSquares.value,
-      scores: scores.value,
-      currentPlayer: nextPlayer,
-      updatedAt: serverTimestamp(),
-    });
-    console.log('[FIREBASE SYNC] Sync successful.');
-  } catch (error) {
-    console.error("[FIREBASE SYNC] Sync failed:", error);
-    // Potentially revert optimistic updates here
-  } finally {
-    // 6. Unlock the board
-    isMakingMove.value = false;
-    console.log(`[MOVE END] Board unlocked.`);
-  }
-};
-
-// Check for completed squares (same logic as before)
-const checkForCompletedSquares = (line: Line) => {
-  const newSquares = []
-  const [y1, x1] = line.startDot.split('-').map(Number)
-  const [y2, x2] = line.endDot.split('-').map(Number)
-
-  const isHorizontal = y1 === y2
+  console.log('GameBoard: Turn logic - player:', player)
+  console.log('GameBoard: Turn logic - newSquares.length:', newSquares.length)
+  console.log('GameBoard: Turn logic - turnSwitch:', turnSwitch)
+  console.log('GameBoard: Turn logic - nextPlayer:', nextPlayer)
+  console.log('GameBoard: Turn logic - isAIMove:', isAIMove)
+  console.log('GameBoard: Turn logic - should keep turn:', newSquares.length > 0)
   
-  const lineExists = (p1: string, p2: string) => 
-    drawnLines.value.some(l => 
-      (l.startDot === p1 && l.endDot === p2) || (l.startDot === p2 && l.endDot === p1)
-    )
+  console.log('GameBoard: Turn logic:', {
+    player,
+    newSquares: newSquares.length,
+    turnSwitch,
+    nextPlayer,
+    isAIMove,
+    extraTurn: newSquares.length > 0 ? 'YES - Square claimed, keeping turn' : 'NO - No square claimed, switching turn',
+    squaresDetails: newSquares.map(sq => sq.id),
+    currentPlayerBefore: currentPlayer.value,
+    willSwitchTo: nextPlayer,
+    shouldKeepTurn: newSquares.length > 0,
+    actualNextPlayer: nextPlayer
+  })
 
-  if (isHorizontal) {
-    // Check square above
-    if (y1 > 0) {
-      const p1 = `${y1 - 1}-${x1}`
-      const p2 = `${y1 - 1}-${x2}`
-      const p3 = `${y1}-${x1}`
-      const p4 = `${y1}-${x2}`
-      if (lineExists(p1, p3) && lineExists(p2, p4) && lineExists(p1, p2)) {
-        newSquares.push({ id: `sq-${y1 - 1}-${x1}`, topLeftX: x1, topLeftY: y1 - 1 })
-      }
+  const newScores = { ...scores.value }
+  newScores[player] = (newScores[player] || 0) + newSquares.length
+  
+  const newClaimedSquares = [...claimedSquares.value, ...newSquares.map(sq => ({ ...sq, player }))]
+
+  if (isMultiplayer.value) {
+    try {
+      await updateDoc(doc(db, 'matches', route.params.id as string), {
+        lines: tempLines,
+        squares: newClaimedSquares,
+        scores: newScores,
+        currentPlayer: nextPlayer,
+        updatedAt: serverTimestamp(),
+      })
+    } finally {
+      await nextTick()
+      // Firebase watch will release the lock, but we wait for UI to update
     }
-    // Check square below
-    if (y1 < gridSize.value) {
-      const p1 = `${y1}-${x1}`
-      const p2 = `${y1}-${x2}`
-      const p3 = `${y1 + 1}-${x1}`
-      const p4 = `${y1 + 1}-${x2}`
-      if (lineExists(p1, p3) && lineExists(p2, p4) && lineExists(p3, p4)) {
-        newSquares.push({ id: `sq-${y1}-${x1}`, topLeftX: x1, topLeftY: y1 })
-      }
-    }
-  } else { // isVertical
-    // Check square to the left
-    if (x1 > 0) {
-      const p1 = `${y1}-${x1 - 1}`
-      const p2 = `${y2}-${x1 - 1}`
-      const p3 = `${y1}-${x1}`
-      const p4 = `${y2}-${x1}`
-      if (lineExists(p1, p2) && lineExists(p1, p3) && lineExists(p2, p4)) {
-        newSquares.push({ id: `sq-${y1}-${x1 - 1}`, topLeftX: x1 - 1, topLeftY: y1 })
-      }
-    }
-    // Check square to the right
-    if (x1 < gridSize.value) {
-      const p1 = `${y1}-${x1}`
-      const p2 = `${y2}-${x1}`
-      const p3 = `${y1}-${x1 + 1}`
-      const p4 = `${y2}-${x1 + 1}`
-      if (lineExists(p1, p2) && lineExists(p3, p4) && lineExists(p1, p3)) {
-        newSquares.push({ id: `sq-${y1}-${x1}`, topLeftX: x1, topLeftY: y1 })
-      }
-    }
-  }
-  
-  return newSquares
-}
-
-// Helper to check if line exists
-const lineExists = (dot1: string, dot2: string) => {
-  return drawnLines.value.some(line =>
-    (line.startDot === dot1 && line.endDot === dot2) ||
-    (line.startDot === dot2 && line.endDot === dot1)
-  )
-}
-
-// Get player names
-const getPlayerName = (playerNumber: number) => {
-  if (playerNumber === 1) return matchData.value?.player1?.name || 'Player A'
-  if (playerNumber === 2) return matchData.value?.player2?.name || 'Player B'
-  return `Player ${playerNumber}`
-}
-
-// Get player initial from name
-const getPlayerInitial = (name: string) => {
-  if (!name) return 'A'
-  return name.charAt(0).toUpperCase()
-}
-
-// Switch player turn (Pass turn)
-const switchPlayer = async () => {
-  if (!currentMatchId.value || !matchData.value) return
-
-  console.log('🔄 Manually switching turn')
-
-  // Update local state optimistically
-  currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
-
-  // Send pass turn to Firebase
-  try {
-    await playMove(currentMatchId.value, currentUserId.value, {
-      startDot: '0-0', // Dummy move to indicate pass
-      endDot: '0-1',
-      pass: true
+  } else {
+    // AI Mode: Update local state directly
+    console.log('GameBoard: Updating AI local state:', {
+      nextPlayer,
+      newScores,
+      newClaimedSquares: newClaimedSquares.length
     })
-  } catch (error) {
-    console.error('Error passing turn:', error)
-    // Revert local change
-    currentPlayer.value = currentPlayer.value === 1 ? 2 : 1
+    localDrawnLines.value = tempLines
+    localClaimedSquares.value = newClaimedSquares
+    localScores.value = newScores
+    localCurrentPlayer.value = nextPlayer
+    
+    await nextTick()
+    isMakingMove.value = false
+
+    // If AI keeps the turn, trigger another move
+    if (!isMultiplayer.value && nextPlayer === 2 && !turnSwitch && !isGameOver.value) {
+        console.log('GameBoard: AI keeps turn, triggering another move...')
+        setTimeout(async () => {
+            console.log('GameBoard: AI making extra move...')
+            const move = await getAIMove()
+            if (move) await handleLineSelected(move)
+        }, 1000)
+    }
   }
 }
 
-// Reset game
-const resetGame = () => {
-  currentPlayer.value = 1
-  drawnLines.value = []
-  claimedSquares.value = []
-  scores.value = { 1: 0, 2: 0 }
+const checkForCompletedSquares = (newLine: Line, allLines: Line[]): Omit<Square, 'player'>[] => {
+    const foundSquares: Omit<Square, 'player'>[] = []
+    const [y1, x1] = newLine.startDot.split('-').map(Number)
+    const [y2, x2] = newLine.endDot.split('-').map(Number)
+
+    const lineExists = (dot1: string, dot2: string) => allLines.some((l: Line) => l.id === [dot1, dot2].sort().join('-'))
+
+    if (y1 === y2) { // Horizontal
+        if (y1 > 0) { // Check above
+            const c1 = `${y1 - 1}-${x1}`, c2 = `${y1 - 1}-${x2}`
+            if (lineExists(c1, newLine.startDot) && lineExists(c2, newLine.endDot) && lineExists(c1, c2)) {
+                foundSquares.push({ id: [c1, c2, newLine.startDot, newLine.endDot].sort().join('_'), corners: [c1, c2, newLine.startDot, newLine.endDot], topLeftX: Math.min(x1, x2), topLeftY: y1 - 1 })
+            }
+        }
+        if (y1 < finalGridSize.value - 1) { // Check below
+            const c3 = `${y1 + 1}-${x1}`, c4 = `${y1 + 1}-${x2}`
+            if (lineExists(c3, newLine.startDot) && lineExists(c4, newLine.endDot) && lineExists(c3, c4)) {
+                foundSquares.push({ id: [c3, c4, newLine.startDot, newLine.endDot].sort().join('_'), corners: [c3, c4, newLine.startDot, newLine.endDot], topLeftX: Math.min(x1, x2), topLeftY: y1 })
+            }
+        }
+    } else { // Vertical
+        if (x1 > 0) { // Check left
+            const c1 = `${y1}-${x1 - 1}`, c2 = `${y2}-${x1 - 1}`
+            if (lineExists(c1, newLine.startDot) && lineExists(c2, newLine.endDot) && lineExists(c1, c2)) {
+                foundSquares.push({ id: [c1, c2, newLine.startDot, newLine.endDot].sort().join('_'), corners: [c1, c2, newLine.startDot, newLine.endDot], topLeftX: x1 - 1, topLeftY: Math.min(y1, y2) })
+            }
+        }
+        if (x1 < finalGridSize.value - 1) { // Check right
+            const c3 = `${y1}-${x1 + 1}`, c4 = `${y2}-${x1 + 1}`
+            if (lineExists(c3, newLine.startDot) && lineExists(c4, newLine.endDot) && lineExists(c3, c4)) {
+                foundSquares.push({ id: [c3, c4, newLine.startDot, newLine.endDot].sort().join('_'), corners: [c3, c4, newLine.startDot, newLine.endDot], topLeftX: x1, topLeftY: Math.min(y1, y2) })
+            }
+        }
+    }
+    return foundSquares
 }
 
-// Quit game (redirect to home)
-const quitGame = () => {
-  if (currentMatchId.value) {
-    router.push({ name: 'GameResult', query: { matchId: currentMatchId.value } })
-  } else {
-    router.push('/')
-  }
-}
+// --- WATCHERS & LIFECYCLE ---
+watch(isMakingMove, (moving) => {
+    if (isMultiplayer.value && !moving) {
+        // This is where the lock is released after firebase sync
+    }
+})
 
-// Watch for Firebase changes and sync to local state
-watch([firebaseLines, firebaseSquares, firebaseCurrentPlayer, firebaseScores], () => {
-  console.log('🔄 Firebase data changed - triggering sync:', {
-    lines: firebaseLines.value?.length || 0,
-    squares: firebaseSquares.value?.length || 0,
-    currentPlayer: firebaseCurrentPlayer.value,
-    scores: firebaseScores.value
+watch(matchData, () => {
+    if (isMakingMove.value) {
+        isMakingMove.value = false
+    }
+})
+
+watch(currentPlayer, (newPlayer, oldPlayer) => {
+  console.log('GameBoard: currentPlayer changed to:', newPlayer, {
+    oldPlayer,
+    isMultiplayer: isMultiplayer.value,
+    isGameOver: isGameOver.value,
+    isMakingMove: isMakingMove.value
   })
-  syncFromFirebase()
-}, { deep: true, immediate: true })
-
-// Watch for turn changes to start/stop timer
-watch(currentPlayer, (newPlayer) => {
-  console.log('🔄 Current player changed to:', newPlayer)
-  if (matchData.value?.status === 'active' && isTimerActive) {
-    startTimer(newPlayer === 1 ? matchData.value.player1.id : matchData.value.player2?.id || '', 30)
-  }
-}, { immediate: true })
-
-// Watch for game status changes
-watch(() => matchData.value?.status, (newStatus) => {
-  console.log('🔄 Match status changed to:', newStatus)
-  if (newStatus === 'active' && currentPlayer.value) {
-    startTimer(currentPlayer.value === 1 ? matchData.value?.player1.id || '' : matchData.value?.player2?.id || '', 30)
-  }
-}, { immediate: true })
-
-// Debug current game state
-watch([currentPlayer, canCurrentPlayerMove, gameOver], () => {
-  console.log('🎮 Game State Debug:', {
-    currentPlayer: currentPlayer.value,
-    canMove: canCurrentPlayerMove.value,
-    gameOver: gameOver.value,
-    matchStatus: matchData.value?.status,
-    userPlayerNumber: currentUserPlayerNumber.value,
-    drawnLines: drawnLines.value.length,
-    claimedSquares: claimedSquares.value.length
-  })
-}, { immediate: true })
-
-// Watch for timer warnings and play sound
-watch(timeRemaining, (newTime) => {
-  if (newTime <= 5 && newTime > 0 && Math.ceil(newTime) !== Math.ceil(newTime + 0.1)) {
-    // Play sound every second for last 5 seconds
-    playCountdownSound()
-  }
-}, { immediate: false })
-
-// Debug computed properties to track data flow
-const debugDotGridData = computed(() => ({
-  gridSize: gridSize.value,
-  drawnLinesCount: drawnLines.value.length,
-  claimedSquaresCount: claimedSquares.value.length,
-  canMakeMove: canCurrentPlayerMove.value,
-  player1Name: matchData.value?.player1?.name || 'Player 1',
-  player2Name: matchData.value?.player2?.name || 'Player 2'
-}))
-
-// Watch for DotGrid data changes
-watch(debugDotGridData, (newData) => {
-  console.log('🎯 DotGrid data updated:', newData)
-  console.log('🧪 TEST: Changes are being loaded! Grid size is:', newData.gridSize)
-  console.log('🎮 GAME DEBUG: Current state:', {
-    gridSize: newData.gridSize,
-    drawnLines: newData.drawnLinesCount,
-    claimedSquares: newData.claimedSquaresCount,
-    canMakeMove: newData.canMakeMove,
-    currentPlayer: currentPlayer.value,
-    matchStatus: matchData.value?.status
-  })
-}, { deep: true, immediate: true })
-
-// Initialize game on mount
-onMounted(() => {
-  const { id } = route.params
-  if (typeof id === 'string') {
-    matchStore.subscribeToMatchById(id)
-  } else {
-    console.error('Invalid match ID parameter:', id)
-    router.push('/')
+  
+  // Only trigger AI move if we're in AI mode, it's player 2's turn, 
+  // the game isn't over, and the turn actually switched (not player 1 keeping their turn)
+  if (!isMultiplayer.value && newPlayer === 2 && !isGameOver.value && oldPlayer === 1) {
+    console.log('GameBoard: Triggering AI move (turn switched from player 1 to player 2)...')
+    setTimeout(async () => {
+      console.log('GameBoard: AI making move...')
+      const move = await getAIMove()
+      console.log('GameBoard: AI move result:', move)
+      if (move) await handleLineSelected(move)
+    }, 1000) // AI "thinking" time
   }
 })
 
-// Cleanup on unmount
+// ----------------------------------------------------------------
+// Lifecycle Hooks
+// ----------------------------------------------------------------
+onMounted(async () => {
+  console.log('GameBoard onMounted')
+  if (isMultiplayer.value) {
+    if (route.params.id) {
+      await gameStore.subscribeToMatch(route.params.id as string)
+      console.log('Subscribed to match:', route.params.id)
+    }
+  } else {
+    // AI Game Setup
+    console.log('Setting up AI game with gridSize:', props.gridSize)
+    // resetBoardState() // Ensure clean state for AI game - This function is not defined in the original file
+    // players.value = [ // players.value is not defined in the original file
+    //   { id: 'player1', name: props.playerName, score: 0 },
+    //   { id: 'player2', name: 'Super AI', score: 0 },
+    // ]
+    // console.log('AI game players:', players.value)
+  }
+})
+
 onUnmounted(() => {
-  if (countdownAudio.value) {
-    countdownAudio.value.pause()
-    countdownAudio.value = null
+  if (isMultiplayer.value) {
+    gameStore.unsubscribeFromMatch()
   }
-  matchStore.unsubscribeFromMatch()
 })
 
-// Watch for game over and redirect
-watch(gameOver, (isOver) => {
-  if (isOver && currentMatchId.value) {
-    setTimeout(() => {
-      router.push({ name: 'GameResult', query: { matchId: currentMatchId.value } })
-    }, 3000) // Show final state for 3 seconds
-  }
-})
+// --- ACTIONS ---
+const handleRestart = async () => {
+    if (isMultiplayer.value) {
+        await updateDoc(doc(db, 'matches', route.params.id as string), {
+            lines: [], squares: [], scores: { 1: 0, 2: 0 },
+            currentPlayer: 1, status: 'active', winnerId: null
+        })
+    } else {
+        localDrawnLines.value = []
+        localClaimedSquares.value = []
+        localScores.value = { 1: 0, 2: 0 }
+        localCurrentPlayer.value = 1
+    }
+    gridKey.value++
+}
+
+const quitGame = () => {
+    router.push('/')
+}
 </script>
 
 <style scoped>
@@ -1586,5 +1322,10 @@ watch(gameOver, (isOver) => {
 .game-main.is-disabled {
   pointer-events: none;
   opacity: 0.8;
+}
+
+.restart-button {
+  border-color: #10b981; /* Green */
+  color: #10b981;
 }
 </style>

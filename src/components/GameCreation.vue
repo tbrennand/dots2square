@@ -2,7 +2,9 @@
   <div class="game-creation min-h-screen flex flex-col items-center justify-center p-4">
     <div class="w-full max-w-lg mx-auto">
       <div class="text-center">
-        <img src="@/assets/dots2squares-logo.png" alt="Dots 2 Squares Logo" class="mx-auto mb-2 w-64 sm:w-72 md:w-80 lg:w-96 h-auto" />
+        <router-link to="/">
+          <img src="@/assets/dots2squares-logo.png" alt="Dots 2 Squares Logo" class="mx-auto mb-2 w-64 sm:w-72 md:w-80 lg:w-96 h-auto" />
+        </router-link>
         <h1 class="text-3xl font-extrabold text-secondary tracking-tight">Create Your Game</h1>
         <p class="mt-2 text-lg text-muted">Choose your settings and invite friends to play!</p>
       </div>
@@ -70,9 +72,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { createMatch as createMatchHelper } from '@/firebase/matchHelpers'
+import { getRandomFunnyName } from '@/utils/nameGenerator'
 
 const router = useRouter()
 const playerName = ref('')
@@ -104,15 +107,23 @@ const clearNameError = () => {
   errorMessage.value = ''
 }
 
-const createMatch = async () => {
-  // Clear previous errors
-  clearNameError()
-  
-  // Validate name
-  if (!playerName.value.trim()) {
-    showNameError.value = true
-    return
+onMounted(() => {
+  const savedName = localStorage.getItem('dots2squares_playerName')
+  if (savedName) {
+    playerName.value = savedName
   }
+})
+
+const createMatch = async () => {
+  let finalPlayerName = playerName.value.trim()
+
+  if (!finalPlayerName) {
+    finalPlayerName = getRandomFunnyName()
+    playerName.value = finalPlayerName // Update the input field as well
+  }
+
+  // Save the name for next time
+  localStorage.setItem('dots2squares_playerName', finalPlayerName)
   
   if (isCreating.value) return
 
@@ -120,11 +131,10 @@ const createMatch = async () => {
 
   try {
     const player1Id = 'player1-' + Math.random().toString(36).substring(2, 8)
-    const player1Name = playerName.value.trim()
     
     const matchId = await createMatchHelper({ 
       player1Id, 
-      player1Name,
+      player1Name: finalPlayerName,
       gridSize: selectedGridSize.value
     })
     

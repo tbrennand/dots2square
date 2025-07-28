@@ -1,3 +1,8 @@
+export interface Player {
+  id: string;
+  name: string;
+}
+
 export interface Line {
   id: string;
   startDot: string;
@@ -8,10 +13,24 @@ export interface Line {
 export interface Square {
   id: string;
   player: number;
-  topLeftX?: number;
-  topLeftY?: number;
-  x?: number;
-  y?: number;
+  corners: string[];
+  topLeftX: number;
+  topLeftY: number;
+}
+
+export interface Match {
+  id: string;
+  status: 'waiting' | 'active' | 'completed';
+  gridSize: number;
+  player1: Player;
+  player2: Player | null;
+  lines: Line[];
+  squares: Square[];
+  scores: Record<number, number>;
+  currentPlayer: number;
+  winnerId: string | null;
+  createdAt: any;
+  updatedAt: any;
 }
 
 export interface PossibleLine {
