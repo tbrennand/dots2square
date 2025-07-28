@@ -102,37 +102,6 @@ export async function createMatch(options: CreateMatchOptions): Promise<string> 
       maxPlayers = 2
     } = options
 
-    // Create initial grid state
-    const totalDots = gridSize * gridSize
-    const totalSquares = (gridSize - 1) * (gridSize - 1)
-    
-    // Initialize dots array
-    const dots = []
-    for (let row = 0; row < gridSize; row++) {
-      for (let col = 0; col < gridSize; col++) {
-        dots.push({
-          id: `${row}-${col}`,
-          x: col,
-          y: row,
-          connected: false
-        })
-      }
-    }
-
-    // Initialize squares array
-    const squares = []
-    for (let row = 0; row < gridSize - 1; row++) {
-      for (let col = 0; col < gridSize - 1; col++) {
-        squares.push({
-          id: `${row}-${col}`,
-          topLeftX: col,
-          topLeftY: row,
-          player: undefined,
-          lines: []
-        })
-      }
-    }
-
     // Create match document
     const matchData: MatchData = {
       player1: {
@@ -153,9 +122,9 @@ export async function createMatch(options: CreateMatchOptions): Promise<string> 
       isPublic,
       maxPlayers,
       // Game state
-      dots,
-      squares,
-      lines: [],
+      dots: [], // Dots are not needed if grid is rendered client-side
+      squares: [], // Initialize as an empty array
+      lines: [], // Initialize as an empty array
       // Match settings
       settings: {
         gridSize,

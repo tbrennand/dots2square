@@ -38,15 +38,24 @@ export const useGameStore = defineStore('game', {
         this.unsubscribe()
       }
       const matchRef = doc(db, 'matches', matchId)
-      this.unsubscribe = onSnapshot(matchRef, (doc) => {
+      const unsubscribe = onSnapshot(matchRef, (doc) => {
         if (doc.exists()) {
           const data = doc.data() as SimpleMatch
           this.matchData = data
           this.matchId = doc.id
-          const totalSquares = data.gridSize ? (data.gridSize - 1) * (data.gridSize - 1) : 0
-          // Only count squares that have a player assigned (not undefined)
-          const claimedSquares = data.squares?.filter((square: any) => square.player !== undefined) || []
-          this.gameOver = claimedSquares.length >= totalSquares && totalSquares > 0
+          
+          const totalSquares = (data.gridSize - 1) * (data.gridSize - 1)
+          const claimedSquares = data.squares?.filter((square: any) => square.player !== undefined).length || 0
+          
+          console.log('[gameStore] Subscription update:', {
+              claimed: claimedSquares,
+              total: totalSquares,
+              gridSize: data.gridSize,
+              isGameOver: claimedSquares >= totalSquares && totalSquares > 0,
+              matchStatus: data.status
+          });
+
+          this.gameOver = claimedSquares >= totalSquares && totalSquares > 0
         } else {
           console.error('Match not found')
           this.matchData = null

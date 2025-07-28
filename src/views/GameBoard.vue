@@ -122,6 +122,7 @@ import GameResult from '@/views/GameResult.vue'
 import { useAIOpponent } from '@/composables/useAIOpponent'
 import { useTurnTimer } from '@/composables/useTurnTimer'
 import { useAIScoreTracker } from '@/composables/useAIScoreTracker' // Import the new composable
+import { getRandomFunnyName } from '@/utils/nameGenerator' // Import the name generator
 import type { Line, Square } from '@/types'
 import { db } from '@/firebase'
 
@@ -146,6 +147,7 @@ const userStore = useUserStore()
 
 // --- STATE MANAGEMENT ---
 const isMultiplayer = computed(() => props.mode === 'multiplayer')
+const currentPlayerId = computed(() => route.query.playerId as string || '')
 
 // Local state for AI mode
 // Ensure gridSize is a number
@@ -158,6 +160,7 @@ const localDrawnLines = ref<Line[]>([])
 const localClaimedSquares = ref<Square[]>([])
 const localScores = ref<Record<number, number>>({ 1: 0, 2: 0 })
 const localCurrentPlayer = ref(1)
+const aiOpponentName = ref('AI Opponent') // Add a ref for the AI's name
 
 // Shared state
 const isMakingMove = ref(false)
@@ -199,22 +202,26 @@ const scores = computed(() => isMultiplayer.value ? (matchData.value?.scores || 
 const currentPlayer = computed(() => isMultiplayer.value ? (matchData.value?.currentPlayer || 1) : localCurrentPlayer.value)
 
 const player1Name = computed(() => isMultiplayer.value ? (matchData.value?.player1?.name || 'Player 1') : (props.playerName || 'You'))
-const player2Name = computed(() => isMultiplayer.value ? (matchData.value?.player2?.name || 'Player 2') : 'AI Opponent')
+const player2Name = computed(() => isMultiplayer.value ? (matchData.value?.player2?.name || 'Player 2') : aiOpponentName.value)
 const player1Initial = computed(() => player1Name.value.charAt(0).toUpperCase())
 const player2Initial = computed(() => player2Name.value.charAt(0).toUpperCase())
 const player1Score = computed(() => scores.value[1] || 0)
 const player2Score = computed(() => scores.value[2] || 0)
 
 const currentUserPlayerNumber = computed(() => {
-  if (!isMultiplayer.value || !matchData.value?.player1 || !currentUser.value) return 1
-  const isPlayer1 = matchData.value.player1.id === currentUser.value.uid
-  console.log('GameBoard: currentUserPlayerNumber calculation:', {
-    matchData: matchData.value,
-    currentUser: currentUser.value,
-    isPlayer1,
-    result: isPlayer1 ? 1 : 2
-  })
-  return isPlayer1 ? 1 : 2
+  if (!isMultiplayer.value || !matchData.value?.player1 || !currentPlayerId.value) {
+    // Default to 1 in non-multiplayer or if data is missing
+    return 1
+  }
+  if (matchData.value.player1.id === currentPlayerId.value) {
+    return 1
+  }
+  if (matchData.value.player2?.id === currentPlayerId.value) {
+    return 2
+  }
+  // If not found, they might be a spectator or there's an issue.
+  // Defaulting to 0 would block them from playing, which is safe.
+  return 0
 })
 
 const isMyTurn = computed(() => {
@@ -466,6 +473,7 @@ onMounted(async () => {
     }
   } else {
     // AI Game Setup
+    aiOpponentName.value = getRandomFunnyName() // Assign a random name to the AI
     console.log('Setting up AI game with gridSize:', props.gridSize)
     // resetBoardState() // Ensure clean state for AI game - This function is not defined in the original file
     // players.value = [ // players.value is not defined in the original file

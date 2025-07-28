@@ -33,7 +33,6 @@
           <div class="player-score-card" :class="{ winner: winner === 1 }">
             <div class="player-info">
               <div class="player-name">{{ getPlayerName(1) }}</div>
-              <div class="player-id">{{ getPlayerId(1) }}</div>
             </div>
             <div class="score-display">
               <div class="score-number">{{ finalScores[1] || 0 }}</div>
@@ -46,7 +45,6 @@
           <div class="player-score-card" :class="{ winner: winner === 2 }">
             <div class="player-info">
               <div class="player-name">{{ getPlayerName(2) }}</div>
-              <div class="player-id">{{ getPlayerId(2) }}</div>
             </div>
             <div class="score-display">
               <div class="score-number">{{ finalScores[2] || 0 }}</div>
@@ -63,10 +61,6 @@
           <div class="stat-item">
             <div class="stat-value">{{ totalSquares }}</div>
             <div class="stat-label">Total Squares</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">{{ claimedSquares }}</div>
-            <div class="stat-label">Claimed</div>
           </div>
           <div class="stat-item">
             <div class="stat-value">{{ totalMoves }}</div>
