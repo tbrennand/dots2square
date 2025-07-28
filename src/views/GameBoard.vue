@@ -97,8 +97,8 @@
       <GameResult
         :is-multiplayer="isMultiplayer"
         :match-id="isMultiplayer ? route.params.id as string : undefined"
-        :winner="isMultiplayer ? undefined : aiWinner"
-        :scores="isMultiplayer ? undefined : localScores"
+        :winner="isMultiplayer ? multiplayerWinner : aiWinner"
+        :scores="isMultiplayer ? matchData?.scores : localScores"
         :grid-size="finalGridSize"
         :player1-name="player1Name"
         :player2-name="player2Name"
@@ -270,6 +270,15 @@ const aiWinner = computed(() => {
   if (!localGameOver.value) return null
   if (localScores.value[1] > localScores.value[2]) return 1
   if (localScores.value[2] > localScores.value[1]) return 2
+  return 'tie'
+})
+
+const multiplayerWinner = computed(() => {
+  if (!firebaseGameOver.value) return null
+  const mpScores = matchData.value?.scores
+  if (!mpScores) return null
+  if (mpScores[1] > mpScores[2]) return 1
+  if (mpScores[2] > mpScores[1]) return 2
   return 'tie'
 })
 

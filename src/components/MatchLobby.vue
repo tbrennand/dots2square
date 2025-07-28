@@ -168,6 +168,21 @@
     <div v-if="successMessage" class="success-message">
       ✅ {{ successMessage }}
     </div>
+
+    <!-- Game Over Overlay -->
+    <div v-if="isGameOver" class="game-over-overlay">
+      <GameResult
+        :is-multiplayer="true"
+        :match-id="matchId"
+        :winner="winner"
+        :scores="matchData?.scores"
+        :grid-size="gridSize"
+        :player1-name="getPlayerName(1)"
+        :player2-name="getPlayerName(2)"
+        :total-moves="matchData?.lines?.length"
+        @play-again="handleRematch"
+      />
+    </div>
   </div>
 </template>
 
@@ -179,6 +194,7 @@ import { doc, updateDoc, serverTimestamp, Unsubscribe } from 'firebase/firestore
 import { db } from '../firebase/index'
 import { joinMatch } from '../firebase/matchHelpers'
 import Chat from './Chat.vue'
+import GameResult from '@/views/GameResult.vue' // Import the GameResult component
 
 // Router and route
 const route = useRoute()
@@ -222,6 +238,16 @@ const canStartGame = computed(() => {
 const isCurrentPlayerReady = computed(() => {
   const playerNumber = getCurrentPlayerNumber()
   return isPlayerReady(playerNumber)
+})
+
+// --- NEW: Game Over Logic ---
+const isGameOver = computed(() => matchData.value?.status === 'completed')
+const winner = computed(() => {
+  if (!isGameOver.value || !matchData.value?.scores) return null
+  const scores = matchData.value.scores
+  if (scores[1] > scores[2]) return 1
+  if (scores[2] > scores[1]) return 2
+  return 'tie'
 })
 
 // Helper functions
@@ -464,6 +490,12 @@ const shareViaSMS = () => {
   const text = `Join my Dots 2 Squares game! ${matchUrl.value}`
   const smsUrl = `sms:?body=${encodeURIComponent(text)}`
   window.open(smsUrl, '_blank')
+}
+
+const handleRematch = async () => {
+  // This could be enhanced to create a direct rematch, but for now
+  // it will navigate to the game creation screen to start a new game.
+  router.push('/')
 }
 
 // Initialize
@@ -1278,5 +1310,18 @@ onUnmounted(() => {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.game-over-overlay {
+  position: fixed; /* Use fixed to cover the whole screen */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensure it's on top of everything */
 }
 </style> 
