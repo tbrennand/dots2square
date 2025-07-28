@@ -529,7 +529,7 @@ const quitGame = () => {
 }
 
 .logo {
-  height: 60px; /* A reasonable, fixed height */
+  height: 50px; /* Reduced from 60px */
   width: auto;
 }
 
