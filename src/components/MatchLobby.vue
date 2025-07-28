@@ -87,6 +87,27 @@
       </div>
     </div>
 
+    <!-- Join Game Section for Invitees -->
+    <div v-if="showJoinSection" class="join-section-card">
+      <h3 class="section-title">You've been invited!</h3>
+      <p class="subtitle">Enter your name to join the match.</p>
+      <div class="join-form">
+        <input 
+          v-model="newPlayerName" 
+          placeholder="Enter your name"
+          class="name-input"
+          @keyup.enter="joinAsPlayer2"
+        />
+        <button 
+          @click="joinAsPlayer2" 
+          :disabled="!canJoin"
+          class="join-btn"
+        >
+          <span v-if="isJoining" class="loading-spinner"></span>
+          {{ isJoining ? 'Joining...' : 'Join Game' }}
+        </button>
+      </div>
+    </div>
 
 
     <!-- Lobby Actions -->
@@ -211,6 +232,9 @@ const isStarting = ref(false)
 const isUpdatingReady = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const newPlayerName = ref('')
+const isJoining = ref(false)
+
 
 // Computed properties
 const matchData = computed(() => matchStore.matchData)
@@ -233,6 +257,14 @@ const canStartGame = computed(() => {
   return isHost.value && 
          hasPlayer2.value && 
          matchData.value?.status === 'waiting'
+})
+
+const showJoinSection = computed(() => {
+  return !isHost.value && !matchData.value?.player2 && matchData.value?.status === 'waiting'
+})
+
+const canJoin = computed(() => {
+  return newPlayerName.value.trim().length > 2 && !isJoining.value
 })
 
 const isCurrentPlayerReady = computed(() => {
@@ -341,6 +373,24 @@ const startGame = async () => {
     console.error('Error starting game:', error)
   } finally {
     isStarting.value = false
+  }
+}
+
+const joinAsPlayer2 = async () => {
+  if (!canJoin.value) return
+
+  isJoining.value = true
+  errorMessage.value = ''
+  
+  try {
+    await joinMatch(matchId.value, currentPlayerId.value, newPlayerName.value.trim())
+    successMessage.value = 'Joined match successfully!'
+    // The watch on matchData will handle UI updates
+  } catch (error) {
+    errorMessage.value = 'Failed to join match.'
+    console.error('Error joining as player 2:', error)
+  } finally {
+    isJoining.value = false
   }
 }
 
@@ -555,6 +605,8 @@ watch(matchData, async (newMatchData) => {
   })
   
   // Auto-join logic: if we're not the host, not already player2, and there's no player2 yet
+  // THIS LOGIC IS NOW HANDLED MANUALLY VIA THE JOIN BUTTON
+  /*
   if (!isHost.value && 
       newMatchData.status === 'waiting' && 
       !newMatchData.player2) {
@@ -575,6 +627,7 @@ watch(matchData, async (newMatchData) => {
       hasPlayer2: !!newMatchData.player2
     })
   }
+  */
   
   // Navigate to game when it becomes active
   if (newMatchData.status === 'active') {
@@ -605,6 +658,49 @@ onUnmounted(() => {
   max-height: 100vh;
   overflow-y: auto;
 }
+
+.join-section-card {
+  background: #fff;
+  border: 2px solid #f97316;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.join-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.name-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+}
+
+.join-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f97316;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.join-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 
 .lobby-header {
   text-align: center;

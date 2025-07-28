@@ -25,7 +25,11 @@
           <div v-if="isGameActive" class="player-status">
             <div v-if="currentPlayer === 1 && !isGameOver" class="turn-text">
               <span>{{ isMyTurn ? 'YOUR TURN' : 'THEIR TURN' }}</span>
-              <div v-if="isMultiplayer && isTimerActive" class="timer-countdown">
+              <div 
+                v-if="isMultiplayer && isTimerActive" 
+                class="timer-countdown"
+                :class="{ 'timer-warning': timeRemaining <= 5 }"
+              >
                 {{ timeRemaining }}
               </div>
             </div>
@@ -52,7 +56,11 @@
           <div v-if="isGameActive" class="player-status">
             <div v-if="currentPlayer === 2 && !isGameOver" class="turn-text">
               <span>{{ isMyTurn ? 'YOUR TURN' : 'THEIR TURN' }}</span>
-               <div v-if="isMultiplayer && isTimerActive" class="timer-countdown">
+               <div 
+                 v-if="isMultiplayer && isTimerActive" 
+                 class="timer-countdown"
+                 :class="{ 'timer-warning': timeRemaining <= 5 }"
+                >
                 {{ timeRemaining }}
               </div>
             </div>
@@ -65,6 +73,9 @@
       </div>
 
       <div class="game-controls">
+        <button @click="toggleMute" class="control-button audio-toggle">
+          {{ isMuted ? '🔇' : '🔊' }}
+        </button>
         <button v-if="isGameOver" @click="handleRestart" class="control-button restart-button">
           Restart
         </button>
@@ -122,6 +133,7 @@ import GameResult from '@/views/GameResult.vue'
 import { useAIOpponent } from '@/composables/useAIOpponent'
 import { useTurnTimer } from '@/composables/useTurnTimer'
 import { useAIScoreTracker } from '@/composables/useAIScoreTracker' // Import the new composable
+import { useSound } from '@/composables/useSound' // Import the sound composable
 import { getRandomFunnyName } from '@/utils/nameGenerator' // Import the name generator
 import type { Line, Square } from '@/types'
 import { db } from '@/firebase'
@@ -165,6 +177,9 @@ const aiOpponentName = ref('AI Opponent') // Add a ref for the AI's name
 // Shared state
 const isMakingMove = ref(false)
 const gridKey = ref(0) // Used to force re-render on restart
+
+// --- SOUND ---
+const { isMuted, playSound, toggleMute } = useSound()
 
 // Firebase state for multiplayer mode
 const { user: currentUser } = storeToRefs(userStore)
@@ -298,10 +313,55 @@ const { isThinking: isAIThinking, playMove: getAIMove } = useAIOpponent(
   computed(() => !isMultiplayer.value && currentPlayer.value === 2 && !isMakingMove.value)
 )
 
-const { timeRemaining, isTimerActive, startTimer } = useTurnTimer(
+const { timeRemaining, isTimerActive, startTimer, syncTimerWithServer } = useTurnTimer(
   isMultiplayer.value ? (route.params.id as string) : '',
   currentUser.value?.uid || ''
 )
+
+// --- WATCHERS & LIFECYCLE ---
+watch(timeRemaining, (newTime) => {
+  // Play countdown sound at 5 seconds
+  if (isMultiplayer.value && newTime > 4.9 && newTime <= 5) {
+    playSound('countdown')
+  }
+})
+
+watch(matchData, (newData, oldData) => {
+  if (!isMultiplayer.value || !newData) return
+
+  // Sync timer when the turn starts or current player changes
+  if (newData.turnStartedAt !== oldData?.turnStartedAt || newData.currentPlayer !== oldData?.currentPlayer) {
+    if (newData.turnStartedAt?.toDate) {
+      syncTimerWithServer(newData.turnStartedAt.toDate(), newData.turnDuration || 30)
+    }
+  }
+
+  // Also, release the move lock when data changes (as before)
+  if (isMakingMove.value) {
+    isMakingMove.value = false
+  }
+})
+
+watch(currentPlayer, (newPlayer, oldPlayer) => {
+  console.log('GameBoard: currentPlayer changed to:', newPlayer, {
+    oldPlayer,
+    isMultiplayer: isMultiplayer.value,
+    isGameOver: isGameOver.value,
+    isMakingMove: isMakingMove.value
+  })
+  
+  // Only trigger AI move if we're in AI mode, it's player 2's turn, 
+  // the game isn't over, and the turn actually switched (not player 1 keeping their turn)
+  if (!isMultiplayer.value && newPlayer === 2 && !isGameOver.value && oldPlayer === 1) {
+    console.log('GameBoard: Triggering AI move (turn switched from player 1 to player 2)...')
+    setTimeout(async () => {
+      console.log('GameBoard: AI making move...')
+      const move = await getAIMove()
+      console.log('GameBoard: AI move result:', move)
+      if (move) await handleLineSelected(move)
+    }, 1000) // AI "thinking" time
+  }
+})
 
 // --- CORE GAME LOGIC ---
 const handleLineSelected = async (line: { startDot: string; endDot: string }) => {
@@ -436,40 +496,6 @@ const checkForCompletedSquares = (newLine: Line, allLines: Line[]): Omit<Square,
     return foundSquares
 }
 
-// --- WATCHERS & LIFECYCLE ---
-watch(isMakingMove, (moving) => {
-    if (isMultiplayer.value && !moving) {
-        // This is where the lock is released after firebase sync
-    }
-})
-
-watch(matchData, () => {
-    if (isMakingMove.value) {
-        isMakingMove.value = false
-    }
-})
-
-watch(currentPlayer, (newPlayer, oldPlayer) => {
-  console.log('GameBoard: currentPlayer changed to:', newPlayer, {
-    oldPlayer,
-    isMultiplayer: isMultiplayer.value,
-    isGameOver: isGameOver.value,
-    isMakingMove: isMakingMove.value
-  })
-  
-  // Only trigger AI move if we're in AI mode, it's player 2's turn, 
-  // the game isn't over, and the turn actually switched (not player 1 keeping their turn)
-  if (!isMultiplayer.value && newPlayer === 2 && !isGameOver.value && oldPlayer === 1) {
-    console.log('GameBoard: Triggering AI move (turn switched from player 1 to player 2)...')
-    setTimeout(async () => {
-      console.log('GameBoard: AI making move...')
-      const move = await getAIMove()
-      console.log('GameBoard: AI move result:', move)
-      if (move) await handleLineSelected(move)
-    }, 1000) // AI "thinking" time
-  }
-})
-
 // ----------------------------------------------------------------
 // Lifecycle Hooks
 // ----------------------------------------------------------------
@@ -538,7 +564,7 @@ const quitGame = () => {
 }
 
 .logo {
-  height: 50px; /* Reduced from 60px */
+  height: 70px; /* Increased from 50px */
   width: auto;
 }
 
@@ -804,19 +830,13 @@ const quitGame = () => {
 }
 
 .timer-countdown.timer-warning {
-  background: #f59e0b;
-  transform: scale(1.05);
+  background: #ef4444; /* Red for warning */
+  animation: pulse-warning 1s infinite;
 }
 
-.timer-countdown.timer-critical {
-  background: #ef4444;
-  animation: pulse-critical 1s infinite;
-  transform: scale(1.1);
-}
-
-@keyframes pulse-critical {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+@keyframes pulse-warning {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 .missed-turns {

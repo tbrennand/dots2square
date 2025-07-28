@@ -2,20 +2,19 @@ import { defineStore } from 'pinia'
 import { doc, onSnapshot, Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
 
-// Simple interface without complex types
-interface SimpleMatch {
-  id: string;
-  status: string;
-  gridSize: number;
-  player1: any;
-  player2: any;
-  lines: any[];
-  squares: any[];
-  scores: any;
-  currentPlayer: number;
-  winnerId: string | null;
-  createdAt: any;
-  updatedAt: any;
+export interface SimpleMatch {
+  id: string
+  status: 'waiting' | 'active' | 'completed'
+  gridSize: number
+  player1: { id: string; name: string }
+  player2: { id: string; name: string } | null
+  lines: any[]
+  squares: any[]
+  scores: Record<number, number>
+  currentPlayer: number
+  winnerId: string | null
+  turnStartedAt?: { toDate: () => Date } // Add this for timer
+  turnDuration?: number // Add this for timer
 }
 
 interface GameState {

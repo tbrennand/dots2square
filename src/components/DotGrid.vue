@@ -122,8 +122,9 @@ const gridStyle = computed(() => ({
   position: 'relative' as const,
   background: 'transparent',
   borderRadius: '1rem',
-  maxWidth: '100%',
-  maxHeight: '100%'
+  maxWidth: '80vh', // Constrain max width to 80% of viewport height
+  maxHeight: '80vh', // Constrain max height to 80% of viewport height
+  margin: '0 auto' // Center the grid
 }))
 
 // Get drawn lines from props
