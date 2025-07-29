@@ -438,13 +438,27 @@ const handleLineSelected = async (line: { startDot: string; endDot: string }) =>
 
   if (isMultiplayer.value) {
     try {
-      await updateDoc(doc(db, 'matches', route.params.id as string), {
+      const player = currentPlayer.value
+      const playerId = player === 1 ? matchData.value?.player1?.id : matchData.value?.player2?.id
+      
+      const updatePayload: any = {
         lines: tempLines,
         squares: newClaimedSquares,
         scores: newScores,
         currentPlayer: nextPlayer,
+        turnStartedAt: serverTimestamp(), // Always reset the timer on a valid move
         updatedAt: serverTimestamp(),
-      })
+      }
+
+      // Reset consecutive missed turns for the player who just made a move
+      if (playerId) {
+        updatePayload.consecutiveMissedTurns = {
+          ...(matchData.value?.consecutiveMissedTurns || {}),
+          [playerId]: 0
+        }
+      }
+
+      await updateDoc(doc(db, 'matches', route.params.id as string), updatePayload)
     } finally {
       await nextTick()
       // Firebase watch will release the lock, but we wait for UI to update
