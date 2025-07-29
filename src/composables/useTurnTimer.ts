@@ -143,42 +143,8 @@ export function useTurnTimer(
       
       console.log(`Player ${actualPlayerId} (${missedPlayerName}) missed turn. Consecutive misses: ${newMissedCount}`)
 
-      // Emit warning events to the player who missed their turn AND the host
-      // Always show warning to both players for debugging
-      const shouldShowWarning = true
-      
-      console.log('Turn expired - shouldShowWarning:', shouldShowWarning, {
-        currentPlayerId,
-        actualPlayerId,
-        missedPlayerName,
-        isCurrentPlayer: currentPlayerId === playerId,
-        isHost: matchData && matchData.player1 && currentPlayerId === matchData.player1.id,
-        currentTurn: matchData?.currentTurn,
-        player1Id: matchData?.player1?.id,
-        player2Id: matchData?.player2?.id
-      })
-      
-      if (shouldShowWarning) {
-        if (newMissedCount === 1) {
-          console.log('Emitting turnWarning event for 1st miss')
-          turnTimerEvents.emit('turnWarning', {
-            strikes: 1,
-            message: currentPlayerId === playerId 
-              ? 'You missed your go - two more before you are thrown from the game. Either pass, play, or quit.'
-              : `${missedPlayerName} missed their go - two more before they are thrown from the game.`,
-            showActions: currentPlayerId === playerId
-          })
-        } else if (newMissedCount === 2) {
-          console.log('Emitting turnWarning event for 2nd miss')
-          turnTimerEvents.emit('turnWarning', {
-            strikes: 2,
-            message: currentPlayerId === playerId 
-              ? 'One more miss and the game is over. Either pass, play, or quit.'
-              : `${missedPlayerName} has one more miss before the game is over.`,
-            showActions: currentPlayerId === playerId
-          })
-        }
-      }
+      // No warning screens - just pass turn to other player
+      console.log('Turn expired - passing turn to opponent without warning')
 
       // Check if player has missed 3 consecutive turns
       if (newMissedCount >= 3) {

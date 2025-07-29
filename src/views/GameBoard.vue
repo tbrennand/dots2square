@@ -118,21 +118,7 @@
       />
     </div>
 
-    <!-- Turn Timeout Warning Overlay -->
-    <div v-if="turnWarningMessage" class="timeout-warning-modal">
-      <div class="timeout-warning-content">
-        <h3>⚠️ Turn Warning</h3>
-        <p>{{ turnWarningMessage }}</p>
-        <div v-if="showWarningActions" class="warning-actions">
-          <button @click="handlePass" class="warning-btn warning-btn-pass">Pass</button>
-          <button @click="handlePlay" class="warning-btn warning-btn-play">Play</button>
-          <button @click="handleQuit" class="warning-btn warning-btn-quit">Quit</button>
-        </div>
-        <div v-else class="warning-dismiss">
-          <button @click="dismissWarning" class="warning-btn warning-btn-dismiss">Dismiss</button>
-        </div>
-      </div>
-    </div>
+
   </div>
 </template>
 
@@ -193,10 +179,6 @@ const aiOpponentName = ref('AI Opponent') // Add a ref for the AI's name
 // Shared state
 const isMakingMove = ref(false)
 const gridKey = ref(0) // Used to force re-render on restart
-const turnWarningMessage = ref('')
-const showWarningActions = ref(false)
-const isScreenFlashing = ref(false)
-const warningTimeout = ref<NodeJS.Timeout | null>(null)
 
 
 // --- SOUND ---
@@ -545,44 +527,13 @@ onMounted(async () => {
     // console.log('AI game players:', players.value)
   }
 
-  // Listen for turn timer events
-  turnTimerEvents.on('turnWarning', (payload: any) => {
-    console.log('Received turn warning:', payload)
-    turnWarningMessage.value = payload.message
-    showWarningActions.value = payload.showActions // Update the reactive property
-    
-    // Clear any existing timeout - don't auto-hide, let user dismiss
-    if (warningTimeout.value) {
-      clearTimeout(warningTimeout.value)
-      warningTimeout.value = null
-    }
-    
-    // Don't auto-hide - keep warning on screen until user dismisses
-    console.log('Warning displayed:', {
-      message: payload.message,
-      showActions: payload.showActions,
-      currentPlayerId: currentPlayerId.value
-    })
-  })
-
-  turnTimerEvents.on('gameOverByTimeout', (payload: any) => {
-    console.log('Game over by timeout - no popup needed, completion screen will show')
-    // Don't show popup - let the completion screen handle it
-    // The completion screen will show the forfeit message
-  })
+  // No warning events needed - timer just switches turns
 })
 
 onUnmounted(() => {
   if (isMultiplayer.value) {
     gameStore.unsubscribeFromMatch()
   }
-  
-  // Clear timeout on unmount
-  if (warningTimeout.value) {
-    clearTimeout(warningTimeout.value)
-  }
-  turnWarningMessage.value = ''
-  showWarningActions.value = false
 })
 
 // --- ACTIONS ---
@@ -605,64 +556,7 @@ const quitGame = () => {
     router.push('/')
 }
 
-const handlePass = () => {
-  // Pass turn to opponent
-  if (isMultiplayer.value && matchData.value) {
-    // This would trigger the turn switch logic
-    console.log('Player chose to pass turn')
-  }
-  turnWarningMessage.value = 'You chose to pass your turn.'
-  showWarningActions.value = false // Hide actions when passing
-  if (warningTimeout.value) {
-    clearTimeout(warningTimeout.value)
-    warningTimeout.value = null
-  }
-  // Auto-hide the pass message after 2 seconds
-  setTimeout(() => {
-    turnWarningMessage.value = ''
-  }, 2000)
-}
 
-const handlePlay = () => {
-  // Continue playing - just dismiss the warning
-  console.log('Player chose to continue playing')
-  turnWarningMessage.value = 'You chose to play your turn.'
-  showWarningActions.value = false // Hide actions when playing
-  if (warningTimeout.value) {
-    clearTimeout(warningTimeout.value)
-    warningTimeout.value = null
-  }
-  // Auto-hide the play message after 2 seconds
-  setTimeout(() => {
-    turnWarningMessage.value = ''
-  }, 2000)
-}
-
-const handleQuit = () => {
-  // Quit the game
-  console.log('Player chose to quit the game')
-  // Navigate back to home for both multiplayer and AI
-  router.push('/')
-  turnWarningMessage.value = 'You chose to quit the game.'
-  showWarningActions.value = false // Hide actions when quitting
-  if (warningTimeout.value) {
-    clearTimeout(warningTimeout.value)
-    warningTimeout.value = null
-  }
-  warningTimeout.value = setTimeout(() => {
-    turnWarningMessage.value = ''
-  }, 3000)
-}
-
-const dismissWarning = () => {
-  console.log('Dismissing warning')
-  turnWarningMessage.value = ''
-  showWarningActions.value = false
-  if (warningTimeout.value) {
-    clearTimeout(warningTimeout.value)
-    warningTimeout.value = null
-  }
-}
 </script>
 
 <style scoped>
@@ -1068,104 +962,7 @@ const dismissWarning = () => {
   box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
 }
 
-.timeout-warning-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  padding: 1.5rem 2rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  z-index: 2000;
-  border: 2px solid #f97316;
-  animation: modal-fade-in 0.3s ease-out;
-}
 
-.timeout-warning-content {
-  text-align: center;
-  color: #dc2626;
-}
-
-.timeout-warning-content h3 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: 0.75rem;
-}
-
-.timeout-warning-content p {
-  font-size: 1rem;
-  font-weight: 500;
-  margin: 0;
-}
-
-.warning-actions {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.warning-btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
-}
-
-.warning-btn-pass {
-  background: #3b82f6;
-  color: white;
-}
-
-.warning-btn-pass:hover {
-  background: #2563eb;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
-}
-
-.warning-btn-play {
-  background: #10b981;
-  color: white;
-}
-
-.warning-btn-play:hover {
-  background: #059669;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(13, 148, 106, 0.4);
-}
-
-.warning-btn-quit {
-  background: #dc2626;
-  color: white;
-}
-
-.warning-btn-quit:hover {
-  background: #b91c1c;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
-}
-
-.warning-dismiss {
-  display: flex;
-  justify-content: center;
-  margin-top: 1.5rem;
-}
-
-.warning-btn-dismiss {
-  background: #6b7280;
-  color: white;
-}
-
-.warning-btn-dismiss:hover {
-  background: #4b5563;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(107, 114, 128, 0.4);
-}
 
 @keyframes modal-fade-in {
   from { 
