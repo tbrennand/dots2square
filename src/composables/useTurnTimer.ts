@@ -92,65 +92,44 @@ export function useTurnTimer(
     }
 
     try {
-      // Determine which actual player (player1 or player2) the current player ID corresponds to
-      let actualPlayerId = playerId
-      let missedPlayerName = 'Unknown Player'
-      
-      console.log('Determining actual player for turn expiration:', {
-        playerId,
-        currentPlayerId,
+      console.log('Turn expired for player:', playerId, {
+        currentTurn: matchData?.currentTurn,
         player1Id: matchData?.player1?.id,
-        player2Id: matchData?.player2?.id,
-        currentTurn: matchData?.currentTurn
+        player2Id: matchData?.player2?.id
       })
       
-      // If the playerId is the random user ID, we need to determine which actual player it corresponds to
-      if (playerId.startsWith('user-')) {
-        // This is a random user ID, we need to determine which player it is
-        if (currentPlayerId === matchData?.player1?.id) {
-          actualPlayerId = matchData.player1.id
-          missedPlayerName = matchData.player1.name
-          console.log('Current player is player1:', missedPlayerName)
-        } else if (currentPlayerId === matchData?.player2?.id) {
-          actualPlayerId = matchData.player2?.id || ''
-          missedPlayerName = matchData.player2?.name || 'Player 2'
-          console.log('Current player is player2:', missedPlayerName)
-        } else {
-          // Fallback: determine based on current turn
-          if (matchData?.currentTurn === 1) {
-            actualPlayerId = matchData.player1?.id || ''
-            missedPlayerName = matchData.player1?.name || 'Player 1'
-            console.log('Based on current turn, player1 missed:', missedPlayerName)
-          } else if (matchData?.currentTurn === 2) {
-            actualPlayerId = matchData.player2?.id || ''
-            missedPlayerName = matchData.player2?.name || 'Player 2'
-            console.log('Based on current turn, player2 missed:', missedPlayerName)
-          }
-        }
+      // Determine which player actually missed their turn based on currentTurn
+      let missedPlayerId = ''
+      let missedPlayerName = 'Unknown Player'
+      
+      if (matchData?.currentTurn === 1 && matchData?.player1?.id) {
+        missedPlayerId = matchData.player1.id
+        missedPlayerName = matchData.player1.name
+        console.log('Player 1 missed turn:', missedPlayerName)
+      } else if (matchData?.currentTurn === 2 && matchData?.player2?.id) {
+        missedPlayerId = matchData.player2.id
+        missedPlayerName = matchData.player2.name
+        console.log('Player 2 missed turn:', missedPlayerName)
       } else {
-        // This is already an actual player ID
-        if (playerId === matchData?.player1?.id) {
-          missedPlayerName = matchData.player1.name
-        } else if (playerId === matchData?.player2?.id) {
-          missedPlayerName = matchData.player2?.name || 'Player 2'
-        }
+        console.log('Cannot determine which player missed turn')
+        return
       }
       
-      // Increment consecutive missed turns for the actual player
-      const currentMissed = consecutiveMissedTurns.value[actualPlayerId] || 0
+      // Increment consecutive missed turns for the missed player
+      const currentMissed = consecutiveMissedTurns.value[missedPlayerId] || 0
       const newMissedCount = currentMissed + 1
-      consecutiveMissedTurns.value[actualPlayerId] = newMissedCount
+      consecutiveMissedTurns.value[missedPlayerId] = newMissedCount
       
-      console.log(`Player ${actualPlayerId} (${missedPlayerName}) missed turn. Consecutive misses: ${newMissedCount}`)
+      console.log(`Player ${missedPlayerId} (${missedPlayerName}) missed turn. Consecutive misses: ${newMissedCount}`)
 
       // No warning screens - just pass turn to other player
       console.log('Turn expired - passing turn to opponent without warning')
 
       // Check if player has missed 3 consecutive turns
       if (newMissedCount >= 3) {
-        await handleGameTimeout(actualPlayerId)
+        await handleGameTimeout(missedPlayerId)
       } else {
-        await switchTurnToOpponent(actualPlayerId)
+        await switchTurnToOpponent(missedPlayerId)
       }
     } catch (error) {
       console.error('Error handling turn expiration:', error)
