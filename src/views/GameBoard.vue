@@ -123,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, toRefs } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGameStore } from '@/store/gameStore'
 import { useUserStore } from '@/store/userStore'
@@ -161,7 +161,8 @@ const userStore = useUserStore()
 
 // --- STATE MANAGEMENT ---
 const isMultiplayer = computed(() => props.mode === 'multiplayer')
-const currentPlayerId = computed(() => route.query.playerId as string || '')
+const currentPlayerId = computed(() => userStore.user?.uid || route.query.playerId as string || '')
+const matchId = computed(() => isMultiplayer.value ? (route.params.id as string) : '')
 
 // Local state for AI mode
 // Ensure gridSize is a number
@@ -316,11 +317,11 @@ const { isThinking: isAIThinking, playMove: getAIMove } = useAIOpponent(
   computed(() => !isMultiplayer.value && currentPlayer.value === 2 && !isMakingMove.value)
 )
 
-const { timeRemaining, isTimerActive, startTimer, syncTimerWithServer } = useTurnTimer(
-  isMultiplayer.value ? (route.params.id as string) : '',
-  currentPlayerId.value || '',
-  matchData.value
-)
+const { timeRemaining, isTimerActive, syncTimerWithServer } = useTurnTimer(
+  matchId,
+  currentPlayerId,
+  matchData
+);
 
 // --- WATCHERS & LIFECYCLE ---
 watch(timeRemaining, (newTime) => {

@@ -1,4 +1,4 @@
-import { ref, computed, onUnmounted, watch } from 'vue'
+import { ref, computed, onUnmounted, watch, Ref } from 'vue'
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase'
 import mitt from 'mitt'
@@ -15,13 +15,13 @@ export interface TurnTimerState {
 }
 
 export function useTurnTimer(
-  matchId: string, 
-  currentPlayerId: string | null,
-  matchData: { 
+  matchId: Ref<string>, 
+  currentPlayerId: Ref<string | null>,
+  matchData: Ref<{ 
     player1?: { id: string, name: string }, 
     player2?: { id: string, name: string } | null,
     currentTurn?: number
-  } | null
+  } | null>
 ) {
   // Timer state
   const timer = ref<NodeJS.Timeout | null>(null)
@@ -86,29 +86,29 @@ export function useTurnTimer(
   const handleTurnExpired = async (playerId: string) => {
     stopTimer()
     
-    if (!matchId) {
+    if (!matchId.value) {
       console.warn('No match ID for turn expiration')
       return
     }
 
     try {
       console.log('Turn expired for player:', playerId, {
-        currentTurn: matchData?.currentTurn,
-        player1Id: matchData?.player1?.id,
-        player2Id: matchData?.player2?.id
+        currentTurn: matchData.value?.currentTurn,
+        player1Id: matchData.value?.player1?.id,
+        player2Id: matchData.value?.player2?.id
       })
       
       // Determine which player actually missed their turn based on currentTurn
       let missedPlayerId = ''
       let missedPlayerName = 'Unknown Player'
       
-      if (matchData?.currentTurn === 1 && matchData?.player1?.id) {
-        missedPlayerId = matchData.player1.id
-        missedPlayerName = matchData.player1.name
+      if (matchData.value?.currentTurn === 1 && matchData.value?.player1?.id) {
+        missedPlayerId = matchData.value.player1.id
+        missedPlayerName = matchData.value.player1.name
         console.log('Player 1 missed turn:', missedPlayerName)
-      } else if (matchData?.currentTurn === 2 && matchData?.player2?.id) {
-        missedPlayerId = matchData.player2.id
-        missedPlayerName = matchData.player2.name
+      } else if (matchData.value?.currentTurn === 2 && matchData.value?.player2?.id) {
+        missedPlayerId = matchData.value.player2.id
+        missedPlayerName = matchData.value.player2.name
         console.log('Player 2 missed turn:', missedPlayerName)
       } else {
         console.log('Cannot determine which player missed turn')
@@ -138,34 +138,34 @@ export function useTurnTimer(
 
   // Switch turn to opponent when current player misses
   const switchTurnToOpponent = async (playerId: string) => {
-    if (!matchId || !matchData) {
-      console.log('Cannot switch turn - missing matchId or matchData:', { matchId, matchData })
+    if (!matchId.value || !matchData.value) {
+      console.log('Cannot switch turn - missing matchId or matchData:', { matchId: matchId.value, matchData: matchData.value })
       return
     }
 
     try {
-      const matchRef = doc(db, 'matches', matchId)
+      const matchRef = doc(db, 'matches', matchId.value)
       
       console.log('Switching turn after missed turn:', {
-        currentTurn: matchData.currentTurn,
+        currentTurn: matchData.value.currentTurn,
         playerId,
-        player1Id: matchData.player1?.id,
-        player2Id: matchData.player2?.id
+        player1Id: matchData.value.player1?.id,
+        player2Id: matchData.value.player2?.id
       })
       
       // Determine which player should be next
       let nextTurn = 1
-      let nextPlayerId = matchData.player1?.id || ''
+      let nextPlayerId = matchData.value.player1?.id || ''
       
-      if (matchData.currentTurn === 1) {
+      if (matchData.value.currentTurn === 1) {
         // Currently player 1's turn, switch to player 2
         nextTurn = 2
-        nextPlayerId = matchData.player2?.id || matchData.player1?.id || ''
+        nextPlayerId = matchData.value.player2?.id || matchData.value.player1?.id || ''
         console.log('Switching from player 1 to player 2:', nextPlayerId)
-      } else if (matchData.currentTurn === 2) {
+      } else if (matchData.value.currentTurn === 2) {
         // Currently player 2's turn, switch to player 1
         nextTurn = 1
-        nextPlayerId = matchData.player1?.id || ''
+        nextPlayerId = matchData.value.player1?.id || ''
         console.log('Switching from player 2 to player 1:', nextPlayerId)
       } else {
         console.log('Unknown current turn, defaulting to player 1')
@@ -191,10 +191,10 @@ export function useTurnTimer(
 
   // Handle game timeout (3 consecutive missed turns)
   const handleGameTimeout = async (playerId: string) => {
-    if (!matchId || !matchData) return
+    if (!matchId.value || !matchData.value) return
 
     try {
-      const matchRef = doc(db, 'matches', matchId)
+      const matchRef = doc(db, 'matches', matchId.value)
       
       // Get the opponent who wins
       const winnerId = getOpponentId(playerId)
@@ -222,21 +222,21 @@ export function useTurnTimer(
   // This will need to be implemented properly based on your match data structure
   const getOpponentId = (timedOutPlayerId: string): string | null => {
     console.log('Getting opponent ID for:', timedOutPlayerId, {
-      player1Id: matchData?.player1?.id,
-      player2Id: matchData?.player2?.id
+      player1Id: matchData.value?.player1?.id,
+      player2Id: matchData.value?.player2?.id
     })
     
-    if (!matchData || !matchData.player1 || !matchData.player2) {
+    if (!matchData.value || !matchData.value.player1 || !matchData.value.player2) {
       console.log('Cannot get opponent - missing player data')
       return null
     }
-    if (timedOutPlayerId === matchData.player1.id) {
-      console.log('Player 1 timed out, opponent is player 2:', matchData.player2.id)
-      return matchData.player2.id
+    if (timedOutPlayerId === matchData.value.player1.id) {
+      console.log('Player 1 timed out, opponent is player 2:', matchData.value.player2.id)
+      return matchData.value.player2.id
     }
-    if (timedOutPlayerId === matchData.player2?.id) { // Added optional chaining for player2
-      console.log('Player 2 timed out, opponent is player 1:', matchData.player1.id)
-      return matchData.player1.id
+    if (timedOutPlayerId === matchData.value.player2?.id) { // Added optional chaining for player2
+      console.log('Player 2 timed out, opponent is player 1:', matchData.value.player1.id)
+      return matchData.value.player1.id
     }
     console.log('Unknown player timed out:', timedOutPlayerId)
     return null
@@ -332,24 +332,24 @@ export function useTurnTimer(
           let currentTurnPlayerId = 'unknown'
           
           console.log('Timer expired - matchData:', {
-            currentTurn: matchData?.currentTurn,
-            player1: matchData?.player1?.id,
-            player2: matchData?.player2?.id,
-            currentPlayerId
+            currentTurn: matchData.value?.currentTurn,
+            player1: matchData.value?.player1?.id,
+            player2: matchData.value?.player2?.id,
+            currentPlayerId: currentPlayerId.value
           })
           
-          if (matchData?.currentTurn && matchData.player1?.id) {
-            if (matchData.currentTurn === 1) {
-              currentTurnPlayerId = matchData.player1.id
-            } else if (matchData.currentTurn === 2 && matchData.player2?.id) {
-              currentTurnPlayerId = matchData.player2.id
+          if (matchData.value?.currentTurn && matchData.value.player1?.id) {
+            if (matchData.value.currentTurn === 1) {
+              currentTurnPlayerId = matchData.value.player1.id
+            } else if (matchData.value.currentTurn === 2 && matchData.value.player2?.id) {
+              currentTurnPlayerId = matchData.value.player2.id
             }
           } else {
             // Fallback: if currentTurn is not available, use the current player ID
-            currentTurnPlayerId = currentPlayerId || 'unknown'
+            currentTurnPlayerId = currentPlayerId.value || 'unknown'
           }
           
-          console.log('Synchronized timer expired for player:', currentTurnPlayerId, 'currentTurn:', matchData?.currentTurn)
+          console.log('Synchronized timer expired for player:', currentTurnPlayerId, 'currentTurn:', matchData.value?.currentTurn)
           handleTurnExpired(currentTurnPlayerId)
         }
       }
