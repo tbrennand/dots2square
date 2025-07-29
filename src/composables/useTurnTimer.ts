@@ -255,7 +255,8 @@ export function useTurnTimer(
     console.log('Syncing timer with server:', {
       serverTurnStartTime,
       serverDuration,
-      serverMissedTurns
+      serverMissedTurns,
+      currentTurnStartTime: turnStartTime.value
     })
     
     if (!serverTurnStartTime) {
@@ -268,17 +269,31 @@ export function useTurnTimer(
     const elapsed = (now.getTime() - serverTurnStartTime.getTime()) / 1000
     const remaining = Math.max(0, serverDuration - elapsed)
     
+    // Check if this is a new turn (turn start time changed significantly)
+    const isNewTurn = !turnStartTime.value || 
+                     Math.abs(turnStartTime.value.getTime() - serverTurnStartTime.getTime()) > 1000 // 1 second threshold
+    
     console.log('Timer sync calculation:', {
       now: now.toISOString(),
       serverTurnStartTime: serverTurnStartTime.toISOString(),
       elapsed,
       remaining,
-      serverDuration
+      serverDuration,
+      isNewTurn,
+      currentTurnStartTime: turnStartTime.value?.toISOString()
     })
     
-    turnDuration.value = serverDuration
-    timeRemaining.value = remaining
-    turnStartTime.value = serverTurnStartTime
+    if (isNewTurn) {
+      console.log('🔄 NEW TURN DETECTED - Resetting timer to full duration')
+      turnDuration.value = serverDuration
+      timeRemaining.value = serverDuration // Start with full duration for new turn
+      turnStartTime.value = serverTurnStartTime
+    } else {
+      console.log('⏱️ SAME TURN - Using calculated remaining time')
+      turnDuration.value = serverDuration
+      timeRemaining.value = remaining
+      turnStartTime.value = serverTurnStartTime
+    }
     
     // Sync consecutive missed turns from server
     if (serverMissedTurns) {
