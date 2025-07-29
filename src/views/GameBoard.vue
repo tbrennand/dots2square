@@ -336,6 +336,13 @@ watch(matchData, (newData, oldData) => {
 
   // Sync timer when the turn starts or current player changes
   if (newData.turnStartedAt !== oldData?.turnStartedAt || newData.currentPlayer !== oldData?.currentPlayer) {
+    console.log('Timer sync triggered:', {
+      turnStartedAt: newData.turnStartedAt,
+      currentPlayer: newData.currentPlayer,
+      oldTurnStartedAt: oldData?.turnStartedAt,
+      oldCurrentPlayer: oldData?.currentPlayer
+    })
+    
     if (newData.turnStartedAt?.toDate) {
       syncTimerWithServer(
         newData.turnStartedAt.toDate(), 

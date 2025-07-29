@@ -273,7 +273,14 @@ export function useTurnTimer(
 
   // Sync timer with server data
   const syncTimerWithServer = (serverTurnStartTime: Date | null, serverDuration: number = 30, serverMissedTurns?: Record<string, number>) => {
+    console.log('Syncing timer with server:', {
+      serverTurnStartTime,
+      serverDuration,
+      serverMissedTurns
+    })
+    
     if (!serverTurnStartTime) {
+      console.log('No server turn start time - stopping timer')
       stopTimer()
       return
     }
@@ -281,6 +288,14 @@ export function useTurnTimer(
     const now = new Date()
     const elapsed = (now.getTime() - serverTurnStartTime.getTime()) / 1000
     const remaining = Math.max(0, serverDuration - elapsed)
+    
+    console.log('Timer sync calculation:', {
+      now: now.toISOString(),
+      serverTurnStartTime: serverTurnStartTime.toISOString(),
+      elapsed,
+      remaining,
+      serverDuration
+    })
     
     turnDuration.value = serverDuration
     timeRemaining.value = remaining
@@ -300,6 +315,8 @@ export function useTurnTimer(
     if (timer.value) {
       clearInterval(timer.value)
     }
+    
+    console.log('Starting synchronized timer with remaining time:', remaining)
     
     // Start synchronized timer that's based on server time, not client time
     timer.value = setInterval(() => {
