@@ -242,39 +242,10 @@ const formatDate = (date: Date): string => {
 
 // Event handlers
 const handlePlayAgain = async () => {
-  if (!props.isMultiplayer) {
-    // For AI game, just emit an event to the parent
-    emit('play-again')
-    return
-  }
-
-  if (!matchData.value) {
-    console.error('No match data available for rematch')
-    return
-  }
-
-  isCreatingMatch.value = true
-
-  try {
-    // Create new match with same players
-    const newMatchId = await createMatch({
-      player1Id: matchData.value.player1.id,
-      player1Name: matchData.value.player1.name,
-      gridSize: matchData.value.gridSize || 5,
-      isPublic: matchData.value.isPublic || true,
-      maxPlayers: matchData.value.maxPlayers || 2
-    })
-
-    console.log('New match created:', newMatchId)
-    
-    // Navigate to the new match
-    router.push(`/match/${newMatchId}`)
-  } catch (error) {
-    console.error('Error creating rematch:', error)
-    // TODO: Show error message to user
-  } finally {
-    isCreatingMatch.value = false
-  }
+  // Always emit the event to the parent component.
+  // The parent (GameBoard.vue) will handle the specific logic
+  // for either AI or multiplayer restart.
+  emit('play-again')
 }
 
 const handleGoHome = () => {
