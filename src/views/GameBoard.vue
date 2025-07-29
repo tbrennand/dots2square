@@ -562,20 +562,42 @@ onUnmounted(() => {
 // --- ACTIONS ---
 const handleRestart = async () => {
     if (isMultiplayer.value) {
-        // For multiplayer, create a new match with the same opponent
-        if (matchData.value?.player1 && matchData.value?.player2) {
-            const newMatchId = await createMatch({
-                player1Id: matchData.value.player1.id,
-                player1Name: matchData.value.player1.name,
-                gridSize: finalGridSize.value,
-            });
-            // The creator of the new match navigates to the new lobby
-            router.push(`/lobby/${newMatchId}`);
-        } else {
-            console.error("Cannot restart multiplayer game: player data is missing.");
-            // Fallback to home if player data is incomplete
+        if (!matchId.value || !matchData.value?.squares) {
+            console.error("Cannot restart multiplayer game: essential data is missing.");
             router.push('/');
+            return;
         }
+
+        // For multiplayer, reset the current match document to its initial state
+        const matchRef = doc(db, 'matches', matchId.value);
+
+        // Create a fresh set of squares with no player assigned
+        const resetSquares = matchData.value.squares.map(sq => ({
+            id: sq.id,
+            corners: sq.corners,
+            topLeftX: sq.topLeftX,
+            topLeftY: sq.topLeftY,
+            player: undefined // Reset the player
+        }));
+        
+        const updatePayload = {
+            lines: [],
+            squares: resetSquares,
+            scores: { 1: 0, 2: 0 },
+            currentPlayer: 1,
+            currentPlayerId: matchData.value.player1?.id,
+            status: 'active',
+            gameOver: false,
+            winner: null,
+            winnerId: null,
+            gameEndReason: null,
+            consecutiveMissedTurns: {},
+            turnStartedAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        };
+
+        await updateDoc(matchRef, updatePayload);
+        // The UI will reactively update for both players.
     } else {
         // For AI mode, just reset the local state
         localDrawnLines.value = []
