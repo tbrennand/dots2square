@@ -17,7 +17,8 @@
         <div v-else-if="winner" class="winner-result">
           <div class="winner-icon">🏆</div>
           <h2 class="winner-text">{{ getWinnerName() }} Wins!</h2>
-          <p class="winner-description">Congratulations on your victory!</p>
+          <p v-if="isForfeitGame" class="winner-description">{{ getForfeitMessage() }}</p>
+          <p v-else class="winner-description">Congratulations on your victory!</p>
         </div>
         <div v-else class="no-winner">
           <div class="no-winner-icon">❓</div>
@@ -213,6 +214,20 @@ const getWinnerName = (): string => {
   if (winner.value === 'tie') return 'Both Players'
   if (winner.value) return getPlayerName(winner.value)
   return 'Unknown'
+}
+
+const isForfeitGame = computed(() => {
+  return matchData.value?.gameEndReason === 'turn_timeout'
+})
+
+const getForfeitMessage = (): string => {
+  if (!isForfeitGame.value || !winner.value) return ''
+  
+  // Get the name of the player who forfeited (the loser)
+  const forfeitedPlayerNumber = winner.value === 1 ? 2 : 1
+  const forfeitedPlayerName = getPlayerName(forfeitedPlayerNumber)
+  
+  return `${forfeitedPlayerName} has forfeited the match as they missed three goes`
 }
 
 const formatDate = (date: Date): string => {

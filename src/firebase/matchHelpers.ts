@@ -134,7 +134,7 @@ export async function createMatch(options: CreateMatchOptions): Promise<string> 
       },
       // New fields for timer and forfeits
       turnStartedAt: serverTimestamp(),
-      turnDuration: 10, // 10 seconds for testing (change back to 30 for production)
+      turnDuration: 30, // 30 seconds for production
       consecutiveMissedTurns: {
         [player1Id]: 0,
       },

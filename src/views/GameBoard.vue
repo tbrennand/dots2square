@@ -128,6 +128,9 @@
           <button @click="handlePlay" class="warning-btn warning-btn-play">Play</button>
           <button @click="handleQuit" class="warning-btn warning-btn-quit">Quit</button>
         </div>
+        <div v-else class="warning-dismiss">
+          <button @click="dismissWarning" class="warning-btn warning-btn-dismiss">Dismiss</button>
+        </div>
       </div>
     </div>
   </div>
@@ -339,8 +342,9 @@ const { timeRemaining, isTimerActive, startTimer, syncTimerWithServer } = useTur
 
 // --- WATCHERS & LIFECYCLE ---
 watch(timeRemaining, (newTime) => {
-  // Play countdown sound at 5 seconds
-  if (isMultiplayer.value && newTime > 4.9 && newTime <= 5) {
+  // Play countdown sound every second in the last 5 seconds
+  if (isMultiplayer.value && newTime <= 5 && newTime > 0 && Math.ceil(newTime) === Math.floor(newTime)) {
+    console.log('Playing countdown sound at:', Math.ceil(newTime), 'seconds remaining')
     playSound('countdown')
   }
 })
@@ -353,7 +357,7 @@ watch(matchData, (newData, oldData) => {
     if (newData.turnStartedAt?.toDate) {
       syncTimerWithServer(
         newData.turnStartedAt.toDate(), 
-        newData.turnDuration || 10,
+        newData.turnDuration || 30,
         newData.consecutiveMissedTurns
       )
     }
@@ -543,25 +547,28 @@ onMounted(async () => {
 
   // Listen for turn timer events
   turnTimerEvents.on('turnWarning', (payload: any) => {
+    console.log('Received turn warning:', payload)
     turnWarningMessage.value = payload.message
     showWarningActions.value = payload.showActions // Update the reactive property
     
-    // Clear any existing timeout
+    // Clear any existing timeout - don't auto-hide, let user dismiss
     if (warningTimeout.value) {
       clearTimeout(warningTimeout.value)
+      warningTimeout.value = null
     }
     
-    // Auto-hide after 3 seconds
-    warningTimeout.value = setTimeout(() => {
-      turnWarningMessage.value = ''
-      showWarningActions.value = false // Reset the reactive property
-    }, 3000)
+    // Don't auto-hide - keep warning on screen until user dismisses
+    console.log('Warning displayed:', {
+      message: payload.message,
+      showActions: payload.showActions,
+      currentPlayerId: currentPlayerId.value
+    })
   })
 
   turnTimerEvents.on('gameOverByTimeout', (payload: any) => {
-    const winnerName = payload.winner === 1 ? player1Name.value : player2Name.value
-    turnWarningMessage.value = `${winnerName} wins by timeout! The other player missed 3 turns.`
-    // After a delay, the standard game over screen will appear from Firestore update
+    console.log('Game over by timeout - no popup needed, completion screen will show')
+    // Don't show popup - let the completion screen handle it
+    // The completion screen will show the forfeit message
   })
 })
 
@@ -608,10 +615,12 @@ const handlePass = () => {
   showWarningActions.value = false // Hide actions when passing
   if (warningTimeout.value) {
     clearTimeout(warningTimeout.value)
+    warningTimeout.value = null
   }
-  warningTimeout.value = setTimeout(() => {
+  // Auto-hide the pass message after 2 seconds
+  setTimeout(() => {
     turnWarningMessage.value = ''
-  }, 3000)
+  }, 2000)
 }
 
 const handlePlay = () => {
@@ -621,10 +630,12 @@ const handlePlay = () => {
   showWarningActions.value = false // Hide actions when playing
   if (warningTimeout.value) {
     clearTimeout(warningTimeout.value)
+    warningTimeout.value = null
   }
-  warningTimeout.value = setTimeout(() => {
+  // Auto-hide the play message after 2 seconds
+  setTimeout(() => {
     turnWarningMessage.value = ''
-  }, 3000)
+  }, 2000)
 }
 
 const handleQuit = () => {
@@ -636,10 +647,21 @@ const handleQuit = () => {
   showWarningActions.value = false // Hide actions when quitting
   if (warningTimeout.value) {
     clearTimeout(warningTimeout.value)
+    warningTimeout.value = null
   }
   warningTimeout.value = setTimeout(() => {
     turnWarningMessage.value = ''
   }, 3000)
+}
+
+const dismissWarning = () => {
+  console.log('Dismissing warning')
+  turnWarningMessage.value = ''
+  showWarningActions.value = false
+  if (warningTimeout.value) {
+    clearTimeout(warningTimeout.value)
+    warningTimeout.value = null
+  }
 }
 </script>
 
@@ -1126,6 +1148,23 @@ const handleQuit = () => {
   background: #b91c1c;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
+}
+
+.warning-dismiss {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.warning-btn-dismiss {
+  background: #6b7280;
+  color: white;
+}
+
+.warning-btn-dismiss:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(107, 114, 128, 0.4);
 }
 
 @keyframes modal-fade-in {

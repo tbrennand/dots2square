@@ -26,7 +26,7 @@ export function useTurnTimer(
   // Timer state
   const timer = ref<NodeJS.Timeout | null>(null)
   const turnStartTime = ref<Date | null>(null)
-  const turnDuration = ref(10) // 10 seconds for testing (change back to 30 for production)
+  const turnDuration = ref(30) // 30 seconds for production
   const timeRemaining = ref(turnDuration.value)
   const isTimerActive = ref(false)
   const consecutiveMissedTurns = ref<Record<string, number>>({})
@@ -40,7 +40,7 @@ export function useTurnTimer(
   })
 
   // Start the turn timer
-  const startTimer = (playerId: string, duration: number = 10) => {
+  const startTimer = (playerId: string, duration: number = 30) => {
     stopTimer() // Clear any existing timer
     
     turnDuration.value = duration
@@ -306,7 +306,7 @@ export function useTurnTimer(
   }
 
   // Sync timer with server data
-  const syncTimerWithServer = (serverTurnStartTime: Date | null, serverDuration: number = 10, serverMissedTurns?: Record<string, number>) => {
+  const syncTimerWithServer = (serverTurnStartTime: Date | null, serverDuration: number = 30, serverMissedTurns?: Record<string, number>) => {
     if (!serverTurnStartTime) {
       stopTimer()
       return
