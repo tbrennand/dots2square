@@ -139,6 +139,7 @@ import { useSound } from '@/composables/useSound' // Import the sound composable
 import { getRandomFunnyName } from '@/utils/nameGenerator' // Import the name generator
 import type { Line, Square } from '@/types'
 import { db } from '@/firebase'
+import { createMatch } from '@/firebase/matchHelpers'
 
 const props = withDefaults(defineProps<{
   mode: 'ai' | 'multiplayer',
@@ -561,17 +562,28 @@ onUnmounted(() => {
 // --- ACTIONS ---
 const handleRestart = async () => {
     if (isMultiplayer.value) {
-        await updateDoc(doc(db, 'matches', route.params.id as string), {
-            lines: [], squares: [], scores: { 1: 0, 2: 0 },
-            currentPlayer: 1, status: 'active', winnerId: null
-        })
+        // For multiplayer, create a new match with the same opponent
+        if (matchData.value?.player1 && matchData.value?.player2) {
+            const newMatchId = await createMatch({
+                player1Id: matchData.value.player1.id,
+                player1Name: matchData.value.player1.name,
+                gridSize: finalGridSize.value,
+            });
+            // The creator of the new match navigates to the new lobby
+            router.push(`/lobby/${newMatchId}`);
+        } else {
+            console.error("Cannot restart multiplayer game: player data is missing.");
+            // Fallback to home if player data is incomplete
+            router.push('/');
+        }
     } else {
+        // For AI mode, just reset the local state
         localDrawnLines.value = []
         localClaimedSquares.value = []
         localScores.value = { 1: 0, 2: 0 }
         localCurrentPlayer.value = 1
+        gridKey.value++ // Force re-render of the DotGrid
     }
-    gridKey.value++
 }
 
 const quitGame = () => {
