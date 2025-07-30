@@ -1,293 +1,61 @@
-# Play Move Function
+# `playMove` Function and Turn Logic
 
-This document explains how to use the `playMove()` function for making moves in the Dots to Squares multiplayer game.
+This document explains the core game logic handled by the `playMove` function and the associated turn management system in Dots2Squares.
 
-## Overview
+## `playMove` Function Overview
 
-The `playMove()` function handles the complete game move logic using Firestore transactions to ensure atomic updates. It includes:
+The `playMove` function is the heart of the game's multiplayer logic. It uses Firestore transactions to ensure that every move is processed atomically, preventing race conditions and ensuring data integrity.
 
-- **Move validation** - Checks if the move is legal
-- **Square detection** - Identifies completed squares
-- **Score updates** - Updates player scores
-- **Turn management** - Handles turn switching
-- **Game completion** - Determines winners and game end
+### Key Responsibilities:
+- **Move Validation**: Checks if a move is legal (e.g., not a diagonal line, not already taken).
+- **Square Detection**: Identifies if a move completes one or more squares.
+- **Score Updates**: Updates the scores for the players.
+- **Turn Management**: Handles turn switching and extra turns.
+- **Game Completion**: Determines the winner when all squares are claimed.
+- **Timer and Missed Turn Reset**: Resets the turn timer and the consecutive missed turns counter for the player who made the move.
 
-## Function Signature
-
+### Function Signature
 ```typescript
 async function playMove(
   matchId: string,
   playerId: string,
-  line: MoveLine
+  line: { startDot: string; endDot: string }
 ): Promise<PlayMoveResult>
 ```
 
-### Parameters
-
-- **`matchId`** - The ID of the match to play in
-- **`playerId`** - The ID of the player making the move
-- **`line`** - The line to draw (using dot IDs)
-
 ### Return Value
-
 ```typescript
 interface PlayMoveResult {
-  success: boolean
-  squaresClaimed: number
-  gameCompleted: boolean
-  winner?: number | 'tie' | null
-  error?: string
+  success: boolean;
+  squaresClaimed: number;
+  gameCompleted: boolean;
+  winner?: number | 'tie' | null;
+  error?: string;
 }
 ```
 
-## MoveLine Interface
+## Turn Management and Timer
 
-```typescript
-interface MoveLine {
-  startDot: string  // Format: "x-y" (e.g., "0-0")
-  endDot: string    // Format: "x-y" (e.g., "1-0")
-}
-```
+The game's turn logic is designed to be fair, responsive, and to keep the game moving.
 
-## Usage Examples
+### Turn Switching
+- **No Squares Claimed**: If a player makes a move that does not complete a square, the turn automatically switches to the other player.
+- **Squares Claimed**: If a player's move completes one or more squares, they get to take another turn.
 
-### Basic Move
+### Turn Timer and Three-Strikes Rule
+- **30-Second Timer**: Each player has 30 seconds to make a move. This timer is synchronized across both players' devices using a server timestamp.
+- **Timer Reset**: When a player successfully makes a move, the `turnStartedAt` field in the Firestore document is updated to the current server time, which automatically resets the timer for the next turn.
+- **Resetting Missed Turns**: In addition to resetting the timer, the `playMove` function also resets the `consecutiveMissedTurns` counter for the player who made the move. This ensures that a player is only penalized for consecutive inactivity.
+- **Forfeiting**: If a player misses three consecutive turns, they forfeit the game.
 
-```typescript
-import { playMove } from '../firebase/matchHelpers'
+## Data Flow and UI Updates
 
-const move = {
-  startDot: '0-0',
-  endDot: '1-0'
-}
+The `playMove` function is designed to work seamlessly with the reactive nature of the frontend.
 
-const result = await playMove('match-id-123', 'player-id', move)
+1.  **User Action**: A player clicks on the grid in `DotGrid.vue`, which emits a `line-selected` event.
+2.  **Function Call**: `GameBoard.vue` receives this event and calls the `playMove` function with the appropriate `matchId`, `playerId`, and `line` data.
+3.  **Firestore Transaction**: `playMove` executes a Firestore transaction that updates the match document with the new line, any new squares, the updated scores, and the new `turnStartedAt` timestamp.
+4.  **Real-Time Sync**: Because both players are subscribed to the match document, Firestore automatically pushes the updated data to both clients.
+5.  **Reactive UI Update**: The Vue components react to the new data, and the UI updates instantly to show the new line, the updated scores, and the reset timer.
 
-if (result.success) {
-  console.log(`Claimed ${result.squaresClaimed} squares`)
-  if (result.gameCompleted) {
-    console.log(`Game over! Winner: ${result.winner}`)
-  }
-} else {
-  console.error(`Move failed: ${result.error}`)
-}
-```
-
-### In a Vue Component
-
-```vue
-<script setup>
-import { ref } from 'vue'
-import { playMove, type MoveLine } from '../firebase/matchHelpers'
-
-const isMakingMove = ref(false)
-const lastResult = ref(null)
-
-async function handleMove(startDot: string, endDot: string) {
-  isMakingMove.value = true
-  
-  try {
-    const move: MoveLine = { startDot, endDot }
-    const result = await playMove(matchId, playerId, move)
-    
-    lastResult.value = result
-    
-    if (result.success) {
-      // Handle successful move
-      console.log(`Claimed ${result.squaresClaimed} squares`)
-    } else {
-      // Handle error
-      console.error(result.error)
-    }
-  } catch (error) {
-    console.error('Move failed:', error)
-  } finally {
-    isMakingMove.value = false
-  }
-}
-</script>
-```
-
-## Move Validation Rules
-
-The function validates moves according to these rules:
-
-### 1. Player Validation
-- Player must be in the match
-- Must be player's turn
-- Game must be active (not waiting, completed, or cancelled)
-
-### 2. Line Validation
-- Line must connect adjacent dots (horizontal or vertical)
-- Line coordinates must be within grid bounds
-- Line must not already exist
-
-### 3. Game State Validation
-- Game must not be completed
-- Match must exist
-
-## Game Logic
-
-### Square Detection
-When a line is drawn, the function checks if any squares are completed:
-
-```typescript
-// Example: Drawing the last line of a square
-const move = { startDot: '0-0', endDot: '0-1' }
-// If lines (0,0)-(1,0), (1,0)-(1,1), (0,1)-(1,1) already exist
-// This move completes the square (0,0)-(1,1)
-```
-
-### Turn Management
-- **No squares claimed**: Turn switches to other player
-- **Squares claimed**: Player gets another turn
-
-### Score Updates
-- Each completed square gives 1 point to the player
-- Scores are updated atomically in the transaction
-
-### Game Completion
-- Game ends when all squares are claimed
-- Winner is determined by highest score
-- Ties are handled appropriately
-
-## Error Handling
-
-The function returns detailed error messages:
-
-```typescript
-// Common error scenarios
-const errors = {
-  'Match not found': 'Match ID is invalid',
-  'Not your turn': 'Player tried to move out of turn',
-  'Game is not active': 'Match is in waiting or completed state',
-  'Game is already completed': 'Game has already ended',
-  'Line already exists': 'Line has already been drawn',
-  'Player not found in match': 'Player is not part of this match',
-  'Line coordinates are out of bounds': 'Invalid dot coordinates',
-  'Line must be horizontal or vertical': 'Diagonal lines not allowed',
-  'Horizontal line must connect adjacent dots': 'Invalid horizontal move',
-  'Vertical line must connect adjacent dots': 'Invalid vertical move'
-}
-```
-
-## Integration with Match Subscription
-
-Combine with the match subscription system for real-time updates:
-
-```vue
-<script setup>
-import { playMove } from '../firebase/matchHelpers'
-import { useMatchSubscription } from '../composables/useMatchSubscription'
-
-const { match, isActive, currentPlayer } = useMatchSubscription('match-id')
-
-async function makeMove(startDot: string, endDot: string) {
-  // Check if it's player's turn
-  if (currentPlayer.value !== getPlayerNumber()) {
-    console.log('Not your turn')
-    return
-  }
-  
-  const result = await playMove('match-id', 'player-id', {
-    startDot,
-    endDot
-  })
-  
-  // The subscription will automatically update with the new state
-  // No need to manually refresh
-}
-</script>
-```
-
-## Transaction Safety
-
-The function uses Firestore transactions to ensure:
-
-- **Atomicity**: All updates happen together or not at all
-- **Consistency**: Game state remains valid
-- **Isolation**: Concurrent moves are handled safely
-- **Durability**: Changes are persisted reliably
-
-## Performance Considerations
-
-- Transactions are fast for small datasets
-- Consider batching multiple moves if needed
-- Monitor transaction retries for high-concurrency scenarios
-
-## Testing
-
-The function includes comprehensive validation and error handling:
-
-```typescript
-// Test different scenarios
-const testCases = [
-  { startDot: '0-0', endDot: '1-0', expected: 'valid' },
-  { startDot: '0-0', endDot: '2-0', expected: 'invalid - not adjacent' },
-  { startDot: '0-0', endDot: '1-1', expected: 'invalid - diagonal' },
-  { startDot: '0-0', endDot: '1-0', expected: 'invalid - already exists' }
-]
-```
-
-## Best Practices
-
-### 1. Always Check Results
-```typescript
-const result = await playMove(matchId, playerId, move)
-if (!result.success) {
-  // Handle error appropriately
-  showError(result.error)
-  return
-}
-```
-
-### 2. Handle Loading States
-```vue
-<template>
-  <button 
-    @click="makeMove" 
-    :disabled="isMakingMove || !canMove"
-  >
-    {{ isMakingMove ? 'Making Move...' : 'Make Move' }}
-  </button>
-</template>
-```
-
-### 3. Validate Before Sending
-```typescript
-function validateMoveLocally(startDot: string, endDot: string): boolean {
-  // Basic validation before calling playMove
-  const [startX, startY] = startDot.split('-').map(Number)
-  const [endX, endY] = endDot.split('-').map(Number)
-  
-  const isAdjacent = Math.abs(endX - startX) + Math.abs(endY - startY) === 1
-  const isHorizontalOrVertical = startX === endX || startY === endY
-  
-  return isAdjacent && isHorizontalOrVertical
-}
-```
-
-### 4. Use with Real-time Updates
-```typescript
-// The subscription will automatically reflect changes
-const { match } = useMatchSubscription(matchId)
-
-// After a successful move, the UI updates automatically
-watch(() => match.value?.scores, (newScores) => {
-  updateScoreDisplay(newScores)
-})
-```
-
-## Complete Example
-
-See `src/components/PlayMoveExample.vue` for a complete working example that demonstrates:
-
-- ✅ Real-time game state display
-- ✅ Move validation and input
-- ✅ Visual game board representation
-- ✅ Score tracking
-- ✅ Turn management
-- ✅ Error handling
-- ✅ Loading states
-
-This provides a complete foundation for implementing game moves in your Dots to Squares multiplayer game. 
+This reactive loop ensures that the game state is always synchronized and that players see the results of their actions—and their opponent's actions—in real time. 
